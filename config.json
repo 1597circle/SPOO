@@ -1,0 +1,7 @@
+{
+  "_comment": "매년 이 파일 값만 갱신하면 됩니다. index.html 안의 텍스트를 직접 찾아 고칠 필요 없습니다.",
+  "applyPeriod": { "start": "2026-11-10", "end": "2026-11-28" },
+  "paymentDeadline": "2026-12-10",
+  "dataUpdatedAt": "2026-07",
+  "regionCount": 229
+}
