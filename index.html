@@ -1489,7 +1489,7 @@ async function getRegionFacilities(code){
   if(facilitiesByRegion[key]) return facilitiesByRegion[key]; // 이미 캐시됨
 
   if(!facilitiesFetchCache[code]){
-    facilitiesFetchCache[code] = fetch(`facilities/${code}.json`)
+    facilitiesFetchCache[code] = fetch(`${code}.json`)
       .then(r => r.ok ? r.json() : [])
       .catch(() => []);
   }
