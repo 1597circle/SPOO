@@ -2670,10 +2670,10 @@ function onRegionClick(code, row){
   currentPanelIncludingNeighbors = null; // 필요할 때만 계산 (아래)
 
   // ---- 옆동네 시설 표시 (기능1) ----
-  // 우리 동네 시설이 LOW_FACILITY_THRESHOLD개 이하면, 인접 시군구 시설도 함께 보여줄 수 있게 준비합니다.
+  // 시설 개수와 상관없이 항상 인접 시군구(진짜 이웃 동네) 시설을 함께 볼 수 있는 옵션을 제공합니다.
   let neighborSectionHtml = '';
   const neighborEntry = neighborMap[code];
-  if(facilities.length <= LOW_FACILITY_THRESHOLD && neighborEntry && neighborEntry.neighbors.length){
+  if(neighborEntry && neighborEntry.neighbors.length){
     const neighborList = neighborEntry.neighbors.map(n=>{
       const nKey = n.sido + '|' + n.name;
       const nFacilities = facilitiesByRegion[nKey] || [];
@@ -2688,10 +2688,15 @@ function onRegionClick(code, row){
       const rowsHtml = neighborList.map(n=>
         `<div class="neighbor-row"><span>${n.name}</span><span>${n.facilities.length}개</span></div>`
       ).join('');
+      const isLow = facilities.length <= LOW_FACILITY_THRESHOLD;
+      const titleHtml = isLow
+        ? `📍 우리 동네엔 ${facilities.length}개 뿐이지만...`
+        : `📍 이웃 동네도 함께 볼까요?`;
+      const subHtml = isLow ? `옆 동네까지 합치면 훨씬 많아요` : `${neighborList.map(n=>n.name).join(', ')} 시설도 같이 보여드려요`;
       neighborSectionHtml = `
         <div class="neighbor-box">
-          <div class="neighbor-title">📍 우리 동네엔 ${facilities.length}개 뿐이지만...</div>
-          <div class="neighbor-sub">옆 동네까지 합치면 훨씬 많아요</div>
+          <div class="neighbor-title">${titleHtml}</div>
+          <div class="neighbor-sub">${subHtml}</div>
           ${rowsHtml}
           <button class="neighbor-toggle-btn" id="neighborToggleBtn" onclick="toggleNeighborFacilities()">
             옆 동네 포함 총 ${facilities.length + neighborTotal}개 시설 보기 →
