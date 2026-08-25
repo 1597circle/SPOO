@@ -1248,8 +1248,11 @@ let voucherData = {};
 let allSportTypesGlobal = new Set(); // 전국 종목 목록 (추천 기능의 종목 선택용)
 let neighborMap = {};    // 인접시군구_매핑.json — 옆동네 시설 표시 기능에 사용
 const LOW_FACILITY_THRESHOLD = 13;  // 이 개수 이하면 "옆동네도 함께 보기"를 자동으로 제안
-let facilitiesByRegion = {};
-let allFacilitiesFlat = []; // 5-3 「시설 운영자」 - 시설명으로 전국 검색할 때 사용
+let facilitiesByRegion = {}; // 지역별 시설 캐시 — getRegionFacilities()로 그때그때 채워짐 (더 이상 초기에 전부 로드하지 않음)
+let facilityCounts = {}; // code -> 시설 개수만 (작은 파일, 초기 로드) — 개수만 필요한 화면에서 사용
+let facilityNameIndex = []; // 전국 시설 이름 검색용 경량 인덱스 (name/sido/sgg/addr만, 초기 로드)
+let regionPopulation = {}; // 5-2 「지역 현황 보기」② 비슷한 규모 지역 비교 — 시군구별 전체 인구(KOSIS)
+let facilitiesFetchCache = {}; // code -> Promise, 같은 지역 중복 fetch 방지
 let coursesByFacility = {};   // 강좌 데이터 (없으면 빈 상태로 시작, 나중에 courses.csv 추가하면 자동 반영)
 let currentGroup = null;  // 처음엔 그룹 미선택 상태 — 버튼을 눌러야 지도에 색이 칠해집니다
 let polygons = [];
@@ -1264,6 +1267,7 @@ let currentPanelCode = null;
 let currentPanelFacilities = [];
 let currentPanelOwnOnly = [];
 let currentPanelIncludingNeighbors = null;
+let currentPanelNeighborCodes = []; // toggleNeighborFacilities에서 지연 fetch할 이웃 지역 코드 목록
 
 // 분석에서 확인된 "양쪽 그룹 모두 저조" 최우선 지역 10곳 (정식 시도명 일부로 매칭 — 동명 지역 오매칭 방지)
 const TOP10_PRIORITY = [
@@ -1474,6 +1478,24 @@ async function loadCSV(path){
   });
 }
 
+// 지역별 시설 데이터를 그때그때 불러옵니다 (facilities/{code}.json, 지역당 평균 수십KB).
+// 같은 지역을 여러 화면(시설찾기/지역현황/시설운영자)에서 다시 열어도 한 번만 fetch하도록 캐시합니다.
+async function getRegionFacilities(code){
+  const row = voucherData[code];
+  if(!row) return [];
+  const key = row.sido + '|' + row.region;
+  if(facilitiesByRegion[key]) return facilitiesByRegion[key]; // 이미 캐시됨
+
+  if(!facilitiesFetchCache[code]){
+    facilitiesFetchCache[code] = fetch(`facilities/${code}.json`)
+      .then(r => r.ok ? r.json() : [])
+      .catch(() => []);
+  }
+  const rows = await facilitiesFetchCache[code];
+  facilitiesByRegion[key] = rows;
+  return rows;
+}
+
 // courses.csv(약 14MB)는 필수 데이터가 아니라서 화면이 뜬 뒤 브라우저가 한가할 때 불러옵니다.
 // 시설명만으로 연결하면 동명 시설(예: "해동검도" 전국 45곳)에 엉뚱한 강좌가 붙는 문제가 있어서,
 // "시설명+시군구"를 합친 키로 연결합니다. (courses.csv에 sgg 컬럼이 없으면 이름만으로 대체 — 하위호환)
@@ -1520,9 +1542,8 @@ loadConfigAndApply();
 
 async function init(){
   try{
-    const [voucherRows, facilityRows, geo] = await Promise.all([
+    const [voucherRows, geo] = await Promise.all([
       loadCSV('voucher_data.csv'),
-      loadCSV('voucher_facilities.csv'),
       fetch('sigungu_simplified.json').then(r=>r.json())
     ]);
 
@@ -1533,16 +1554,36 @@ async function init(){
       console.log('인접시군구_매핑.json 없음 — 옆동네 시설 표시 기능 없이 진행');
     }
 
-    voucherRows.forEach(r=>{ voucherData[r.code] = r; });
+    // 「지역 현황 보기」 ② 비슷한 규모 지역과 비교 — 시군구별 전체 인구(KOSIS). 없어도 사이트는 정상 작동
+    try{
+      regionPopulation = await fetch('region_population.json').then(r=>r.json());
+    }catch(e){
+      console.log('region_population.json 없음 — 비슷한 규모 지역 비교 없이 진행');
+    }
 
-    facilityRows.forEach(r=>{
-      const key = r.sido + '|' + r.sgg;
-      if(!facilitiesByRegion[key]) facilitiesByRegion[key] = [];
-      facilitiesByRegion[key].push(r);
-      allFacilitiesFlat.push(r);
-      (r.type||'').split(',').map(t=>t.trim()).filter(Boolean).forEach(t=>allSportTypesGlobal.add(t));
-    });
+    // 시설 데이터(voucher_facilities.csv, 3.7MB)는 더 이상 통째로 미리 불러오지 않습니다.
+    // 대신 ①지역별로 쪼갠 파일(facilities/{code}.json)을 실제로 그 지역을 볼 때만 불러오고,
+    // ②"개수"만 필요한 화면(담당자용, 즐겨찾기 비교, 옆동네 미리보기)은 아주 작은 facility_counts.json으로,
+    // ③"이름으로 전국 검색"은 이름·주소만 담은 경량 인덱스(facility_names_index.json)로 대체합니다.
+    try{
+      facilityCounts = await fetch('facility_counts.json').then(r=>r.json());
+    }catch(e){
+      console.log('facility_counts.json 없음 — 시설 개수 표시가 제한될 수 있어요');
+    }
+    try{
+      facilityNameIndex = await fetch('facility_names_index.json').then(r=>r.json());
+    }catch(e){
+      console.log('facility_names_index.json 없음 — 시설 이름 검색 없이 진행');
+    }
+    try{
+      const sportTypes = await fetch('sport_types.json').then(r=>r.json());
+      sportTypes.forEach(t=>allSportTypesGlobal.add(t));
+    }catch(e){
+      console.log('sport_types.json 없음 — 종목 필터 목록이 비어있을 수 있어요');
+    }
     populateSportSelect();
+
+    voucherRows.forEach(r=>{ voucherData[r.code] = r; });
 
     computeThresholds();
     computeRanks();
@@ -1692,8 +1733,7 @@ function toggleCompareFavorites(){
   const rows = favs.map(code=>{
     const row = voucherData[code];
     if(!row) return null;
-    const key = row.sido + '|' + row.region;
-    const facCount = (facilitiesByRegion[key] || []).length;
+    const facCount = facilityCounts[code] ?? 0;
     return {
       code, name: `${row.sido} ${row.region}`,
       sPct: parseFloat(row.s_pct)||0, nPct: parseFloat(row.n_pct)||0,
@@ -1896,11 +1936,22 @@ function showMoreFacilities(){
   onFilterChange();
 }
 
-// 옆동네 시설 포함 보기 토글 (기능1)
-function toggleNeighborFacilities(){
+// 옆동네 시설 포함 보기 토글 (기능1) — 실제로 눌렀을 때만 이웃 지역 데이터를 불러옵니다
+async function toggleNeighborFacilities(){
   const btn = document.getElementById('neighborToggleBtn');
   if(!btn) return;
   facilityListLimit = 5;
+
+  // 아직 이웃 지역 데이터를 안 받아왔으면(처음 누른 경우) 지금 받아옵니다
+  if(!currentPanelIncludingNeighbors){
+    const originalText = btn.textContent;
+    btn.textContent = '불러오는 중...';
+    btn.disabled = true;
+    const neighborFacilitiesArrays = await Promise.all(currentPanelNeighborCodes.map(nc => getRegionFacilities(nc)));
+    currentPanelIncludingNeighbors = currentPanelOwnOnly.concat(...neighborFacilitiesArrays);
+    btn.disabled = false;
+  }
+
   const showingAll = currentPanelFacilities === currentPanelIncludingNeighbors;
   if(showingAll){
     currentPanelFacilities = currentPanelOwnOnly;
@@ -2005,6 +2056,38 @@ const RESPONSE_TEXT = {
   'type-good': { title: '양호', desc: '두 집단 모두 비교적 잘 받고 있는 지역이에요. 다만 실제 미수급 인원이 있는지는 아래 수치로 함께 확인해보세요.' },
 };
 
+// 5-2 ② 비슷한 규모 지역과 비교 — 인구 4구간(5만↓/5~15만/15~50만/50만↑)으로 묶어서
+// "인구 2만 명 농촌이 서울 강남구와 같은 기준으로 비교되는" 문제를 완화. 데이터 없으면 조용히 생략.
+function classifyPopulationBucket(pop){
+  if(pop == null) return null;
+  if(pop <= 50000) return { key:'b1', label:'5만 명 이하' };
+  if(pop <= 150000) return { key:'b2', label:'5~15만 명' };
+  if(pop <= 500000) return { key:'b3', label:'15~50만 명' };
+  return { key:'b4', label:'50만 명 이상' };
+}
+function renderPopulationCompareSection(row){
+  const pop = regionPopulation[row.code];
+  if(pop == null) return ''; // 인구 데이터 없으면 이 섹션 자체를 생략 (다른 기능엔 영향 없음)
+  const bucket = classifyPopulationBucket(pop);
+  const peers = Object.values(voucherData).filter(r => {
+    const p = regionPopulation[r.code];
+    return p != null && classifyPopulationBucket(p).key === bucket.key;
+  });
+  const peerAvgS = peers.reduce((s,r)=> s + parseFloat(r.s_pct), 0) / peers.length;
+  const sortedByS = [...peers].sort((a,b)=> parseFloat(b.s_pct) - parseFloat(a.s_pct));
+  const peerRank = sortedByS.findIndex(r => r.code === row.code) + 1;
+
+  return `
+      <div class="rv-section">
+        <div class="rv-section-title">비슷한 규모 지역과 비교</div>
+        <p style="font-size:12.5px; color:var(--ink-faint); margin:-2px 0 10px;">인구 ${pop.toLocaleString()}명 · "${bucket.label}" 그룹 (${peers.length}곳)과 비교했어요</p>
+        <div class="rv-stat-row">
+          <div class="rv-stat-box"><div class="rv-stat-num">${peerRank}/${peers.length}위</div><div class="rv-stat-label">같은 규모 그룹 내 순위(기초수급)</div></div>
+          <div class="rv-stat-box"><div class="rv-stat-num">${peerAvgS.toFixed(1)}%</div><div class="rv-stat-label">같은 규모 그룹 평균 수급률</div></div>
+        </div>
+      </div>`;
+}
+
 function renderRegionView(code){
   const row = voucherData[code];
   if(!row) return;
@@ -2014,8 +2097,7 @@ function renderRegionView(code){
   const sRank = sRankByCode[code], nRank = nRankByCode[code];
   const totalRegions = Object.keys(voucherData).length;
   const sido = sidoStats[row.sido] || {};
-  const key = row.sido + '|' + row.region;
-  const facCount = (facilitiesByRegion[key] || []).length;
+  const facCount = facilityCounts[code] ?? 0;
   const totalTarget = (Number(row.s_target)||0) + (Number(row.n_target)||0);
   const perFacility = facCount ? (totalTarget / facCount) : null;
 
@@ -2044,6 +2126,8 @@ function renderRegionView(code){
           <div class="rv-stat-box"><div class="rv-stat-num">${sido.count||'-'}개</div><div class="rv-stat-label">${row.sido} 내 시군구 수</div></div>
         </div>
       </div>
+
+      ${renderPopulationCompareSection(row)}
 
       <div class="rv-section">
         <div class="rv-section-title">목표 설정 계산 <span style="font-weight:500; color:var(--ink-faint);">(참고 지표)</span></div>
@@ -2088,8 +2172,7 @@ function downloadRegionDataCSV(){
                    '차상위한부모_대상','차상위한부모_수급','차상위한부모_수급률(%)','차상위한부모_전국순위',
                    '가맹시설수','지역유형'];
   const rows = Object.values(voucherData).map(row=>{
-    const key = row.sido + '|' + row.region;
-    const facCount = (facilitiesByRegion[key] || []).length;
+    const facCount = facilityCounts[row.code] ?? 0;
     const type = classifyRegion(row);
     const info = RESPONSE_TEXT[type.cls];
     return [
@@ -2171,12 +2254,14 @@ function bindFacilityViewSearch(){
 }
 
 // ①②: 우리 지역 잠재 수요(S+N 미수급 합계) · 포화도(시설 1곳당 대상자 수)
-function renderFacilityViewRegion(code){
+async function renderFacilityViewRegion(code){
   const row = voucherData[code];
   if(!row) return;
   fvSelectedCode = code;
-  const key = row.sido + '|' + row.region;
-  const facilities = facilitiesByRegion[key] || [];
+  document.getElementById('fvRegionContent').innerHTML = `<p class="placeholder-msg" style="margin-top:14px;">불러오는 중...</p>`;
+  document.getElementById('fvDiffBox').innerHTML = `<p class="placeholder-msg" style="margin:0;">불러오는 중...</p>`;
+
+  const facilities = await getRegionFacilities(code);
   const facCount = facilities.length;
   const unmet = Math.max(0, (Number(row.s_target)||0) - (Number(row.s_recv)||0))
               + Math.max(0, (Number(row.n_target)||0) - (Number(row.n_recv)||0));
@@ -2196,14 +2281,13 @@ function renderFacilityViewRegion(code){
     </div>` : `<p class="placeholder-msg" style="margin-top:12px;">이 지역은 아직 가맹시설이 없어요.</p>`}
   `;
 
-  renderFacilityDiffBox(code);
+  renderFacilityDiffBox(code, facilities);
 }
 
 // ③: 지역 내 차별화 확인 — 선택한 종목의 가맹시설이 이 지역에 몇 곳인지 (1곳이면 "유일" 안내)
-function renderFacilityDiffBox(code){
+// facilities는 renderFacilityViewRegion에서 이미 fetch한 배열을 그대로 받아 재요청하지 않습니다.
+function renderFacilityDiffBox(code, facilities){
   const row = voucherData[code];
-  const key = row.sido + '|' + row.region;
-  const facilities = facilitiesByRegion[key] || [];
   const typeCount = {};
   facilities.forEach(f=>{
     (f.type||'').split(',').map(t=>t.trim()).filter(Boolean).forEach(t=>{
@@ -2241,7 +2325,7 @@ function renderFacilityDiffBox(code){
       const q = e.target.value.trim();
       const resultsEl = document.getElementById('fvFacilityResults');
       if(q.length < 2){ resultsEl.innerHTML=''; return; }
-      const matches = allFacilitiesFlat.filter(f => (f.name||'').includes(q)).slice(0, 20);
+      const matches = facilityNameIndex.filter(f => (f.name||'').includes(q)).slice(0, 20);
       if(!matches.length){
         resultsEl.innerHTML = `<p class="placeholder-msg" style="margin:0;">일치하는 시설이 없어요.</p>`;
         return;
@@ -2827,7 +2911,7 @@ function goToStepFromPicks(){
   goToStep(3);
 }
 
-function onRegionClick(code, row){
+async function onRegionClick(code, row){
   restorePolygonColors(); // 시설 핀 보느라 지워졌던 지역 색을 다시 보여줍니다
   if(facilityMarker){ facilityMarker.setMap(null); facilityMarker = null; }
   document.getElementById('step2Panel')?.classList.add('has-region'); // 지역 골랐으니 전체화면 검색 → 작은 검색바로
@@ -2835,35 +2919,38 @@ function onRegionClick(code, row){
   const sPct = parseFloat(row.s_pct) || 0;
   const nPct = parseFloat(row.n_pct) || 0;
   const type = classifyRegion(row);
-  const key = row.sido + '|' + row.region;
-  const facilities = (facilitiesByRegion[key] || []);
   const totalRegions = Object.keys(voucherData).length;
   const sRank = sRankByCode[code], nRank = nRankByCode[code];
+
+  // 지역별 시설 데이터를 그때그때 불러옵니다 (지역당 평균 수십KB) — 불러오는 동안 잠깐 로딩 표시
+  const facCard = document.getElementById('regionFacilityCard');
+  if(facCard) facCard.innerHTML = `<p class="placeholder-msg" style="margin-top:20px;">시설 정보를 불러오는 중...</p>`;
+  const facilities = await getRegionFacilities(code);
 
   currentPanelCode = code;
   currentPanelFacilities = facilities;
   facilityListLimit = 5; // 새 지역 선택 시 더보기 목록 초기화
   currentPanelOwnOnly = facilities;
-  currentPanelIncludingNeighbors = null; // 필요할 때만 계산 (아래)
+  currentPanelIncludingNeighbors = null; // "옆 동네 포함 보기"를 실제로 눌렀을 때만 그 지역들을 불러와 계산합니다
+  currentPanelNeighborCodes = []; // toggleNeighborFacilities에서 사용
 
   // ---- 옆동네 시설 표시 (기능1) ----
   // 시설 개수와 상관없이 항상 인접 시군구(진짜 이웃 동네) 시설을 함께 볼 수 있는 옵션을 제공합니다.
+  // 미리보기 개수는 작은 facility_counts.json으로만 계산해서, 실제로 누르기 전까진 이웃 지역 데이터를 받지 않습니다.
   let neighborSectionHtml = '';
   const neighborEntry = neighborMap[code];
   if(neighborEntry && neighborEntry.neighbors.length){
-    const neighborList = neighborEntry.neighbors.map(n=>{
-      const nKey = n.sido + '|' + n.name;
-      const nFacilities = facilitiesByRegion[nKey] || [];
-      return { name:n.name, facilities:nFacilities };
-    }).filter(n=>n.facilities.length>0)
-      .sort((a,b)=> b.facilities.length - a.facilities.length);
+    const neighborList = neighborEntry.neighbors
+      .map(n => ({ code:n.code, name:n.name, count: facilityCounts[n.code] ?? 0 }))
+      .filter(n => n.count > 0)
+      .sort((a,b)=> b.count - a.count);
 
-    const neighborTotal = neighborList.reduce((sum,n)=>sum+n.facilities.length, 0);
+    const neighborTotal = neighborList.reduce((sum,n)=>sum+n.count, 0);
 
     if(neighborList.length){
-      currentPanelIncludingNeighbors = facilities.concat(...neighborList.map(n=>n.facilities));
+      currentPanelNeighborCodes = neighborList.map(n=>n.code);
       const rowsHtml = neighborList.map(n=>
-        `<div class="neighbor-row"><span>${n.name}</span><span>${n.facilities.length}개</span></div>`
+        `<div class="neighbor-row"><span>${n.name}</span><span>${n.count}개</span></div>`
       ).join('');
       const isLow = facilities.length <= LOW_FACILITY_THRESHOLD;
       const titleHtml = isLow
@@ -3021,14 +3108,15 @@ function haversineKm(lat1,lng1,lat2,lng2){
 }
 
 // 우리동네+옆동네에 원하는 종목이 없을 때, 좀 더 멀리(2단계 인접)까지 훑어서
-// 그 종목이 있는 가까운 동네를 찾아 안내 (좌표 변환 없이 즉시 계산 가능)
-function findSportAlternatives(startCode, startRow, sport){
+// 그 종목이 있는 가까운 동네를 찾아 안내
+async function findSportAlternatives(startCode, startRow, sport){
   const visited = new Set([startCode]);
   const found = []; // {code, name, count}
   let frontier = [startCode];
 
   for(let depth = 0; depth < 2 && found.length < 3; depth++){
     const nextFrontier = [];
+    const candidateCodes = [];
     frontier.forEach(code=>{
       const nb = neighborMap[code];
       if(!nb) return;
@@ -3036,10 +3124,14 @@ function findSportAlternatives(startCode, startRow, sport){
         if(visited.has(n.code)) return;
         visited.add(n.code);
         nextFrontier.push(n.code);
-        const key = n.sido + '|' + n.name;
-        const count = (facilitiesByRegion[key] || []).filter(f => (f.type||'').includes(sport)).length;
-        if(count > 0) found.push({ code: n.code, name: `${n.sido} ${n.name}`, count });
+        candidateCodes.push(n);
       });
+    });
+    // 이번 깊이에서 새로 만난 지역들의 시설 데이터를 한 번에 병렬로 불러옵니다
+    const results = await Promise.all(candidateCodes.map(n => getRegionFacilities(n.code)));
+    candidateCodes.forEach((n, i)=>{
+      const count = results[i].filter(f => (f.type||'').includes(sport)).length;
+      if(count > 0) found.push({ code: n.code, name: `${n.sido} ${n.name}`, count });
     });
     frontier = nextFrontier;
   }
@@ -3075,7 +3167,7 @@ function runRecommend(){
   }
   resultEl.innerHTML = `<p class="placeholder-msg">📍 위치 확인 중...</p>`;
 
-  navigator.geolocation.getCurrentPosition(pos=>{
+  navigator.geolocation.getCurrentPosition(async pos=>{
     const userLat = pos.coords.latitude, userLng = pos.coords.longitude;
 
     // 1. 가장 가까운 시군구 찾기 (지역 중심좌표 기준)
@@ -3091,20 +3183,18 @@ function runRecommend(){
     }
     const nearestRow = voucherData[nearestCode];
 
-    // 2. 후보 시설: 그 지역 + 인접 지역 전부
-    const key = nearestRow.sido + '|' + nearestRow.region;
-    let candidates = (facilitiesByRegion[key] || []).slice();
+    // 2. 후보 시설: 그 지역 + 인접 지역 전부 (지역별 파일을 그때그때 병렬로 불러옵니다)
     const nb = neighborMap[nearestCode];
-    if(nb){
-      nb.neighbors.forEach(n=>{
-        const nk = n.sido + '|' + n.name;
-        candidates = candidates.concat(facilitiesByRegion[nk] || []);
-      });
-    }
+    const neighborCodes = nb ? nb.neighbors.map(n=>n.code) : [];
+    const [ownFacilities, ...neighborFacilitiesArrays] = await Promise.all([
+      getRegionFacilities(nearestCode),
+      ...neighborCodes.map(nc => getRegionFacilities(nc))
+    ]);
+    let candidates = ownFacilities.concat(...neighborFacilitiesArrays);
     if(sport){ candidates = candidates.filter(f => (f.type||'').includes(sport)); }
 
     if(candidates.length === 0){
-      resultEl.innerHTML = findSportAlternatives(nearestCode, nearestRow, sport);
+      resultEl.innerHTML = await findSportAlternatives(nearestCode, nearestRow, sport);
       return;
     }
 
