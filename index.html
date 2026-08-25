@@ -1201,6 +1201,10 @@
     <div class="wp-dots" data-page="4"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
     <div id="wpEligibilityResult"></div>
     <div class="wp-question" id="wpGoalTitle" style="font-size:clamp(26px, 5vw, 36px); margin-top:6px;">SPOO에서<br>무엇을 먼저 해볼까요?</div>
+    <button class="wp-choice" id="wpDocGoalBtn" onclick="wpFinish('diagnose')" style="display:none;">
+      <span class="wp-choice-emoji">📋</span>
+      <span class="wp-choice-text"><b>신청 서류 준비하기</b><span>필요한 서류를 미리 체크리스트로 확인</span></span>
+    </button>
     <button class="wp-choice" onclick="wpFinish('facility')">
       <span class="wp-choice-emoji">📍</span>
       <span class="wp-choice-text"><b>우리동네 시설 모아보기</b><span>가까운 스포츠 시설을 강좌·가격까지 한눈에</span></span>
@@ -1208,10 +1212,6 @@
     <button class="wp-choice" onclick="wpFinish('rank')">
       <span class="wp-choice-emoji">🏆</span>
       <span class="wp-choice-text"><b>우리동네 전국 순위 알아보기</b><span>수급률이 전국 몇 등인지 바로 확인</span></span>
-    </button>
-    <button class="wp-choice" id="wpDocGoalBtn" onclick="wpFinish('diagnose')" style="display:none;">
-      <span class="wp-choice-emoji">📋</span>
-      <span class="wp-choice-text"><b>신청 서류 준비하기</b><span>필요한 서류를 미리 체크리스트로 확인</span></span>
     </button>
   </div>
 
@@ -3509,7 +3509,7 @@ window.addEventListener('load', ()=>{
       pre.classList.add('hide');
       setTimeout(()=> pre.remove(), 500);
     }
-  }, 3000);
+  }, 2000);
 
   initOnboarding();
   registerServiceWorker();
