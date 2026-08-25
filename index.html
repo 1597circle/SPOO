@@ -881,6 +881,7 @@
   <h1>🏃 SPOO <span>· 우리 아이 스포츠강좌 지원받기</span></h1>
   <div style="display:flex; align-items:center; gap:14px;">
     <span class="header-link" onclick="openRegionView()">📊 지역 현황이 궁금하신가요?</span>
+    <span class="header-link" onclick="openFacilityView()">🏢 시설을 운영하고 계신가요?</span>
     <span class="tag" id="headerConfigTag">전국 229개 지역 · 2025.7 기준</span>
   </div>
 </header>
@@ -1248,6 +1249,7 @@ let allSportTypesGlobal = new Set(); // 전국 종목 목록 (추천 기능의 �
 let neighborMap = {};    // 인접시군구_매핑.json — 옆동네 시설 표시 기능에 사용
 const LOW_FACILITY_THRESHOLD = 13;  // 이 개수 이하면 "옆동네도 함께 보기"를 자동으로 제안
 let facilitiesByRegion = {};
+let allFacilitiesFlat = []; // 5-3 「시설 운영자」 - 시설명으로 전국 검색할 때 사용
 let coursesByFacility = {};   // 강좌 데이터 (없으면 빈 상태로 시작, 나중에 courses.csv 추가하면 자동 반영)
 let currentGroup = null;  // 처음엔 그룹 미선택 상태 — 버튼을 눌러야 지도에 색이 칠해집니다
 let polygons = [];
@@ -1537,6 +1539,7 @@ async function init(){
       const key = r.sido + '|' + r.sgg;
       if(!facilitiesByRegion[key]) facilitiesByRegion[key] = [];
       facilitiesByRegion[key].push(r);
+      allFacilitiesFlat.push(r);
       (r.type||'').split(',').map(t=>t.trim()).filter(Boolean).forEach(t=>allSportTypesGlobal.add(t));
     });
     populateSportSelect();
@@ -2077,6 +2080,180 @@ function saveRegionViewResult(){
     link.click();
   });
 }
+
+// 정책·현장 담당자용 — 전국 229개 지역 종합 데이터를 CSV(엑셀에서 바로 열림)로 다운로드.
+// 서버 저장 없이 브라우저 안에서 이미 불러온 데이터로 즉시 생성합니다.
+function downloadRegionDataCSV(){
+  const header = ['시도','시군구','기초생활수급_대상','기초생활수급_수급','기초생활수급_수급률(%)','기초생활수급_전국순위',
+                   '차상위한부모_대상','차상위한부모_수급','차상위한부모_수급률(%)','차상위한부모_전국순위',
+                   '가맹시설수','지역유형'];
+  const rows = Object.values(voucherData).map(row=>{
+    const key = row.sido + '|' + row.region;
+    const facCount = (facilitiesByRegion[key] || []).length;
+    const type = classifyRegion(row);
+    const info = RESPONSE_TEXT[type.cls];
+    return [
+      row.sido, row.region,
+      row.s_target, row.s_recv, row.s_pct, sRankByCode[row.code],
+      row.n_target, row.n_recv, row.n_pct, nRankByCode[row.code],
+      facCount, info ? info.title : ''
+    ];
+  });
+  const csvLines = [header, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(','));
+  const csvContent = '\ufeff' + csvLines.join('\r\n'); // BOM 포함 — 엑셀에서 한글 깨짐 방지
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `SPOO_전국지역데이터_${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ==================== 「시설 운영자」— 가맹 여부와 상관없이 잠재수요·포화도·차별화 확인 ====================
+   기획서 5-3 기준: ①잠재 수요 확인 ②포화도 확인 ③지역 내 차별화 확인 ④가맹 신청 절차 안내 ⑤내 시설 정보 조회.
+   모두 이미 있는 데이터(voucherData, facilitiesByRegion)로 계산하는 조회형 기능이라 회원가입·서버가 필요 없음. */
+let fvSelectedCode = null;
+
+function openFacilityView(){
+  bindFacilityViewSearch();
+  document.getElementById('facilityViewOverlay').classList.add('show');
+  document.getElementById('fvRegionInput').focus();
+}
+function closeFacilityView(){
+  document.getElementById('facilityViewOverlay').classList.remove('show');
+}
+
+// 시설 정보 수정 요청 — 회원가입·서버 없이, 필요한 항목을 미리 채운 이메일을 여는 방식으로 처리.
+// 인증 서류(사업자등록증 등)는 이용자가 이메일에 직접 첨부해서 보내주시면 됩니다.
+function openCorrectionMail(){
+  const facilityName = (document.getElementById('fvFacilitySearch')?.value || '').trim();
+  const subject = encodeURIComponent(`[SPOO] 시설 정보 수정 요청${facilityName ? ' - ' + facilityName : ''}`);
+  const body = encodeURIComponent(
+`안녕하세요, SPOO 운영자입니다.
+
+아래 항목을 채워서 보내주시면 확인 후 정보를 수정해드릴게요.
+
+■ 시설명 :
+■ 주소 :
+■ 수정이 필요한 내용 :
+
+
+■ 첨부해주세요 (이 메일에 파일로 첨부)
+- 사업자등록증 사본
+- 시설 운영을 증명할 수 있는 서류 (가맹시설 등록증 등)
+
+감사합니다.`
+  );
+  window.location.href = `mailto:circle1597@naver.com?subject=${subject}&body=${body}`;
+}
+
+function bindFacilityViewSearch(){
+  const input = document.getElementById('fvRegionInput');
+  const suggest = document.getElementById('fvRegionSuggest');
+  if(!input || input.dataset.bound) return;
+  input.dataset.bound = '1';
+  input.addEventListener('input', ()=>{
+    const q = input.value.trim();
+    if(!q){ suggest.style.display='none'; return; }
+    const matches = regionSearchList.filter(r => r.label.includes(q)).slice(0,8);
+    if(!matches.length){ suggest.style.display='none'; return; }
+    suggest.innerHTML = matches.map(m=>`<div class="sugg-item" data-code="${m.code}">${m.label}</div>`).join('');
+    suggest.style.display='block';
+    suggest.querySelectorAll('.sugg-item').forEach(el=>{
+      el.onclick = () => {
+        input.value = el.textContent;
+        suggest.style.display='none';
+        renderFacilityViewRegion(el.dataset.code);
+      };
+    });
+  });
+}
+
+// ①②: 우리 지역 잠재 수요(S+N 미수급 합계) · 포화도(시설 1곳당 대상자 수)
+function renderFacilityViewRegion(code){
+  const row = voucherData[code];
+  if(!row) return;
+  fvSelectedCode = code;
+  const key = row.sido + '|' + row.region;
+  const facilities = facilitiesByRegion[key] || [];
+  const facCount = facilities.length;
+  const unmet = Math.max(0, (Number(row.s_target)||0) - (Number(row.s_recv)||0))
+              + Math.max(0, (Number(row.n_target)||0) - (Number(row.n_recv)||0));
+  const totalTarget = (Number(row.s_target)||0) + (Number(row.n_target)||0);
+  const perFacility = facCount ? (totalTarget / facCount) : null;
+
+  document.getElementById('fvRegionContent').innerHTML = `
+    <h3 style="margin:14px 0 2px;">${row.sido} ${row.region}</h3>
+    <div class="rv-stat-row" style="margin-top:10px;">
+      <div class="rv-stat-box"><div class="rv-stat-num">${Math.round(unmet).toLocaleString()}명</div><div class="rv-stat-label">잠재 수요 (미수급 인원 합계)</div></div>
+      <div class="rv-stat-box"><div class="rv-stat-num">${facCount}개</div><div class="rv-stat-label">현재 가맹시설 수</div></div>
+    </div>
+    ${perFacility ? `
+    <div class="rv-goal-box" style="margin-top:12px;">
+      이 지역은 가맹시설 <b>1곳당 평균 ${perFacility.toFixed(1)}명</b>을 담당하고 있어요 (전국 중위 <b>15.3명</b>).<br>
+      <span style="font-size:12.5px; opacity:.85;">※ 실제 가맹 여부는 사업성 검토가 필요한 참고 지표예요.</span>
+    </div>` : `<p class="placeholder-msg" style="margin-top:12px;">이 지역은 아직 가맹시설이 없어요.</p>`}
+  `;
+
+  renderFacilityDiffBox(code);
+}
+
+// ③: 지역 내 차별화 확인 — 선택한 종목의 가맹시설이 이 지역에 몇 곳인지 (1곳이면 "유일" 안내)
+function renderFacilityDiffBox(code){
+  const row = voucherData[code];
+  const key = row.sido + '|' + row.region;
+  const facilities = facilitiesByRegion[key] || [];
+  const typeCount = {};
+  facilities.forEach(f=>{
+    (f.type||'').split(',').map(t=>t.trim()).filter(Boolean).forEach(t=>{
+      typeCount[t] = (typeCount[t]||0) + 1;
+    });
+  });
+  const types = Object.keys(typeCount).sort();
+  if(!types.length){
+    document.getElementById('fvDiffBox').innerHTML = `<p class="placeholder-msg" style="margin:0;">${row.sido} ${row.region}엔 아직 등록된 가맹시설이 없어요.</p>`;
+    return;
+  }
+  const options = types.map(t=>`<option value="${t}">${t} (${typeCount[t]}곳)</option>`).join('');
+  document.getElementById('fvDiffBox').innerHTML = `
+    <select id="fvDiffSelect" class="recommend-select" style="width:100%;">${options}</select>
+    <div id="fvDiffResult" style="margin-top:10px;"></div>
+  `;
+  const showDiff = () => {
+    const t = document.getElementById('fvDiffSelect').value;
+    const c = typeCount[t] || 0;
+    const resultEl = document.getElementById('fvDiffResult');
+    if(c <= 1){
+      resultEl.innerHTML = `<div class="rv-goal-box">🎯 ${row.sido} ${row.region}에서 <b>"${t}"</b> 가맹시설은 <b>귀 시설이 유일</b>해요.</div>`;
+    } else {
+      resultEl.innerHTML = `<p class="placeholder-msg" style="margin:0;">${row.sido} ${row.region}에는 "${t}" 가맹시설이 <b>${c}곳</b> 있어요.</p>`;
+    }
+  };
+  document.getElementById('fvDiffSelect').onchange = showDiff;
+  showDiff();
+}
+
+// ⑤: 내 시설 정보 조회 — 이름 중복이 많아(예: "해동검도" 전국 45곳) 시도·시군구·주소를 함께 표시
+(function bindFacilityNameSearch(){
+  document.addEventListener('input', (e)=>{
+    if(e.target && e.target.id === 'fvFacilitySearch'){
+      const q = e.target.value.trim();
+      const resultsEl = document.getElementById('fvFacilityResults');
+      if(q.length < 2){ resultsEl.innerHTML=''; return; }
+      const matches = allFacilitiesFlat.filter(f => (f.name||'').includes(q)).slice(0, 20);
+      if(!matches.length){
+        resultsEl.innerHTML = `<p class="placeholder-msg" style="margin:0;">일치하는 시설이 없어요.</p>`;
+        return;
+      }
+      resultsEl.innerHTML = matches.map(f=>`
+        <div class="neighbor-row" style="border-bottom:1px solid var(--line); padding:8px 0;">
+          <span><b>${f.name}</b><br><span style="color:var(--ink-faint); font-size:12px;">${f.sido} ${f.sgg} · ${f.addr||''}</span></span>
+        </div>
+      `).join('');
+    }
+  });
+})();
 
 function resetFilterSheet(){
   ['timeFilter','costFilter'].forEach(id=>{
@@ -3636,6 +3813,11 @@ document.getElementById('installBtn')?.addEventListener('click', triggerInstall)
       <button class="course-modal-close" onclick="closeRegionView()">✕</button>
     </div>
 
+    <div style="margin-top:10px; padding:12px 14px; background:var(--paper); border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <span style="font-size:12.5px; color:var(--ink-sub);">전국 229개 지역 데이터가 필요하신가요?</span>
+      <button class="header-link" style="white-space:nowrap;" onclick="downloadRegionDataCSV()">📥 전체 데이터 CSV 다운로드</button>
+    </div>
+
     <div class="search-row" style="margin:18px 0 0;">
       <div class="search-box">
         <input type="text" id="rvSearchInput" placeholder="지역 이름으로 찾기 (예: 봉화군)" autocomplete="off">
@@ -3645,6 +3827,75 @@ document.getElementById('installBtn')?.addEventListener('click', triggerInstall)
 
     <div id="rvContent">
       <p class="placeholder-msg" style="margin-top:24px;">👆 위에서 지역을 검색해주세요</p>
+    </div>
+  </div>
+</div>
+
+<!-- 「시설 운영자」— 가맹 여부와 상관없이 지역·잠재수요·포화도·차별화 포인트를 확인하는 화면 -->
+<div class="region-view-overlay" id="facilityViewOverlay">
+  <div class="region-view-panel">
+    <div class="region-view-header">
+      <div>
+        <div class="region-view-title">🏢 시설 운영자</div>
+        <div class="region-view-sub">가맹을 고민 중이시거나 이미 가맹하신 시설 운영자분들을 위한 화면이에요</div>
+      </div>
+      <button class="course-modal-close" onclick="closeFacilityView()">✕</button>
+    </div>
+
+    <div class="rv-section" style="margin-top:16px; padding-top:0; border-top:none;">
+      <div class="rv-section-title">① 우리 지역 잠재 수요 · 포화도 확인</div>
+      <div class="search-row">
+        <div class="search-box">
+          <input type="text" id="fvRegionInput" placeholder="지역 이름으로 찾기 (예: 봉화군)" autocomplete="off">
+          <div class="search-suggest" id="fvRegionSuggest" style="display:none;"></div>
+        </div>
+      </div>
+      <div id="fvRegionContent">
+        <p class="placeholder-msg" style="margin-top:14px;">👆 지역을 검색하면 그 지역의 미수급(잠재 수요) 인원과 시설 포화도를 보여드려요</p>
+      </div>
+    </div>
+
+    <div class="rv-section">
+      <div class="rv-section-title">② 지역 내 차별화 확인</div>
+      <div id="fvDiffBox">
+        <p class="placeholder-msg" style="margin:0;">먼저 위에서 지역을 검색해주세요</p>
+      </div>
+    </div>
+
+    <div class="rv-section">
+      <div class="rv-section-title">③ 가맹 신청 절차</div>
+      <ol style="margin:0; padding-left:20px; font-size:13.5px; color:var(--ink-sub); line-height:2;">
+        <li>시설정보 등록</li>
+        <li>지자체 확인</li>
+        <li>PG사 가맹 등록</li>
+        <li>강좌 등록</li>
+        <li>수강신청</li>
+        <li>정산</li>
+      </ol>
+      <p style="font-size:12.5px; color:var(--ink-faint); margin-top:8px;">
+        세부 서류·절차는 공식 누리집에서 확인해주세요 →
+        <a href="https://svoucher.kspo.or.kr" target="_blank" style="color:var(--blue-deep);">svoucher.kspo.or.kr</a>
+      </p>
+    </div>
+
+    <div class="rv-section">
+      <div class="rv-section-title">④ 내 시설 정보 조회</div>
+      <p style="font-size:12.5px; color:var(--ink-faint); margin:-4px 0 10px;">시설명이 같은 곳이 전국에 많아서(예: "해동검도" 전국 45곳), 지역까지 함께 확인해보세요</p>
+      <div class="search-row">
+        <div class="search-box">
+          <input type="text" id="fvFacilitySearch" placeholder="시설명으로 검색" autocomplete="off">
+        </div>
+      </div>
+      <div id="fvFacilityResults" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="rv-section">
+      <div class="rv-section-title">⑤ 정보가 정확하지 않나요?</div>
+      <p style="font-size:13px; color:var(--ink-sub); line-height:1.6; margin:0 0 12px;">
+        운영 중인 시설 정보가 실제와 다르면 수정을 요청해주세요.<br>
+        사업자등록증 등 인증 서류를 첨부해 보내주시면 확인 후 반영해드려요.
+      </p>
+      <button class="action-btn" style="width:100%;" onclick="openCorrectionMail()">📩 정보 수정 요청 보내기</button>
     </div>
   </div>
 </div>
