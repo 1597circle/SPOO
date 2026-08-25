@@ -1602,12 +1602,13 @@ async function init(){
     // 자가진단(1단계)에는 강좌 상세정보가 필요 없으므로, 화면이 이미 뜬 뒤 유휴 시간에 불러옵니다.
     loadCoursesInBackground();
 
+    const totalFacilities = Object.values(facilityCounts).reduce((a,b)=>a+b, 0);
     document.getElementById('loadStatus').textContent =
-      `${voucherRows.length}개 지역, ${facilityRows.length}개 시설 정보를 불러왔어요`;
+      `${voucherRows.length}개 지역, ${totalFacilities.toLocaleString()}개 시설 정보를 불러왔어요`;
   }catch(err){
     document.getElementById('loadStatus').innerHTML =
       '<span style="color:var(--red);">데이터를 못 불러왔어요: ' + err.message +
-      '<br>Live Server로 열었는지, 4개 파일이 같은 폴더에 있는지 확인해주세요.</span>';
+      '<br>voucher_data.csv, facility_counts.json, sigungu_simplified.json 등 필요한 파일이 같은 폴더에 있는지 확인해주세요.</span>';
     console.error(err);
   }
 }
