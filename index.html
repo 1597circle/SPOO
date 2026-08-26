@@ -3692,8 +3692,11 @@ async function placeFacilityPinsFor(facilities){
   const userLoc = await getUserLocationOnce(); // 실패해도 null로 그냥 진행 (거리 없이 핀만 표시)
   if(requestId !== facilityPinsRequestId) return; // 기다리는 동안 사용자가 다른 동작을 해서 이 배치가 낡아짐
 
-  // 지오코딩 호출량을 아끼기 위해 최대 15곳까지만 핀으로 표시
-  const list = (facilities || []).slice(0, 15);
+  // 이미 좌표를 알고 있는 시설(naver_lat/naver_lng)은 API 호출 없이 바로 핀을 찍고,
+  // 좌표가 없는 시설만 실시간 지오코딩을 하되 그 개수만 15개로 제한해서 API 호출량을 아낍니다.
+  const list = facilities || [];
+  let liveGeocodeCount = 0;
+  const MAX_LIVE_GEOCODE = 15;
   list.forEach(f=>{
     const placePin = (coord)=>{
       if(requestId !== facilityPinsRequestId) return; // 늦게 도착한 핀 — 이미 다른 배치/단일 핀으로 넘어갔으면 무시
@@ -3714,7 +3717,15 @@ async function placeFacilityPinsFor(facilities){
       naver.maps.Event.addListener(marker, 'click', ()=> showFacilityOnMap(f.name, f.addr, f.sgg, f.naver_lat, f.naver_lng));
       facilityPinMarkers.push(marker);
     };
+    // ① 이미 저장된 좌표가 있으면 API 호출 없이 즉시 핀 표시
+    if(f.naver_lat && f.naver_lng){
+      placePin({ lat: parseFloat(f.naver_lat), lng: parseFloat(f.naver_lng) });
+      return;
+    }
+    // ② 저장된 좌표가 없는 시설만 실시간 지오코딩 (이번 검색에서 15곳까지만)
     if(geocodeCache[f.addr]){ placePin(geocodeCache[f.addr]); return; }
+    if(liveGeocodeCount >= MAX_LIVE_GEOCODE) return;
+    liveGeocodeCount++;
     naver.maps.Service.geocode({ query: f.addr }, function(status, response){
       if(requestId !== facilityPinsRequestId) return; // 이 배치가 이미 낡았으면 결과 자체를 버림
       if(status === naver.maps.Service.Status.OK && response.v2.addresses.length){
