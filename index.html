@@ -50,6 +50,9 @@
 </script>
 <script src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=414ow9gvoj&submodules=geocoder"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- xlsx(SheetJS)는 npm/jsdelivr에 더 이상 패치된 버전이 안 올라와서, 반드시 공식 CDN에서만 받습니다 -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
 
@@ -881,9 +884,12 @@
 
 <header>
   <h1>🏃 SPOO <span>· 우리 아이 스포츠강좌 지원받기</span></h1>
-  <div style="display:flex; align-items:center; gap:14px;">
-    <span class="header-link" onclick="openRegionView()">📊 지역 현황이 궁금하신가요?</span>
-    <span class="header-link" onclick="openFacilityView()">🏢 시설을 운영하고 계신가요?</span>
+  <div style="display:flex; align-items:center; gap:14px; position:relative;">
+    <span class="header-link" onclick="toggleHeaderMoreMenu()">더 알아보기 ▾</span>
+    <div id="headerMoreMenu" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:200px; z-index:2000;">
+      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openRegionView();">📊 지역 현황이 궁금하신가요?</div>
+      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openFacilityView();">🏢 시설을 운영하고 계신가요?</div>
+    </div>
     <span class="tag" id="headerConfigTag">전국 229개 지역 · 2025.7 기준</span>
   </div>
 </header>
@@ -1235,9 +1241,10 @@
       <span class="wp-choice-emoji">📋</span>
       <span class="wp-choice-text"><b>신청서류 알아보기</b><span>필요한 서류를 체크리스트로 확인해요</span></span>
     </button>
-    <button class="wp-choice" onclick="wpGoToOperatorPage()">
-      <span class="wp-choice-emoji">🏢</span>
-      <span class="wp-choice-text"><b>시설을 운영하고 계신가요?</b><span>잠재 수요·포화도 등 운영 참고 자료 받기</span></span>
+    <div style="border-top:1px dashed var(--line); margin:10px 0 8px;"></div>
+    <button class="wp-choice" style="opacity:.75; padding:12px 16px;" onclick="wpGoToOperatorPage()">
+      <span class="wp-choice-emoji" style="font-size:18px;">🏢</span>
+      <span class="wp-choice-text"><b style="font-size:var(--fs-label);">시설을 운영하고 계신가요?</b><span>잠재 수요·포화도 등 운영 참고 자료 받기</span></span>
     </button>
     <div class="wp-skip" style="margin-top:6px;" onclick="wpReturnDismiss()">그냥 둘러볼게요</div>
   </div>
@@ -1270,6 +1277,7 @@ let currentPanelFacilities = [];
 let currentPanelOwnOnly = [];
 let currentPanelIncludingNeighbors = null;
 let currentPanelNeighborCodes = []; // toggleNeighborFacilities에서 지연 fetch할 이웃 지역 코드 목록
+let currentRvCode = null; // 「지역 현황 보기」에서 지금 보고 있는 지역 코드 (PDF·엑셀 다운로드용)
 
 // 분석에서 확인된 "양쪽 그룹 모두 저조" 최우선 지역 10곳 (정식 시도명 일부로 매칭 — 동명 지역 오매칭 방지)
 const TOP10_PRIORITY = [
@@ -1747,6 +1755,7 @@ function toggleCompareFavorites(){
   const bestS = Math.max(...rows.map(r=>r.sPct));
   const bestN = Math.max(...rows.map(r=>r.nPct));
   const bestFac = Math.max(...rows.map(r=>r.facCount));
+  currentCompareRows = rows; // 엑셀 다운로드에서 재사용
 
   box.innerHTML = `<div class="compare-table">
     ${rows.map(r=>`
@@ -1760,7 +1769,24 @@ function toggleCompareFavorites(){
       </div>
     `).join('')}
     <div class="compare-hint">💡 초록색으로 표시된 게 즐겨찾기 중 가장 높은 값이에요</div>
+    <button class="action-btn" style="width:100%; margin-top:12px;" onclick="downloadCompareExcel()">📊 비교 결과 엑셀로 다운로드</button>
   </div>`;
+}
+
+// 즐겨찾기 비교 — 여러 지역을 한 번에 엑셀로 다운로드
+function downloadCompareExcel(){
+  if(!currentCompareRows.length){ alert('먼저 즐겨찾는 동네를 추가해주세요.'); return; }
+  if(typeof XLSX === 'undefined'){ alert('엑셀 저장 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요.'); return; }
+  const data = currentCompareRows.map(r => ({
+    '지역': r.name,
+    '기초생활수급_수급률(%)': r.sPct,
+    '차상위한부모_수급률(%)': r.nPct,
+    '가맹시설수': r.facCount,
+  }));
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '지역비교');
+  XLSX.writeFile(workbook, `SPOO_지역비교_${data.length}곳.xlsx`);
 }
 
 /* ==================== 종목 필터 ==================== */
@@ -2043,6 +2069,21 @@ function closeFilterSheet(){ document.getElementById('filterSheetOverlay').class
 /* ==================== 「지역 현황 보기」— 정책·현장 담당자, 연구자, 기자 등 ====================
    검증 완료(기획서 기준): 지역 유형 진단, 유형별 대응 방향, 시도 단위 집계, 목표 설정 계산,
    시설당 대상자 수(포화도), 결과 이미지 저장. "비슷한 규모 지역 비교"는 인구 데이터가 없어 보류. */
+// 헤더 "더 알아보기" 드롭다운 — 담당자·운영자용 링크를 하나로 묶어 헤더가 덜 복잡해 보이게 함
+function toggleHeaderMoreMenu(){
+  const menu = document.getElementById('headerMoreMenu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+function closeHeaderMoreMenu(){
+  document.getElementById('headerMoreMenu').style.display = 'none';
+}
+document.addEventListener('click', (e)=>{
+  const menu = document.getElementById('headerMoreMenu');
+  if(menu && menu.style.display === 'block' && !e.target.closest('#headerMoreMenu') && !e.target.closest('.header-link')){
+    menu.style.display = 'none';
+  }
+});
+
 function openRegionView(){
   bindRegionViewSearch();
   document.getElementById('regionViewOverlay').classList.add('show');
@@ -2092,6 +2133,7 @@ function renderPopulationCompareSection(row){
 }
 
 function renderRegionView(code){
+  currentRvCode = code;
   const row = voucherData[code];
   if(!row) return;
   const type = classifyRegion(row);
@@ -2153,6 +2195,10 @@ function renderRegionView(code){
     </div>
 
     <button class="action-btn" style="width:100%; margin-top:20px;" onclick="saveRegionViewResult()">📸 지역 현황 이미지로 저장</button>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button class="action-btn" style="flex:1;" onclick="downloadRegionPDF()">📄 PDF로 저장</button>
+      <button class="action-btn" style="flex:1;" onclick="downloadRegionExcel()">📊 엑셀로 다운로드</button>
+    </div>
   `;
 }
 
@@ -2166,6 +2212,53 @@ function saveRegionViewResult(){
     link.href = canvas.toDataURL('image/png');
     link.click();
   });
+}
+
+// PDF로 저장 — 화면 캡처형(방법 A). 한글 폰트 깨짐 걱정이 없어 가장 안전한 방식.
+async function downloadRegionPDF(){
+  const target = document.getElementById('rvSaveArea');
+  if(!target){ alert('먼저 지역을 검색해주세요.'); return; }
+  if(typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined'){
+    alert('PDF 저장 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요.'); return;
+  }
+  const row = voucherData[currentRvCode];
+  const canvas = await html2canvas(target, { backgroundColor:'#ffffff', scale:2 });
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const imgWidth = pageWidth - 40;
+  const imgHeight = canvas.height * (imgWidth / canvas.width);
+  pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
+  pdf.save(`SPOO_${row ? row.region : '지역'}_현황.pdf`);
+}
+
+// 엑셀로 다운로드 — 서버 없이 브라우저 안에서 즉시 생성 (SheetJS, 공식 CDN 사용)
+function downloadRegionExcel(){
+  const row = voucherData[currentRvCode];
+  if(!row){ alert('먼저 지역을 검색해주세요.'); return; }
+  if(typeof XLSX === 'undefined'){ alert('엑셀 저장 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요.'); return; }
+  const facCount = facilityCounts[currentRvCode] ?? 0;
+  const type = classifyRegion(row);
+  const info = RESPONSE_TEXT[type.cls];
+  const data = [{
+    '지역': `${row.sido} ${row.region}`,
+    '기초생활수급_대상인원': row.s_target,
+    '기초생활수급_수급인원': row.s_recv,
+    '기초생활수급_수급률(%)': row.s_pct,
+    '기초생활수급_전국순위': sRankByCode[currentRvCode],
+    '차상위한부모_대상인원': row.n_target,
+    '차상위한부모_수급인원': row.n_recv,
+    '차상위한부모_수급률(%)': row.n_pct,
+    '차상위한부모_전국순위': nRankByCode[currentRvCode],
+    '가맹시설수': facCount,
+    '지역유형': info ? info.title : '',
+    '조회일자': new Date().toLocaleDateString('ko-KR'),
+  }];
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '지역현황');
+  XLSX.writeFile(workbook, `SPOO_${row.region}_현황.xlsx`);
 }
 
 // 정책·현장 담당자용 — 전국 229개 지역 종합 데이터를 CSV(엑셀에서 바로 열림)로 다운로드.
@@ -2200,6 +2293,8 @@ function downloadRegionDataCSV(){
    기획서 5-3 기준: ①잠재 수요 확인 ②포화도 확인 ③지역 내 차별화 확인 ④가맹 신청 절차 안내 ⑤내 시설 정보 조회.
    모두 이미 있는 데이터(voucherData, facilitiesByRegion)로 계산하는 조회형 기능이라 회원가입·서버가 필요 없음. */
 let fvSelectedCode = null;
+let fvLastStats = {};
+let currentCompareRows = [];
 
 function openFacilityView(){
   bindFacilityViewSearch();
@@ -2270,21 +2365,66 @@ async function renderFacilityViewRegion(code){
               + Math.max(0, (Number(row.n_target)||0) - (Number(row.n_recv)||0));
   const totalTarget = (Number(row.s_target)||0) + (Number(row.n_target)||0);
   const perFacility = facCount ? (totalTarget / facCount) : null;
+  fvLastStats = { code, unmet, facCount, perFacility }; // PDF·엑셀 다운로드에서 재사용
 
   document.getElementById('fvRegionContent').innerHTML = `
-    <h3 style="margin:14px 0 2px;">${row.sido} ${row.region}</h3>
-    <div class="rv-stat-row" style="margin-top:10px;">
-      <div class="rv-stat-box"><div class="rv-stat-num">${Math.round(unmet).toLocaleString()}명</div><div class="rv-stat-label">잠재 수요 (미수급 인원 합계)</div></div>
-      <div class="rv-stat-box"><div class="rv-stat-num">${facCount}개</div><div class="rv-stat-label">현재 가맹시설 수</div></div>
+    <div id="fvSaveArea">
+      <h3 style="margin:14px 0 2px;">${row.sido} ${row.region}</h3>
+      <div class="rv-stat-row" style="margin-top:10px;">
+        <div class="rv-stat-box"><div class="rv-stat-num">${Math.round(unmet).toLocaleString()}명</div><div class="rv-stat-label">잠재 수요 (미수급 인원 합계)</div></div>
+        <div class="rv-stat-box"><div class="rv-stat-num">${facCount}개</div><div class="rv-stat-label">현재 가맹시설 수</div></div>
+      </div>
+      ${perFacility ? `
+      <div class="rv-goal-box" style="margin-top:12px;">
+        이 지역은 가맹시설 <b>1곳당 평균 ${perFacility.toFixed(1)}명</b>을 담당하고 있어요 (전국 중위 <b>15.3명</b>).<br>
+        <span style="font-size:var(--fs-caption); opacity:.85;">※ 실제 가맹 여부는 사업성 검토가 필요한 참고 지표예요.</span>
+      </div>` : `<p class="placeholder-msg" style="margin-top:12px;">이 지역은 아직 가맹시설이 없어요.</p>`}
     </div>
-    ${perFacility ? `
-    <div class="rv-goal-box" style="margin-top:12px;">
-      이 지역은 가맹시설 <b>1곳당 평균 ${perFacility.toFixed(1)}명</b>을 담당하고 있어요 (전국 중위 <b>15.3명</b>).<br>
-      <span style="font-size:var(--fs-caption); opacity:.85;">※ 실제 가맹 여부는 사업성 검토가 필요한 참고 지표예요.</span>
-    </div>` : `<p class="placeholder-msg" style="margin-top:12px;">이 지역은 아직 가맹시설이 없어요.</p>`}
+    <div style="display:flex; gap:8px; margin-top:14px;">
+      <button class="action-btn" style="flex:1;" onclick="downloadFacilityPDF()">📄 PDF로 저장</button>
+      <button class="action-btn" style="flex:1;" onclick="downloadFacilityExcel()">📊 엑셀로 다운로드</button>
+    </div>
   `;
 
   renderFacilityDiffBox(code, facilities);
+}
+
+// 시설 운영자용 PDF 저장 (화면 캡처형)
+async function downloadFacilityPDF(){
+  const target = document.getElementById('fvSaveArea');
+  if(!target){ alert('먼저 지역을 검색해주세요.'); return; }
+  if(typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined'){
+    alert('PDF 저장 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요.'); return;
+  }
+  const row = voucherData[fvLastStats.code];
+  const canvas = await html2canvas(target, { backgroundColor:'#ffffff', scale:2 });
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const imgWidth = pageWidth - 40;
+  const imgHeight = canvas.height * (imgWidth / canvas.width);
+  pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
+  pdf.save(`SPOO_${row ? row.region : '지역'}_시설운영자자료.pdf`);
+}
+
+// 시설 운영자용 엑셀 다운로드
+function downloadFacilityExcel(){
+  const row = voucherData[fvLastStats.code];
+  if(!row){ alert('먼저 지역을 검색해주세요.'); return; }
+  if(typeof XLSX === 'undefined'){ alert('엑셀 저장 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요.'); return; }
+  const data = [{
+    '지역': `${row.sido} ${row.region}`,
+    '잠재수요(미수급 합계)': fvLastStats.unmet,
+    '가맹시설수': fvLastStats.facCount,
+    '시설당_평균담당인원': fvLastStats.perFacility ? fvLastStats.perFacility.toFixed(1) : '',
+    '전국중위_시설당담당인원': 15.3,
+    '조회일자': new Date().toLocaleDateString('ko-KR'),
+  }];
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '시설운영자자료');
+  XLSX.writeFile(workbook, `SPOO_${row.region}_시설운영자자료.xlsx`);
 }
 
 // ③: 지역 내 차별화 확인 — 선택한 종목의 가맹시설이 이 지역에 몇 곳인지 (1곳이면 "유일" 안내)
