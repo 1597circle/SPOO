@@ -1,16 +1,22 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v1'; // FairPlay→SPOO 브랜드 변경에 맞춰 새 버전으로 — 예전 fairplay-v2 캐시는 activate 단계에서 자동 정리됨
+const CACHE_NAME = 'spoo-v2'; // v1→v2: 시설 데이터를 지역별 파일로 분할한 구조 변경 반영 — 예전 spoo-v1 캐시는 activate 단계에서 자동 정리됨
 const CORE_FILES = [
   './index.html',
   './manifest.json',
+  './config.json',
   './voucher_data.csv',
-  './voucher_facilities.csv',
+  './facility_counts.json',
+  './facility_names_index.json',
+  './sport_types.json',
+  './region_population.json',
   './sigungu_simplified.json',
   './인접시군구_매핑.json',
-  './courses.csv',
+  './privacy.html',
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png'
+  // courses.csv, facilities/{code}.json 은 용량이 크고 지역별로 그때그때 필요한 것만 불러오는
+  // 파일들이라 여기서 미리 캐시하지 않습니다 (fetch 이벤트에서 요청 시점에 자동으로 캐시됨).
 ];
 
 // 설치 시 핵심 파일들을 미리 캐시해둠
@@ -18,7 +24,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(CORE_FILES).catch((err) => {
-        // 파일 하나가 없어도(예: courses.csv 아직 없음) 전체 설치가 실패하지 않도록
+        // 파일 하나가 없어도 전체 설치가 실패하지 않도록
         console.log('일부 파일 캐시 실패(무시 가능):', err);
       });
     })

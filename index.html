@@ -58,8 +58,9 @@
 
 <style>
   :root{
-    --navy:#132135;
-    --navy-soft:#1D2E47;
+    --navy:#181C22;        /* 버튼은 파란 그라데이션 유지, 제목/숫자 텍스트는 다시 짙은 검정 톤으로 */
+    --navy-soft:#154FAD;   /* 기존보다 살짝 더 진한 파란색 (hover 등에 사용) */
+    --navy-gradient:linear-gradient(135deg, #4C8DFF 0%, #1B4FD6 100%); /* 시안 카드와 동일한 톤 */
     --blue:#3182F6;
     --blue-soft:#EAF2FF;
     --blue-deep:#1B64DA;
@@ -97,7 +98,7 @@
   h1,h2,h3{letter-spacing:-.02em;}
 
   header{
-    background:var(--navy); padding:18px 28px; border-bottom:none;
+    background:var(--navy-gradient); padding:18px 28px; border-bottom:none;
     display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
   }
   header h1{font-size:17px; margin:0; font-weight:800; letter-spacing:-.02em; color:#fff; display:flex; align-items:center; gap:8px;}
@@ -129,7 +130,7 @@
   .rv2-change-link:hover{color:var(--blue-deep);}
   .rv2-card{border-radius:20px; padding:20px; margin-bottom:14px;}
   .rv2-card-white{background:#fff; border:1.5px solid var(--line);}
-  .rv2-card-blue{background:linear-gradient(135deg, #4C8DFF, #1B4FD6); color:#fff; box-shadow:0 10px 28px rgba(27,79,214,.3);}
+  .rv2-card-blue{background:var(--navy-gradient); color:#fff; box-shadow:0 10px 28px rgba(18,59,122,.3);}
   .rv2-card-mint{background:var(--mint-soft);}
   .rv2-card-label{font-size:var(--fs-label); font-weight:700; color:var(--ink-sub); margin-bottom:10px; display:flex; align-items:center; gap:6px;}
   .rv2-card-blue .rv2-card-label{color:rgba(255,255,255,.85);}
@@ -199,11 +200,11 @@
   @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
 
   .next-step-btn{
-    width:100%; padding:16px; background:var(--navy); color:#fff; border:none;
+    width:100%; padding:16px; background:var(--navy-gradient); color:#fff; border:none;
     font-family:inherit; font-size:14.5px; font-weight:800; cursor:pointer;
     margin-bottom:14px; border-radius:16px; transition:.15s cubic-bezier(.2,.8,.3,1); box-shadow:var(--shadow-sm);
   }
-  .next-step-btn:hover{background:var(--navy-soft); transform:translateY(-1px); box-shadow:var(--shadow-md);}
+  .next-step-btn:hover{filter:brightness(1.08); transform:translateY(-1px); box-shadow:var(--shadow-md);}
   .next-step-btn:active{transform:translateY(0) scale(.99);}
   .next-step-btn.secondary{background:#fff; color:var(--ink-sub); border:1px solid var(--line); box-shadow:none;}
   .next-step-btn.secondary:hover{background:var(--gray-bg); transform:none;}
@@ -226,10 +227,10 @@
   .recommend-select:focus{outline:none; border-color:var(--coral);}
   .recommend-btn{
     width:100%; margin-top:0; padding:19px; border:none; border-radius:16px;
-    background:var(--coral); color:#fff; font-family:inherit; font-size:var(--fs-h2); font-weight:800; cursor:pointer;
-    box-shadow:0 6px 18px rgba(240,96,63,.28); transition:.15s cubic-bezier(.2,.8,.3,1);
+    background:var(--navy-gradient); color:#fff; font-family:inherit; font-size:var(--fs-h2); font-weight:800; cursor:pointer;
+    box-shadow:0 6px 18px rgba(27,100,218,.28); transition:.15s cubic-bezier(.2,.8,.3,1);
   }
-  .recommend-btn:hover{transform:translateY(-1px); box-shadow:0 8px 22px rgba(240,96,63,.35);}
+  .recommend-btn:hover{transform:translateY(-1px); filter:brightness(1.08); box-shadow:0 8px 22px rgba(27,100,218,.35);}
   .recommend-btn:active{transform:translateY(0) scale(.99);}
 
   .sport-alt-list{display:flex; flex-direction:column; gap:8px; margin-top:12px;}
@@ -243,22 +244,22 @@
   .recommend-title{font-size:var(--fs-label); font-weight:800; margin:14px 0 6px;}
 
   .diagnose-btn{
-    width:100%; padding:18px; background:var(--navy); color:#fff; border:none;
+    width:100%; padding:18px; background:var(--navy-gradient); color:#fff; border:none;
     font-family:inherit; font-size:var(--fs-h2); font-weight:700; cursor:pointer;
     margin-bottom:14px; border-radius:20px; display:flex; align-items:center; justify-content:center; gap:8px;
     transition:background .12s;
   }
-  .diagnose-btn:hover{background:#1c6fe0;}
+  .diagnose-btn:hover{filter:brightness(1.08);}
   .diagnose-btn .emoji{font-size:20px;}
 
   .awareness-banner{
-    display:flex; align-items:center; gap:16px; background:var(--navy);
+    display:flex; align-items:center; gap:16px; background:var(--navy-gradient);
     border-radius:20px; padding:20px; margin-bottom:14px; box-shadow:var(--shadow-lg);
     position:relative; overflow:hidden;
   }
   .awareness-banner::before{
     content:''; position:absolute; right:-30px; top:-30px; width:120px; height:120px;
-    border-radius:50%; background:radial-gradient(circle, rgba(240,96,63,.18), transparent 70%);
+    border-radius:50%; background:radial-gradient(circle, rgba(27,100,218,.18), transparent 70%);
   }
   .awareness-banner .ab-stat{
     font-size:40px; font-weight:800; color:var(--coral); line-height:1; flex-shrink:0;
@@ -277,7 +278,7 @@
     font-family:inherit; font-weight:700; font-size:var(--fs-label); cursor:pointer; border-radius:12px;
     transition:.15s cubic-bezier(.2,.8,.3,1);
   }
-  .toggle-row button.active{background:var(--navy); color:#fff; box-shadow:var(--shadow-sm);}
+  .toggle-row button.active{background:var(--navy-gradient); color:#fff; box-shadow:var(--shadow-sm);}
 
   .legend-hint{
     font-size:var(--fs-label); color:var(--blue,#3182F6); font-weight:700; text-align:center;
@@ -387,9 +388,9 @@
   .s2-focus-card .search-box{width:100%;}
   .locate-pin-btn{
     display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:12px;
-    padding:14px; border:none; border-radius:14px; background:var(--coral); color:#fff;
+    padding:14px; border:none; border-radius:14px; background:var(--navy-gradient); color:#fff;
     font-family:inherit; font-size:var(--fs-body); font-weight:800; cursor:pointer; transition:.15s;
-    box-shadow:0 6px 18px rgba(240,96,63,.25);
+    box-shadow:0 6px 18px rgba(27,100,218,.25);
   }
   .locate-pin-btn:hover{transform:translateY(-1px);}
   .locate-pin-icon{font-size:var(--fs-h2);}
@@ -557,9 +558,9 @@
   .s1-vcenter-wrap .s1-tiny-links{color:var(--ink-faint); margin-top:32px;}
   .s1-vcenter-wrap .s1-tiny-links span:hover{color:var(--navy);}
   .s1-vcenter-wrap .next-step-btn{
-    background:var(--navy); color:#fff; box-shadow:none; border-radius:14px;
+    background:var(--navy-gradient); color:#fff; box-shadow:none; border-radius:14px;
   }
-  .s1-vcenter-wrap .next-step-btn:hover{background:var(--navy-soft);}
+  .s1-vcenter-wrap .next-step-btn:hover{filter:brightness(1.08);}
   .s1-vcenter-wrap .next-step-btn.secondary{
     background:transparent; color:var(--ink-faint); border:none; text-decoration:underline;
     text-underline-offset:3px; width:auto; padding:8px; margin:0 auto; display:block;
@@ -650,7 +651,7 @@
 
   /* ---- 인앱 브라우저 안내 배너 ---- */
   .inapp-banner{
-    background:var(--coral); color:#fff; padding:12px 20px; font-size:var(--fs-label); font-weight:700;
+    background:var(--navy-gradient); color:#fff; padding:12px 20px; font-size:var(--fs-label); font-weight:700;
     display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
   }
   .inapp-banner .ib-install{
@@ -750,9 +751,9 @@
   .neighbor-row{display:flex; justify-content:space-between; font-size:var(--fs-label); padding:4px 0; color:var(--ink-sub);}
   .neighbor-toggle-btn{
     width:100%; margin-top:10px; padding:12px; border:none; border-radius:13px;
-    background:var(--blue-deep); color:#fff; font-family:inherit; font-size:var(--fs-label); font-weight:800; cursor:pointer; transition:.15s;
+    background:var(--navy-gradient); color:#fff; font-family:inherit; font-size:var(--fs-label); font-weight:800; cursor:pointer; transition:.15s;
   }
-  .neighbor-toggle-btn:hover{background:#154f9e;}
+  .neighbor-toggle-btn:hover{filter:brightness(1.08);}
 
   /* ---- 종목 필터 / 시간대 필터 ---- */
   .type-chips{display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;}
@@ -761,7 +762,7 @@
     font-family:inherit; font-size:var(--fs-label); font-weight:700; color:var(--ink-sub); cursor:pointer; transition:.12s;
   }
   .chip:hover{background:var(--gray-bg);}
-  .chip.active{background:var(--navy); border-color:var(--navy); color:#fff;}
+  .chip.active{background:var(--navy-gradient); border-color:var(--navy); color:#fff;}
 
   .filter-row{display:flex; gap:8px; margin-bottom:12px;}
   .filter-open-btn{
@@ -818,7 +819,7 @@
     outline:none; transition:.15s; caret-color:var(--coral);
   }
   .wp-input::placeholder{color:var(--ink-faint);}
-  .wp-input:focus{background:#fff; border-color:var(--coral); box-shadow:0 0 0 2px rgba(240,96,63,.15);}
+  .wp-input:focus{background:#fff; border-color:var(--coral); box-shadow:0 0 0 2px rgba(27,100,218,.15);}
   .wp-input[type="date"]{color-scheme:light;}
   select.wp-input{appearance:none; -webkit-appearance:none; cursor:pointer;}
   select.wp-input option{color:#000;}
@@ -827,7 +828,7 @@
     width:100%; padding:clamp(16px, 3vw, 22px); border:none; border-radius:16px; font-family:inherit;
     font-size:clamp(14.5px, 2.6vw, 17.5px); font-weight:800; cursor:pointer; transition:.15s cubic-bezier(.2,.8,.3,1);
   }
-  .wp-btn-primary{background:var(--blue-deep); color:#fff; box-shadow:0 8px 24px rgba(27,100,218,.3);}
+  .wp-btn-primary{background:var(--navy-gradient); color:#fff; box-shadow:0 8px 24px rgba(27,100,218,.3);}
   .wp-btn-primary:hover{transform:translateY(-2px); box-shadow:0 10px 28px rgba(27,100,218,.4);}
   .wp-btn-primary:active{transform:translateY(0) scale(.98);}
 
@@ -1524,7 +1525,7 @@ async function loadCSV(path){
   });
 }
 
-// 지역별 시설 데이터를 그때그때 불러옵니다 (facilities/{code}.json, 지역당 평균 수십KB).
+// 지역별 시설 데이터를 그때그때 불러옵니다 ({code}.json, 지역당 평균 수십KB).
 // 같은 지역을 여러 화면(시설찾기/지역현황/시설운영자)에서 다시 열어도 한 번만 fetch하도록 캐시합니다.
 async function getRegionFacilities(code){
   const row = voucherData[code];
@@ -1608,7 +1609,7 @@ async function init(){
     }
 
     // 시설 데이터(voucher_facilities.csv, 3.7MB)는 더 이상 통째로 미리 불러오지 않습니다.
-    // 대신 ①지역별로 쪼갠 파일(facilities/{code}.json)을 실제로 그 지역을 볼 때만 불러오고,
+    // 대신 ①지역별로 쪼갠 파일({code}.json)을 실제로 그 지역을 볼 때만 불러오고,
     // ②"개수"만 필요한 화면(담당자용, 즐겨찾기 비교, 옆동네 미리보기)은 아주 작은 facility_counts.json으로,
     // ③"이름으로 전국 검색"은 이름·주소만 담은 경량 인덱스(facility_names_index.json)로 대체합니다.
     try{
