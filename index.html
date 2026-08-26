@@ -63,9 +63,9 @@
     --blue:#3182F6;
     --blue-soft:#EAF2FF;
     --blue-deep:#1B64DA;
-    --coral:#F0603F;
-    --coral-soft:#FDEDE7;
-    --coral-deep:#C7461F;
+    --coral:#1B64DA;       /* 기존 주황(#F0603F) → 시안에 맞춰 파란색으로 통일 */
+    --coral-soft:#EAF2FF;  /* 기존 옅은 주황 → 옅은 파란색 */
+    --coral-deep:#0F4DAD;  /* 기존 진한 주황 → 더 진한 파란색 */
     --mint:#0AC5A8;
     --mint-soft:#E3F9F5;
     --red:#F04452;
@@ -120,6 +120,29 @@
   .region-view-header{display:flex; justify-content:space-between; align-items:flex-start; gap:14px;}
   .region-view-title{font-size:19px; font-weight:800; color:var(--navy); margin-bottom:6px;}
   .region-view-sub{font-size:var(--fs-label); color:var(--ink-sub); line-height:1.6;}
+  /* ---- 지역 현황 보기 — 파란색 톤 카드 디자인 ---- */
+  .rv2-location-row{
+    display:flex; align-items:center; justify-content:space-between; background:var(--paper);
+    border-radius:16px; padding:14px 18px; margin:16px 0 18px; font-weight:700; color:var(--ink);
+  }
+  .rv2-change-link{color:var(--ink-faint); font-weight:600; font-size:var(--fs-label); cursor:pointer;}
+  .rv2-change-link:hover{color:var(--blue-deep);}
+  .rv2-card{border-radius:20px; padding:20px; margin-bottom:14px;}
+  .rv2-card-white{background:#fff; border:1.5px solid var(--line);}
+  .rv2-card-blue{background:linear-gradient(135deg, #4C8DFF, #1B4FD6); color:#fff; box-shadow:0 10px 28px rgba(27,79,214,.3);}
+  .rv2-card-mint{background:var(--mint-soft);}
+  .rv2-card-label{font-size:var(--fs-label); font-weight:700; color:var(--ink-sub); margin-bottom:10px; display:flex; align-items:center; gap:6px;}
+  .rv2-card-blue .rv2-card-label{color:rgba(255,255,255,.85);}
+  .rv2-card-headline{font-size:18px; font-weight:800; line-height:1.5; color:var(--ink); margin-bottom:16px;}
+  .rv2-card-headline b, .rv2-highlight{color:var(--blue-deep);}
+  .rv2-card-blue .rv2-card-headline{font-size:19px; font-weight:800; line-height:1.5; color:#fff; margin-bottom:0;}
+  .rv2-card-mint .rv2-card-title{font-size:17px; font-weight:800; color:var(--ink); margin-bottom:8px;}
+  .rv2-card-mint .rv2-card-desc{font-size:var(--fs-label); color:var(--ink-sub); line-height:1.7;}
+  .rv2-stat-row{display:flex; gap:10px;}
+  .rv2-stat{flex:1; background:var(--paper); border-radius:14px; padding:14px 8px; text-align:center;}
+  .rv2-stat-num{font-size:20px; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .rv2-stat-label{font-size:var(--fs-caption); color:var(--ink-faint); margin-top:4px;}
+
   .rv-type-badge{
     display:inline-block; padding:8px 16px; border-radius:14px; font-size:var(--fs-body); font-weight:800;
     margin-bottom:16px;
@@ -272,8 +295,8 @@
     padding:7px 13px; margin-bottom:18px; border-radius:12px;
   }
   .type-both{background:var(--coral-soft); color:var(--coral-deep);}
-  .type-city{background:#FFF4E0; color:#D97706;}
-  .type-rural{background:#FFF4E0; color:#D97706;}
+  .type-city{background:var(--blue-soft); color:var(--blue-deep);}
+  .type-rural{background:var(--blue-soft); color:var(--blue-deep);}
   .type-good{background:var(--mint-soft); color:#088073;}
 
   /* 카드 안에 또 카드를 두면 답답해 보여서, 얇은 구분선으로만 나누는 "통계 행" 방식으로 변경 */
@@ -285,7 +308,7 @@
   .rate-track{height:6px; background:var(--gray-bg); border-radius:6px; overflow:hidden;}
   .rate-fill{height:100%; border-radius:6px; transition:width .6s cubic-bezier(.2,.8,.3,1);}
   .rate-fill.blue{background:var(--blue-deep);}
-  .rate-fill.red{background:var(--coral);}
+  .rate-fill.red{background:var(--mint);}  /* N그룹 구분용 — 블루와 겹치지 않게 민트 유지 */
   .rate-desc{font-size:var(--fs-caption); color:var(--ink-faint); margin-top:10px; line-height:1.6;}
   .rate-desc b{color:var(--ink-sub);}
 
@@ -296,7 +319,7 @@
   .s2c-num-col{text-align:center;}
   .s2c-num-label{font-size:var(--fs-body); font-weight:700; color:var(--ink-sub); margin-bottom:14px;}
   .s2c-num{font-size:58px; font-weight:800; color:var(--navy); line-height:1; letter-spacing:-.03em; font-variant-numeric:tabular-nums; display:block;}
-  .s2c-num.coral{color:var(--coral-deep);}
+  .s2c-num.coral{color:#067A66;}  /* N그룹 구분용 — 블루와 겹치지 않게 민트 계열 유지 */
   .s2c-pct{font-size:24px;}
   .s2c-rank{font-size:var(--fs-label); color:var(--ink-faint); margin-top:14px;}
   .s2c-rank b{color:var(--ink-sub); font-weight:800;}
@@ -403,7 +426,7 @@
     transform:translate(-50%,-50%); transition:left .6s cubic-bezier(.2,.8,.3,1);
   }
   .rank-bar-dot.blue{background:var(--blue-deep);}
-  .rank-bar-dot.coral{background:var(--coral-deep);}
+  .rank-bar-dot.coral{background:#067A66;}  /* N그룹 구분용 — 블루와 겹치지 않게 민트 계열 유지 */
 
   /* ---- 필요서류 체크리스트 (이제 독립된 전체화면이라 여유있게 키움) ---- */
   .doc-checklist{margin-top:8px; padding-top:0; border-top:none; width:100%;}
@@ -614,16 +637,16 @@
     60%{opacity:1; transform:scale(1.03);}
     100%{opacity:1; transform:scale(1) translateY(0);}
   }
-  .result-box.alert{background:var(--coral-soft); color:var(--coral-deep); border-color:#F5C4B3;}
+  .result-box.alert{background:var(--coral-soft); color:var(--coral-deep); border-color:#C7DEFB;}
   .result-box.ok{background:var(--mint-soft); color:#067A66; border-color:#9FE1CB;}
   .stat-callout{font-weight:800; color:var(--coral-deep);}
 
   /* ---- 마감임박 배너 ---- */
   .deadline-banner{
-    background:linear-gradient(90deg, #FFF4E0, #FFEAD1); padding:12px 20px; font-size:var(--fs-label); font-weight:700;
-    color:#B45309; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:linear-gradient(90deg, #EAF2FF, #DCEBFF); padding:12px 20px; font-size:var(--fs-label); font-weight:700;
+    color:var(--blue-deep); display:flex; align-items:center; justify-content:space-between; gap:10px;
   }
-  .deadline-banner .db-close{background:none; border:none; font-size:var(--fs-h2); color:#B45309; cursor:pointer; padding:2px 6px;}
+  .deadline-banner .db-close{background:none; border:none; font-size:var(--fs-h2); color:var(--blue-deep); cursor:pointer; padding:2px 6px;}
 
   /* ---- 인앱 브라우저 안내 배너 ---- */
   .inapp-banner{
@@ -2135,12 +2158,12 @@ function renderPopulationCompareSection(row){
   const peerRank = sortedByS.findIndex(r => r.code === row.code) + 1;
 
   return `
-      <div class="rv-section">
-        <div class="rv-section-title">비슷한 규모 지역과 비교</div>
-        <p style="font-size:var(--fs-caption); color:var(--ink-faint); margin:-2px 0 10px;">인구 ${pop.toLocaleString()}명 · "${bucket.label}" 그룹 (${peers.length}곳)과 비교했어요</p>
-        <div class="rv-stat-row">
-          <div class="rv-stat-box"><div class="rv-stat-num">${peerRank}/${peers.length}위</div><div class="rv-stat-label">같은 규모 그룹 내 순위(기초수급)</div></div>
-          <div class="rv-stat-box"><div class="rv-stat-num">${peerAvgS.toFixed(1)}%</div><div class="rv-stat-label">같은 규모 그룹 평균 수급률</div></div>
+      <div class="rv2-card rv2-card-white">
+        <div class="rv2-card-label">📐 비슷한 규모 지역과 비교</div>
+        <p style="font-size:var(--fs-caption); color:var(--ink-faint); margin:-4px 0 10px;">인구 ${pop.toLocaleString()}명 · "${bucket.label}" 그룹 (${peers.length}곳)과 비교했어요</p>
+        <div class="rv2-stat-row">
+          <div class="rv2-stat"><div class="rv2-stat-num">${peerRank}/${peers.length}위</div><div class="rv2-stat-label">같은 규모 그룹 내 순위(기초수급)</div></div>
+          <div class="rv2-stat"><div class="rv2-stat-num">${peerAvgS.toFixed(1)}%</div><div class="rv2-stat-label">같은 규모 그룹 평균 수급률</div></div>
         </div>
       </div>`;
 }
@@ -2163,45 +2186,67 @@ function renderRegionView(code){
   const sGoal = Math.max(0, Math.round((medianSPct/100) * (Number(row.s_target)||0) - (Number(row.s_recv)||0)));
   const nGoal = Math.max(0, Math.round((medianNPct/100) * (Number(row.n_target)||0) - (Number(row.n_recv)||0)));
 
+  // "10명 중 N명" 식 문구용 근사치
+  const sOutOfTen = Math.max(0, Math.min(10, Math.round(sPct/10)));
+  const nOutOfHundred = Math.max(0, Math.round(nPct));
+  const isUrgent = sRank <= totalRegions/2;
+  const rankPhrase = isUrgent
+    ? '도움이 가장 시급한 지역 중 하나예요.'
+    : '전국 평균보다 비교적 잘 받고 있는 지역이에요.';
+
   document.getElementById('rvContent').innerHTML = `
     <div id="rvSaveArea">
-      <h2 style="margin-top:20px; margin-bottom:2px;">${row.sido} ${row.region}</h2>
-      <div class="rv-type-badge ${type.cls}">${info.title}</div>
-      <div style="font-size:var(--fs-label); color:var(--ink-sub); line-height:1.7; margin-bottom:4px;">${info.desc}</div>
+      <div class="rv2-location-row">
+        <span>📍 ${row.sido} ${row.region}</span>
+        <span class="rv2-change-link" onclick="document.getElementById('rvSearchInput')?.focus()">변경 ›</span>
+      </div>
 
-      <div class="rv-section">
-        <div class="rv-section-title">전국 순위</div>
-        <div class="rv-stat-row">
-          <div class="rv-stat-box"><div class="rv-stat-num">${sPct.toFixed(2)}%</div><div class="rv-stat-label">기초생활수급 · 전국 ${sRank}/${totalRegions}위</div></div>
-          <div class="rv-stat-box"><div class="rv-stat-num">${nPct.toFixed(2)}%</div><div class="rv-stat-label">차상위·한부모 · 전국 ${nRank}/${totalRegions}위</div></div>
+      <div class="rv2-card rv2-card-white">
+        <div class="rv2-card-label">🔍 ${row.region} 데이터로 확인해보니</div>
+        <div class="rv2-card-headline">기초생활수급 가정은 10명 중 <b>${sOutOfTen}명</b>이 받고 있지만, 차상위·한부모 가정은 100명 중 <b>${nOutOfHundred}명</b>만 받고 있어요.</div>
+        <div class="rv2-stat-row">
+          <div class="rv2-stat"><div class="rv2-stat-num">${Math.round(Number(row.s_target)||0).toLocaleString()}명</div><div class="rv2-stat-label">S그룹 대상</div></div>
+          <div class="rv2-stat"><div class="rv2-stat-num">${sPct.toFixed(1)}%</div><div class="rv2-stat-label">S그룹 수급률</div></div>
+          <div class="rv2-stat"><div class="rv2-stat-num">${nPct.toFixed(1)}%</div><div class="rv2-stat-label">N그룹 수급률</div></div>
         </div>
       </div>
 
-      <div class="rv-section">
-        <div class="rv-section-title">${row.sido} 시도 단위 집계</div>
-        <div class="rv-stat-row">
-          <div class="rv-stat-box"><div class="rv-stat-num">${sido.sPct ? sido.sPct.toFixed(1) : '-'}%</div><div class="rv-stat-label">${row.sido} 평균(기초수급) · 17개 시도 중 ${sido.sRank||'-'}위</div></div>
-          <div class="rv-stat-box"><div class="rv-stat-num">${sido.count||'-'}개</div><div class="rv-stat-label">${row.sido} 내 시군구 수</div></div>
+      <div class="rv2-card rv2-card-blue">
+        <div class="rv2-card-label">📊 전국에서 비교해보면</div>
+        <div class="rv2-card-headline">${row.region}은 229곳 중 <b>${sRank}위</b>로, ${rankPhrase}</div>
+      </div>
+
+      <div class="rv2-card rv2-card-mint">
+        <div class="rv2-card-label">🌱 이 지역엔 이런 접근이 맞아요</div>
+        <div class="rv2-card-title">${info.title}</div>
+        <div class="rv2-card-desc">${info.desc}</div>
+      </div>
+
+      <div class="rv2-card rv2-card-white">
+        <div class="rv2-card-label">🗺️ ${row.sido} 시도 단위 집계</div>
+        <div class="rv2-stat-row">
+          <div class="rv2-stat"><div class="rv2-stat-num">${sido.sPct ? sido.sPct.toFixed(1) : '-'}%</div><div class="rv2-stat-label">${row.sido} 평균(기초수급) · 17개 시도 중 ${sido.sRank||'-'}위</div></div>
+          <div class="rv2-stat"><div class="rv2-stat-num">${sido.count||'-'}개</div><div class="rv2-stat-label">${row.sido} 내 시군구 수</div></div>
         </div>
       </div>
 
       ${renderPopulationCompareSection(row)}
 
-      <div class="rv-section">
-        <div class="rv-section-title">목표 설정 계산 <span style="font-weight:500; color:var(--ink-faint);">(참고 지표)</span></div>
-        <div class="rv-goal-box">
+      <div class="rv2-card rv2-card-white">
+        <div class="rv2-card-label">🎯 목표 설정 계산 <span style="font-weight:500; color:var(--ink-faint);">(참고 지표)</span></div>
+        <div style="font-size:var(--fs-label); color:var(--ink-sub); line-height:1.7;">
           전국 중위 수급률(기초생활수급 ${medianSPct.toFixed(1)}%)에 도달하려면<br>
-          <b>${sGoal.toLocaleString()}명</b> 규모의 추가 발굴이 필요해요 (차상위·한부모는 <b>${nGoal.toLocaleString()}명</b>).<br>
+          <b style="color:var(--ink);">${sGoal.toLocaleString()}명</b> 규모의 추가 발굴이 필요해요 (차상위·한부모는 <b style="color:var(--ink);">${nGoal.toLocaleString()}명</b>).<br>
           <span style="font-size:var(--fs-caption); opacity:.85;">※ 실제 선정은 예산과 지자체 심사에 따라 달라질 수 있는 참고 수치예요.</span>
         </div>
       </div>
 
-      <div class="rv-section">
-        <div class="rv-section-title">시설당 대상자 수 (포화도)</div>
+      <div class="rv2-card rv2-card-white">
+        <div class="rv2-card-label">🏢 시설당 대상자 수 (포화도)</div>
         ${perFacility
-          ? `<div class="rv-stat-row">
-               <div class="rv-stat-box"><div class="rv-stat-num">${perFacility.toFixed(1)}명</div><div class="rv-stat-label">가맹시설 ${facCount}개 · 시설 1곳당 대상자</div></div>
-               <div class="rv-stat-box"><div class="rv-stat-num">15.3명</div><div class="rv-stat-label">전국 중위 (비교 기준)</div></div>
+          ? `<div class="rv2-stat-row">
+               <div class="rv2-stat"><div class="rv2-stat-num">${perFacility.toFixed(1)}명</div><div class="rv2-stat-label">가맹시설 ${facCount}개 · 시설 1곳당 대상자</div></div>
+               <div class="rv2-stat"><div class="rv2-stat-num">15.3명</div><div class="rv2-stat-label">전국 중위 (비교 기준)</div></div>
              </div>`
           : `<p class="placeholder-msg" style="margin:0;">이 지역은 가맹시설이 없어 계산할 수 없어요.</p>`}
       </div>
@@ -3710,7 +3755,7 @@ async function placeFacilityPinsFor(facilities){
       const marker = new naver.maps.Marker({
         position: pos, map: map,
         icon: {
-          content: `<div style="background:#fff; border:2px solid var(--coral,#F0603F); color:var(--coral-deep,#C7461F); padding:4px 10px; border-radius:14px; font-size:11px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; box-shadow:0 2px 6px rgba(0,0,0,.2); cursor:pointer;" title="${f.name}">📍 ${f.name}${distLabel}</div>`,
+          content: `<div style="background:#fff; border:2px solid var(--coral,#1B64DA); color:var(--coral-deep,#0F4DAD); padding:4px 10px; border-radius:14px; font-size:11px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; box-shadow:0 2px 6px rgba(0,0,0,.2); cursor:pointer;" title="${f.name}">📍 ${f.name}${distLabel}</div>`,
           anchor: new naver.maps.Point(0, 0)
         }
       });
