@@ -1225,19 +1225,19 @@
     <div class="wp-sub">오늘은 어떤 걸 알아볼까요?</div>
     <button class="wp-choice" onclick="wpEditProfile()">
       <span class="wp-choice-emoji">⚙️</span>
-      <span class="wp-choice-text"><b>내 나이·이름 설정하기</b><span>이름과 생년월일을 다시 입력해요</span></span>
+      <span class="wp-choice-text"><b>이름·생일 설정하기</b><span>이름과 생년월일을 다시 입력해요</span></span>
     </button>
     <button class="wp-choice" onclick="wpReturnFinish('facility')">
       <span class="wp-choice-emoji">📍</span>
-      <span class="wp-choice-text"><b>우리동네 시설 모아보기</b><span>가까운 스포츠 시설을 강좌·가격까지 한눈에</span></span>
-    </button>
-    <button class="wp-choice" onclick="wpReturnFinish('rank')">
-      <span class="wp-choice-emoji">🏆</span>
-      <span class="wp-choice-text"><b>우리동네 전국 순위 알아보기</b><span>수급률이 전국 몇 등인지 바로 확인</span></span>
+      <span class="wp-choice-text"><b>우리동네 시설 알아보기</b><span>가까운 스포츠 시설을 강좌·가격까지 한눈에</span></span>
     </button>
     <button class="wp-choice" onclick="wpReturnFinish('diagnose')">
-      <span class="wp-choice-emoji">🔍</span>
-      <span class="wp-choice-text"><b>자가진단 다시 보기</b><span>서류 체크리스트도 여기서 이어서 볼 수 있어요</span></span>
+      <span class="wp-choice-emoji">📋</span>
+      <span class="wp-choice-text"><b>신청서류 알아보기</b><span>필요한 서류를 체크리스트로 확인해요</span></span>
+    </button>
+    <button class="wp-choice" onclick="wpGoToOperatorPage()">
+      <span class="wp-choice-emoji">🏢</span>
+      <span class="wp-choice-text"><b>시설을 운영하고 계신가요?</b><span>잠재 수요·포화도 등 운영 참고 자료 받기</span></span>
     </button>
     <div class="wp-skip" style="margin-top:6px;" onclick="wpReturnDismiss()">그냥 둘러볼게요</div>
   </div>
@@ -2461,16 +2461,17 @@ function initOnboarding(){
   document.getElementById('welcomeOverlay').classList.add('show');
 }
 
-// 스플래시("시작하기") 버튼 — 재방문자도 요청에 따라 항상 "시작해볼까요?" 화면(1)부터 보여줌.
-// 다만 재방문자는 이름이 이미 저장돼 있으니, 입력칸에 미리 채워둬서 바로 "다음"만 누르면 되게 함.
+// 스플래시("시작하기") 버튼 — 처음 방문자는 "시작해볼까요?"(이름 입력, 1)로,
+// 재방문자는 "오늘은 어떤 걸 알아볼까요?" 짧은 메뉴 화면(Return)으로 안내
 function wpSplashNext(){
   wpHistory.push(0);
-  const savedName = localStorage.getItem('fairplay_name');
-  if(savedName){
-    const nameInput = document.getElementById('wpName');
-    if(nameInput) nameInput.value = savedName;
+  const isReturning = localStorage.getItem('fairplay_onboarded') && localStorage.getItem('fairplay_name');
+  if(isReturning){
+    wpCurrentPage = 'Return';
+    wpShowOnly('Return');
+  } else {
+    wpGoTo(1, true);
   }
-  wpGoTo(1, true);
 }
 
 // 재방문자가 "내 나이·이름 설정하기"를 누르면 처음 방문자와 완전히 동일한
@@ -2485,6 +2486,12 @@ function wpEditProfile(){
 function wpReturnFinish(goal){
   document.getElementById('welcomeOverlay').classList.remove('show');
   wpFinish(goal);
+}
+// "시설을 운영하고 계신가요?" — 온보딩 닫고 바로 「시설 운영자」 자료제공 화면으로 이동
+function wpGoToOperatorPage(){
+  document.getElementById('welcomeOverlay').classList.remove('show');
+  goToStep(1);
+  openFacilityView();
 }
 // "그냥 둘러볼게요" — 목표 선택 없이 기본 화면으로
 function wpReturnDismiss(){
