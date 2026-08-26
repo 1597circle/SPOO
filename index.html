@@ -977,6 +977,7 @@
 
     <!-- ===== STEP 2: 우리동네 현황 ===== -->
     <div class="step-panel" id="step2Panel" style="display:none;">
+      <button class="next-step-btn secondary" style="margin-bottom:14px;" onclick="goToStep(1)">← 1단계: 자가진단으로</button>
       <div class="search-row" id="compactSearchRow">
         <div class="search-box">
           <input type="text" id="searchInputCompact" placeholder="다른 동네 찾기" autocomplete="off">
@@ -1243,6 +1244,7 @@
 
   <!-- 재방문자용 짧은 환영 화면 -->
   <div class="wp" id="wpReturn" style="display:none;">
+    <div class="wp-nav"><span class="wp-back" onclick="wpBack()">← 이전</span><span></span></div>
     <div class="wp-logo" style="font-size:40px; margin-bottom:4px;">👋</div>
     <div class="wp-question" id="wpReturnGreeting">안녕하세요!</div>
     <div class="wp-sub">오늘은 어떤 걸 알아볼까요?</div>
