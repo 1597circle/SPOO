@@ -1,7 +1,10 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v2'; // v1→v2: 시설 데이터를 지역별 파일로 분할한 구조 변경 반영 — 예전 spoo-v1 캐시는 activate 단계에서 자동 정리됨
+const CACHE_NAME = 'spoo-v3'; // v2→v3: index.html을 index.html/style.css/app.js로 분리한 구조 변경 반영
 const CORE_FILES = [
   './index.html',
+  './style.css',
+  './app.js',
+  './naver-auth-handler.js',
   './manifest.json',
   './config.json',
   './voucher_data.csv',
