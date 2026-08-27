@@ -1,4 +1,5 @@
 let voucherData = {};
+let spooConfig = null; // config.json 캐시 — 캘린더 등록(.ics) 기능에서 재사용
 let allSportTypesGlobal = new Set(); // 전국 종목 목록 (추천 기능의 종목 선택용)
 let neighborMap = {};    // 인접시군구_매핑.json — 옆동네 시설 표시 기능에 사용
 const LOW_FACILITY_THRESHOLD = 13;  // 이 개수 이하면 "옆동네도 함께 보기"를 자동으로 제안
@@ -282,6 +283,7 @@ function loadCoursesInBackground(){
 async function loadConfigAndApply(){
   try{
     const cfg = await fetch('config.json').then(r=>r.json());
+    spooConfig = cfg; // 캘린더 등록(.ics) 기능에서 재사용
     const fmt = (iso) => { const [y,m,d] = iso.split('-'); return `${parseInt(m)}월 ${parseInt(d)}일`; };
     const tag = document.getElementById('headerConfigTag');
     if(tag) tag.textContent = `전국 ${cfg.regionCount}개 지역 · ${cfg.dataUpdatedAt} 기준`;
@@ -294,6 +296,97 @@ async function loadConfigAndApply(){
   }
 }
 loadConfigAndApply();
+
+/* ==================== 신청기간 캘린더 등록 (.ics 다운로드) ====================
+   서버·회원가입 없이, 브라우저에서 표준 iCalendar(.ics) 파일을 만들어 다운로드합니다.
+   config.json의 신청기간·결제마감 값을 그대로 사용하므로, 매년 config.json만 갱신하면
+   따로 손댈 필요 없이 최신 날짜로 반영됩니다. (기획서 "① 캘린더 등록" 참고) */
+function icsPad2(n){ return String(n).padStart(2, '0'); }
+
+// "2026-11-10" -> "20261110"
+function icsDateOnly(iso){ return iso.replace(/-/g, ''); }
+
+// 종일 이벤트의 DTEND는 iCalendar 규격상 "다음날"을 넣어야 함 (exclusive)
+function icsDateOnlyPlus1(iso){
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}${icsPad2(d.getMonth()+1)}${icsPad2(d.getDate())}`;
+}
+
+function icsEscape(text){
+  return String(text).replace(/([,;])/g, '\\$1');
+}
+
+function buildIcsContent(cfg){
+  const now = new Date();
+  const dtstamp = `${now.getUTCFullYear()}${icsPad2(now.getUTCMonth()+1)}${icsPad2(now.getUTCDate())}T${icsPad2(now.getUTCHours())}${icsPad2(now.getUTCMinutes())}${icsPad2(now.getUTCSeconds())}Z`;
+
+  function vevent(uid, summary, description, dateIso){
+    return [
+      'BEGIN:VEVENT',
+      `UID:${uid}@spoo.1597circle.github.io`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART;VALUE=DATE:${icsDateOnly(dateIso)}`,
+      `DTEND;VALUE=DATE:${icsDateOnlyPlus1(dateIso)}`,
+      `SUMMARY:${icsEscape(summary)}`,
+      `DESCRIPTION:${icsEscape(description)}`,
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      'DESCRIPTION:REMINDER',
+      'TRIGGER:-P3D', // 3일 전 알림
+      'END:VALARM',
+      'END:VEVENT',
+    ].join('\r\n');
+  }
+
+  const events = [
+    vevent('spoo-apply-start', 'SPOO 스포츠강좌이용권 신청 시작', 'SPOO에서 신청 서류를 미리 확인해보세요.', cfg.applyPeriod.start),
+    vevent('spoo-apply-end', 'SPOO 스포츠강좌이용권 신청 마감', '오늘까지 신청을 완료해야 해요.', cfg.applyPeriod.end),
+    vevent('spoo-payment-deadline', 'SPOO 스포츠강좌이용권 결제 마감', '12월 31일이 아니라 이 날짜까지예요. 헷갈리지 마세요!', cfg.paymentDeadline),
+  ];
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//SPOO//KO',
+    'CALSCALE:GREGORIAN',
+    ...events,
+    'END:VCALENDAR',
+  ].join('\r\n');
+}
+
+async function downloadApplyCalendar(){
+  let cfg = spooConfig;
+  if(!cfg){
+    try{ cfg = await fetch('config.json').then(r=>r.json()); }
+    catch(e){ alert('일정 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'); return; }
+  }
+  const icsText = buildIcsContent(cfg);
+  const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'SPOO_신청기간.ics';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showIcsToast();
+}
+
+function showIcsToast(){
+  let toast = document.getElementById('icsToast');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'icsToast';
+    toast.className = 'ics-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = '📅 다운로드했어요. 파일을 열어 "캘린더에 추가"를 눌러주세요 (알림 시각은 캘린더 앱 설정에 따라 다를 수 있어요)';
+  toast.classList.add('show');
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(()=> toast.classList.remove('show'), 3800);
+}
 
 async function init(){
   try{

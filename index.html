@@ -120,6 +120,7 @@
             <div class="notice-item"><b>3개월 연속 미사용 시 지원 중단</b> — 중단되면 다음 해 선정 순위도 불리해질 수 있어요.</div>
             <div class="notice-item"><b>문화누리카드와 중복 신청 가능</b> — 둘 다 받고 계셔도 걱정 안 하셔도 돼요.</div>
           </div>
+          <button class="calendar-btn" onclick="downloadApplyCalendar()">📅 신청기간 내 캘린더에 추가하기</button>
           <button class="next-step-btn secondary" onclick="s1GoTo('docsChecklist')" style="margin-top:26px; margin-bottom:8px;">← 이전</button>
           <button class="next-step-btn" onclick="s1GoTo('docsContact')">다음 →</button>
         </div>
@@ -254,6 +255,9 @@
           </button>
           <button class="household-card" style="width:100%; margin-top:8px;" onclick="s1GoTo('recommend')">
             <span class="hc-emoji" aria-hidden="true">📍</span><span class="hc-text">이미 신청하셨나요? 시설 알아보기</span>
+          </button>
+          <button class="household-card" style="width:100%; margin-top:8px;" onclick="downloadApplyCalendar()">
+            <span class="hc-emoji" aria-hidden="true">📅</span><span class="hc-text">신청기간 내 캘린더에 추가하기</span>
           </button>
           <div class="s1-tiny-links">
             <span onclick="saveDiagnoseResult()">📸 결과 저장</span> · <span onclick="s1GoTo('age')">다시 진단하기</span>
@@ -573,5 +577,21 @@
   <a href="privacy.html" style="color:var(--ink-faint); text-decoration:underline;">개인정보처리방침</a> ·
   <a href="mailto:circle1597@naver.com" style="color:var(--ink-faint); text-decoration:underline;">문의하기</a>
 </footer>
+
+<!-- 처음 이용자에게 한 번만 보여주는 홈 화면 기능 안내 (coachmark). fairplay_seen_home_tips 저장 후 다시 안 뜸 -->
+<div class="coachmark-overlay" id="coachmarkOverlay" onclick="if(event.target===this) closeHomeTips()">
+  <div class="coachmark-bubble" id="coachmarkBubble">
+    <div class="coachmark-arrow" id="coachmarkArrow"></div>
+    <div class="coachmark-title" id="coachmarkTitle"></div>
+    <div class="coachmark-desc" id="coachmarkDesc"></div>
+    <div class="coachmark-footer">
+      <div class="coachmark-dots" id="coachmarkDots"></div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <span class="coachmark-skip" onclick="closeHomeTips()">건너뛰기</span>
+        <button class="coachmark-next" id="coachmarkNextBtn" onclick="advanceHomeTip()">다음</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
