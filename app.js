@@ -3050,6 +3050,26 @@ function renderPriorityNotice(household, priorHistory){
     </div>`;
 }
 
+// ==================== PWA 바로가기 (App Shortcuts) ====================
+// 홈 화면 아이콘을 길게 눌러 나오는 단축 메뉴에서 진입한 경우, 온보딩(이름 입력 등)을
+// 거치지 않고 바로 원하는 화면으로 이동시킵니다. (Android Chrome 계열에서만 지원되는 기능이며,
+// manifest.json의 "shortcuts" 항목과 짝을 이룹니다.) 처리했으면 true를 반환해서 온보딩 화면을 건너뜁니다.
+function handlePwaShortcut(){
+  const shortcut = new URLSearchParams(location.search).get('shortcut');
+  if(!shortcut) return false;
+
+  if(localStorage.getItem('fairplay_onboarded')) applyStoredProfile();
+
+  if(shortcut === 'diagnose'){
+    goToStep(1);
+  } else if(shortcut === 'facility'){
+    goToStep(2);
+  } else {
+    return false; // 모르는 값이면 평소처럼 온보딩부터 시작
+  }
+  return true;
+}
+
 window.addEventListener('load', ()=>{
   // 검정 프리로드 스플래시: SPO+O가 합쳐지는 애니메이션(~1.2초)과 태그라인이 다 나온 뒤 사라짐
   setTimeout(()=>{
@@ -3060,7 +3080,7 @@ window.addEventListener('load', ()=>{
     }
   }, 3400);
 
-  initOnboarding();
+  if(!handlePwaShortcut()) initOnboarding();
   registerServiceWorker();
   setupInstallPrompt();
   setTimeout(()=>{
