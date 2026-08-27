@@ -53,6 +53,10 @@
   header{
     background:var(--navy-gradient); padding:18px 28px; border-bottom:none;
     display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+    /* 온보딩 오버레이(z-index:2000)보다 위 — 온보딩 화면에서도 언어 선택(🌐)이 눌리도록.
+       한국어를 못 읽는 사용자가 가장 먼저 하는 행동이 언어 변경이므로 반드시 필요.
+       (이게 없으면 메뉴가 보여도 클릭이 오버레이에 먹히는 버그 발생 — 2026-08-27 실제 발견) */
+    position:relative; z-index:3000;
   }
   header h1{font-size:var(--fs-h2); margin:0; font-weight:800; letter-spacing:-.02em; color:#fff; display:flex; align-items:center; gap:8px;}
   header h1 span{color:rgba(255,255,255,.5); font-weight:500; font-size:var(--fs-label);}
