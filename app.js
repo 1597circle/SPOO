@@ -106,6 +106,11 @@ async function setLanguage(lang){
   if(ageSlider && ageValueEl && ageSlider.value){
     ageValueEl.textContent = t('age_years', `${ageSlider.value}세`).replace('{n}', ageSlider.value);
   }
+  // 날짜 입력칸(년-월-일)의 표시 형식은 브라우저가 lang 속성을 보고 정하므로,
+  // 문서와 입력칸 양쪽에 현재 언어를 지정해줍니다. (영어면 mm/dd/yyyy 로 바뀜)
+  document.querySelectorAll('input[type="date"]').forEach(inp => {
+    inp.setAttribute('lang', lang);
+  });
   // 자가진단 결과·서류 목록도 JS가 그린 것이라 언어를 바꾸면 다시 그려줘야 합니다.
   // (언어 파일 로딩보다 결과 렌더링이 먼저 끝나면 한국어로 남는 문제를 방지)
   try{ if(typeof runDiagnose === 'function') runDiagnose(); }catch(e){ /* 진단 정보가 아직 없으면 무시 */ }
