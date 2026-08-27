@@ -27,7 +27,7 @@
   ⚠️ 여기에 네이버클라우드 콘솔에서 발급받은 Client ID를 넣으세요.
   파라미터 이름은 최신 버전 기준 ncpKeyId 입니다 (예전 문서엔 ncpClientId).
 ============================================================= -->
-<script src="naver-auth-handler.js?v=20260827c"></script>
+<script src="naver-auth-handler.js?v=20260827d"></script>
 <script src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=414ow9gvoj&submodules=geocoder"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -36,7 +36,7 @@
 
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
 
-<link rel="stylesheet" href="style.css?v=20260827c">
+<link rel="stylesheet" href="style.css?v=20260827d">
 </head>
 <body>
 
@@ -48,30 +48,30 @@
 </div>
 
 <div class="deadline-banner" id="deadlineBanner">
-  <span>⏰ 스포츠강좌이용권은 이번 달에 못 쓰면 이월 없이 사라져요. 대상이시라면 서둘러 신청해보세요!</span>
+  <span data-i18n="urgent_banner">⏰ 스포츠강좌이용권은 이번 달에 못 쓰면 이월 없이 사라져요. 대상이시라면 서둘러 신청해보세요!</span>
   <button class="db-close" id="closeBanner">✕</button>
 </div>
 
 <div class="inapp-banner" id="inappBanner" style="display:none;">
-  <span id="inappBannerText">⚠️ 지금 보고 계신 브라우저에서는 지도가 안 보일 수 있어요</span>
-  <button class="ib-install" id="inappOpenBtn" style="display:none;">기본 브라우저로 열기</button>
+  <span id="inappBannerText" data-i18n="inapp_warn">⚠️ 지금 보고 계신 브라우저에서는 지도가 안 보일 수 있어요</span>
+  <button class="ib-install" id="inappOpenBtn" data-i18n="inapp_open" style="display:none;">기본 브라우저로 열기</button>
 </div>
 
 <div class="install-banner" id="installBanner">
-  <span>📱 SPOO를 홈 화면에 앱으로 추가해보세요</span>
+  <span data-i18n="install_msg">📱 SPOO를 홈 화면에 앱으로 추가해보세요</span>
   <div style="display:flex; gap:8px; align-items:center;">
-    <button class="ib-install" id="installBtn">추가하기</button>
+    <button class="ib-install" id="installBtn" data-i18n="install_btn">추가하기</button>
     <button class="ib-close" id="closeInstallBanner">✕</button>
   </div>
 </div>
 
 <header>
-  <h1 onclick="goHome()" style="cursor:pointer;">🏃 SPOO <span>· 우리 아이 스포츠강좌 지원받기</span></h1>
+  <h1 onclick="goHome()" style="cursor:pointer;">🏃 SPOO <span data-i18n="header_sub">· 우리 아이 스포츠강좌 지원받기</span></h1>
   <div style="display:flex; align-items:center; gap:14px; position:relative;">
-    <span class="header-link" onclick="toggleHeaderMoreMenu()">더 알아보기 ▾</span>
+    <span class="header-link" onclick="toggleHeaderMoreMenu()" data-i18n="header_more">더 알아보기 ▾</span>
     <div id="headerMoreMenu" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:200px; z-index:2000;">
-      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openRegionView();">📊 지역 현황이 궁금하신가요?</div>
-      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openFacilityView();">🏢 시설을 운영하고 계신가요?</div>
+      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openRegionView();" data-i18n="menu_region">📊 지역 현황이 궁금하신가요?</div>
+      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openFacilityView();" data-i18n="menu_operator">🏢 시설을 운영하고 계신가요?</div>
     </div>
     <span class="header-link" onclick="toggleLangMenu()">🌐 <span id="langBtnLabel">한국어</span> ▾</span>
     <div id="langMenu" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:160px; z-index:2000;">
@@ -152,10 +152,10 @@
 
     <!-- ===== STEP 2: 우리동네 현황 ===== -->
     <div class="step-panel" id="step2Panel" style="display:none;">
-      <button class="next-step-btn secondary" style="margin-bottom:14px;" onclick="goToStep(1)">← 1단계: 자가진단으로</button>
+      <button class="next-step-btn secondary" style="margin-bottom:14px;" onclick="goToStep(1)" data-i18n="btn_back_step1">← 1단계: 자가진단으로</button>
       <div class="search-row" id="compactSearchRow">
         <div class="search-box">
-          <input type="text" id="searchInputCompact" placeholder="다른 동네 찾기" autocomplete="off">
+          <input type="text" id="searchInputCompact" placeholder="다른 동네 찾기" data-i18n-ph="ph_other_region" autocomplete="off">
           <div class="search-suggest" id="searchSuggestCompact" style="display:none;"></div>
         </div>
         <button class="locate-btn" id="locateBtnCompact" title="내 위치로 찾기">📍</button>
@@ -165,21 +165,21 @@
         <p class="placeholder-msg">👆<br>위에서 동네를 알려주시면<br>지원 현황을 바로 보여드려요</p>
       </div>
 
-      <button class="next-step-btn" id="toStep3Btn" onclick="showTopPicks()" style="display:none;">다음: 가까운 시설 찾기 →</button>
+      <button class="next-step-btn" id="toStep3Btn" data-i18n="btn_to_step3" onclick="showTopPicks()" style="display:none;">다음: 가까운 시설 찾기 →</button>
 
       <button class="more-info-toggle" id="moreInfoToggle" onclick="toggleMoreInfo()">더 많은 정보 보기 <span id="moreInfoArrow">▾</span></button>
 
       <div id="moreInfoSection" style="display:none;">
         <div class="card" id="favCard" style="display:none;">
-          <h2>⭐ 즐겨찾는 동네</h2>
+          <h2 data-i18n="fav_regions">⭐ 즐겨찾는 동네</h2>
           <div id="favList"></div>
-          <button class="compare-btn" id="compareBtn" onclick="toggleCompareFavorites()" style="display:none;">📊 즐겨찾는 동네 비교하기</button>
+          <button class="compare-btn" id="compareBtn" data-i18n="btn_compare" onclick="toggleCompareFavorites()" style="display:none;">📊 즐겨찾는 동네 비교하기</button>
           <div id="compareBox"></div>
         </div>
 
         <div class="card" id="top10Card">
-          <h2>🚨 도움이 가장 필요한 지역 TOP 10</h2>
-          <div class="sub">두 가정 모두 지원을 유독 못 받고 있는 곳이에요</div>
+          <h2 data-i18n="top10_title">🚨 도움이 가장 필요한 지역 TOP 10</h2>
+          <div class="sub" data-i18n="top10_sub">두 가정 모두 지원을 유독 못 받고 있는 곳이에요</div>
           <div id="top10List"></div>
         </div>
       </div>
@@ -187,7 +187,7 @@
 
     <!-- ===== STEP 3: 시설 찾기 ===== -->
     <div class="step-panel" id="step3Panel" style="display:none;">
-      <button class="next-step-btn secondary" style="margin-bottom:14px;" onclick="goToStep(2)">← 2단계: 우리동네 현황으로</button>
+      <button class="next-step-btn secondary" style="margin-bottom:14px;" onclick="goToStep(2)" data-i18n="btn_back_step2">← 2단계: 우리동네 현황으로</button>
       <div class="card" id="regionFacilityCard">
         <p class="placeholder-msg">🗺️<br>2단계에서 동네를 먼저 선택해주세요</p>
       </div>
@@ -278,14 +278,14 @@
         <div class="s1-vcenter-inner">
           <div class="s1-tag"><span class="dot"></span>시설 추천</div>
           <div class="s1-question" style="margin-bottom:10px;">딱 맞는 시설<br>추천받기</div>
-          <div class="s1-sub" style="margin-top:0; margin-bottom:30px;">실제 거리 계산으로 가까운 순으로 찾아드려요</div>
-          <label class="field-label" for="favoriteSport" style="width:100%; text-align:left;">좋아하는 운동이 있나요? (선택)</label>
-          <select id="favoriteSport" class="recommend-select"><option value="">전체 종목에서 찾기</option></select>
-          <button class="recommend-btn" id="recommendBtn" onclick="runRecommend()">📍 내 위치로 추천받기</button>
+          <div class="s1-sub" style="margin-top:0; margin-bottom:30px;" data-i18n="recommend_sub">실제 거리 계산으로 가까운 순으로 찾아드려요</div>
+          <label class="field-label" for="favoriteSport" style="width:100%; text-align:left;" data-i18n="label_fav_sport">좋아하는 운동이 있나요? (선택)</label>
+          <select id="favoriteSport" class="recommend-select"><option value="" data-i18n="opt_all_sports_search">전체 종목에서 찾기</option></select>
+          <button class="recommend-btn" id="recommendBtn" data-i18n="btn_recommend" onclick="runRecommend()">📍 내 위치로 추천받기</button>
           <div id="recommendResult" style="width:100%;"></div>
-          <div class="recommend-disclaimer">실시간 위치로 우리 동네+옆동네 시설 중 가까운 순으로 찾아드려요</div>
-          <button class="next-step-btn secondary" onclick="s1GoTo('resultAction')" style="margin-top:22px; margin-bottom:8px;">← 이전</button>
-          <button class="next-step-btn" onclick="goToStep(2)">다음: 우리 동네 현황 보기 →</button>
+          <div class="recommend-disclaimer" data-i18n="recommend_disclaimer">실시간 위치로 우리 동네+옆동네 시설 중 가까운 순으로 찾아드려요</div>
+          <button class="next-step-btn secondary" onclick="s1GoTo('resultAction')" style="margin-top:22px; margin-bottom:8px;" data-i18n="btn_prev">← 이전</button>
+          <button class="next-step-btn" onclick="goToStep(2)" data-i18n="btn_to_region">다음: 우리 동네 현황 보기 →</button>
         </div>
       </div>
 
@@ -296,7 +296,7 @@
             <div class="s1-question" style="margin-bottom:32px;">동네 이름을<br>알려주세요!</div>
             <div class="search-row" style="margin-bottom:0;">
               <div class="search-box">
-                <input type="text" id="searchInput" placeholder="동네 이름으로 찾기 (예: 강남구)" autocomplete="off">
+                <input type="text" id="searchInput" placeholder="동네 이름으로 찾기 (예: 강남구)" data-i18n-ph="ph_region_search" autocomplete="off">
                 <div class="search-suggest" id="searchSuggest" style="display:none;"></div>
               </div>
             </div>
@@ -315,8 +315,8 @@
     <div class="s1-tag"><span class="dot"></span>우리 동네 추천</div>
     <div class="s1-question" style="font-size:clamp(28px, 5vw, 42px); margin-bottom:30px;">이런 시설은<br>어때요?</div>
     <div id="topPicksList" style="width:100%;"></div>
-    <button class="next-step-btn secondary" onclick="closeTopPicks()" style="margin-top:24px; margin-bottom:8px;">← 우리동네 현황으로</button>
-    <button class="next-step-btn" id="topPicksNextBtn" onclick="goToStepFromPicks()">전체 시설 다 보기 →</button>
+    <button class="next-step-btn secondary" onclick="closeTopPicks()" style="margin-top:24px; margin-bottom:8px;" data-i18n="btn_back_region">← 우리동네 현황으로</button>
+    <button class="next-step-btn" id="topPicksNextBtn" data-i18n="btn_all_facilities" onclick="goToStepFromPicks()">전체 시설 다 보기 →</button>
   </div>
 </div>
 
@@ -343,7 +343,7 @@
   <div class="wp" id="wp2" style="display:none;">
     <div class="wp-nav"><span class="wp-back" data-i18n="btn_prev" onclick="wpBack()">← 이전</span><span class="wp-skip" data-i18n="wp_skip" onclick="wpSkip()">나중에 할게요</span></div>
     <div class="wp-dots" data-page="2"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <div class="wp-question" id="wpGreeting">반갑습니다!</div>
+    <div class="wp-question" id="wpGreeting" data-i18n="wp_greeting_default">반갑습니다!</div>
     <div class="wp-sub" data-i18n="wp_birth_sub">생년월일을 입력해주세요</div>
     <input type="date" class="wp-input" id="wpBirth" min="2007-01-01" max="2021-12-31">
     <button class="wp-btn wp-btn-primary" id="wpBirthNext" data-i18n="btn_next" onclick="wpSubmitBirth()">다음</button>
@@ -351,7 +351,7 @@
 
   <!-- 페이지 2b: 성인이 입력한 경우 갈림길 -->
   <div class="wp" id="wp2b" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()">← 이전</span><span class="wp-skip" onclick="wpSkip()">나중에 할게요</span></div>
+    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" onclick="wpSkip()" data-i18n="wp_skip">나중에 할게요</span></div>
     <div class="wp-question" data-i18n="wp_age_limit_q">SPOO는 5~18세만<br>이용할 수 있어요</div>
     <div class="wp-sub" data-i18n="wp_child_branch_sub">혹시 아이가 이용하나요?</div>
     <button class="wp-choice" onclick="wpGoTo('2c')">
@@ -366,7 +366,7 @@
 
   <!-- 페이지 2c: 아이 이름 -->
   <div class="wp" id="wp2c" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()">← 이전</span><span class="wp-skip" onclick="wpSkip()">나중에 할게요</span></div>
+    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" onclick="wpSkip()" data-i18n="wp_skip">나중에 할게요</span></div>
     <div class="wp-question" data-i18n="wp_child_name_q">아이 이름을<br>알려주세요!</div>
     <input type="text" class="wp-input" id="wpChildName" placeholder="아이 이름 입력하기" data-i18n-ph="wp_child_name_placeholder" autocomplete="off">
     <button class="wp-btn wp-btn-primary" data-i18n="btn_next" onclick="wpSubmitChildName()">다음</button>
@@ -374,7 +374,7 @@
 
   <!-- 페이지 2d: 아이 생년월일 -->
   <div class="wp" id="wp2d" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()">← 이전</span><span class="wp-skip" onclick="wpSkip()">나중에 할게요</span></div>
+    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" onclick="wpSkip()" data-i18n="wp_skip">나중에 할게요</span></div>
     <div class="wp-question" id="wpChildBirthQ">생년월일을<br>알려주세요</div>
     <input type="date" class="wp-input" id="wpChildBirth" min="2007-01-01" max="2021-12-31">
     <button class="wp-btn wp-btn-primary" data-i18n="btn_next" onclick="wpSubmitChildBirth()">다음</button>
@@ -382,15 +382,15 @@
 
   <!-- 페이지 2e: 이용 가능 확인 -->
   <div class="wp" id="wp2e" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()">← 이전</span><span></span></div>
+    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span></span></div>
     <div class="wp-logo" style="font-size:44px; margin-bottom:4px;" id="wpChildResultEmoji">🎉</div>
-    <div class="wp-question" id="wpChildResultText" style="margin-bottom:40px;">확인 중이에요</div>
-    <button class="wp-btn wp-btn-primary" id="wpChildResultBtn" onclick="wpGoTo(4)">이용할 시설 알아볼까요?</button>
+    <div class="wp-question" id="wpChildResultText" style="margin-bottom:40px;" data-i18n="wp_checking">확인 중이에요</div>
+    <button class="wp-btn wp-btn-primary" id="wpChildResultBtn" onclick="wpGoTo(4)" data-i18n="wp_child_result_btn_ok">이용할 시설 알아볼까요?</button>
   </div>
 
   <!-- 페이지 4: 가정 형태 (자가진단과 통합) -->
   <div class="wp" id="wp4" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()">← 이전</span><span class="wp-skip" onclick="wpSkip()">나중에 할게요</span></div>
+    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" onclick="wpSkip()" data-i18n="wp_skip">나중에 할게요</span></div>
     <div class="wp-dots" data-page="3"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
     <div class="wp-question" data-i18n="q_household">우리 가정은<br>어디에 해당하나요?</div>
     <div class="wp-sub" id="wpAgeNote"></div>
@@ -403,7 +403,7 @@
 
   <!-- 페이지 3: 결과 + 목표 선택 -->
   <div class="wp" id="wp3" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()">← 이전</span><span></span></div>
+    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span></span></div>
     <div class="wp-dots" data-page="4"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
     <div id="wpEligibilityResult"></div>
     <div class="wp-question" id="wpGoalTitle" style="font-size:clamp(26px, 5vw, 36px); margin-top:6px;">SPOO에서<br>무엇을 먼저 해볼까요?</div>
@@ -423,9 +423,9 @@
 
   <!-- 재방문자용 짧은 환영 화면 -->
   <div class="wp" id="wpReturn" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()">← 이전</span><span></span></div>
+    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span></span></div>
     <div class="wp-logo" style="font-size:40px; margin-bottom:4px;">👋</div>
-    <div class="wp-question" id="wpReturnGreeting">안녕하세요!</div>
+    <div class="wp-question" id="wpReturnGreeting" data-i18n="wp_hello_default">안녕하세요!</div>
     <div class="wp-sub" data-i18n="wp_return_sub">오늘은 어떤 걸 알아볼까요?</div>
     <button class="wp-choice" onclick="wpEditProfile()">
       <span class="wp-choice-emoji">⚙️</span>
@@ -444,13 +444,13 @@
       <span class="wp-choice-emoji" style="font-size:18px;">🏢</span>
       <span class="wp-choice-text"><b style="font-size:var(--fs-label);" data-i18n="wp_operator_title">시설을 운영하고 계신가요?</b><span data-i18n="wp_operator_sub">잠재 수요·포화도 등 운영 참고 자료 받기</span></span>
     </button>
-    <div class="wp-skip" style="margin-top:6px;" onclick="wpReturnDismiss()">그냥 둘러볼게요</div>
+    <div class="wp-skip" style="margin-top:6px;" onclick="wpReturnDismiss()" data-i18n="wp_skip_browse">그냥 둘러볼게요</div>
   </div>
 
 </div>
 
 
-<script src="app.js?v=20260827c"></script>
+<script src="app.js?v=20260827d"></script>
 <div class="course-modal-overlay" id="courseModalOverlay" onclick="if(event.target===this) closeCourseDetail()">
   <div class="course-modal">
     <button class="course-modal-close" onclick="closeCourseDetail()">✕</button>
@@ -461,24 +461,24 @@
 <div class="course-modal-overlay" id="filterSheetOverlay" onclick="if(event.target===this) closeFilterSheet()">
   <div class="course-modal">
     <button class="course-modal-close" onclick="closeFilterSheet()">✕</button>
-    <h3 style="margin-bottom:18px;">필터</h3>
-    <label class="field-label">종목</label>
-    <select class="recommend-select" id="typeFilter" onchange="facilityListLimit=5; onFilterChange()"><option value="__all__">전체 종목</option></select>
-    <label class="field-label">시간대</label>
+    <h3 style="margin-bottom:18px;" data-i18n="filter_title">필터</h3>
+    <label class="field-label" data-i18n="label_sport">종목</label>
+    <select class="recommend-select" id="typeFilter" onchange="facilityListLimit=5; onFilterChange()"><option value="__all__" data-i18n="opt_all_sports">전체 종목</option></select>
+    <label class="field-label" data-i18n="label_time">시간대</label>
     <select class="recommend-select" id="timeFilter" onchange="facilityListLimit=5; onFilterChange()">
-      <option value="__all__">전체 시간대</option>
-      <option value="오전">오전 (~12시)</option>
-      <option value="오후">오후 (12~17시)</option>
-      <option value="저녁">저녁 (17시~)</option>
+      <option value="__all__" data-i18n="opt_all_times">전체 시간대</option>
+      <option value="오전" data-i18n="opt_morning">오전 (~12시)</option>
+      <option value="오후" data-i18n="opt_afternoon">오후 (12~17시)</option>
+      <option value="저녁" data-i18n="opt_evening">저녁 (17시~)</option>
     </select>
-    <label class="field-label">내 돈</label>
+    <label class="field-label" data-i18n="label_cost">내 돈</label>
     <select class="recommend-select" id="costFilter" onchange="facilityListLimit=5; onFilterChange()">
-      <option value="__all__">내 돈 전체</option>
-      <option value="free">내 돈 0원</option>
-      <option value="under3">내 돈 3만원까지</option>
-      <option value="under5">내 돈 5만원까지</option>
+      <option value="__all__" data-i18n="opt_cost_all">내 돈 전체</option>
+      <option value="free" data-i18n="opt_cost_0">내 돈 0원</option>
+      <option value="under3" data-i18n="opt_cost_3">내 돈 3만원까지</option>
+      <option value="under5" data-i18n="opt_cost_5">내 돈 5만원까지</option>
     </select>
-    <button class="recommend-btn" style="margin-top:20px;" onclick="closeFilterSheet()">적용하기</button>
+    <button class="recommend-btn" style="margin-top:20px;" onclick="closeFilterSheet()" data-i18n="btn_apply">적용하기</button>
   </div>
 </div>
 
@@ -487,26 +487,26 @@
   <div class="region-view-panel">
     <div class="region-view-header">
       <div>
-        <div class="region-view-title">📊 지역 현황 보기</div>
-        <div class="region-view-sub">시군구·광역 담당자, 복지기관 종사자, 연구자 등 지역 단위 현황이 필요한 분들을 위한 화면이에요</div>
+        <div class="region-view-title" data-i18n="rv_title">📊 지역 현황 보기</div>
+        <div class="region-view-sub" data-i18n="rv_sub">시군구·광역 담당자, 복지기관 종사자, 연구자 등 지역 단위 현황이 필요한 분들을 위한 화면이에요</div>
       </div>
       <button class="course-modal-close" onclick="closeRegionView()">✕</button>
     </div>
 
     <div style="margin-top:10px; padding:12px 14px; background:var(--paper); border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
-      <span style="font-size:var(--fs-caption); color:var(--ink-sub);">전국 229개 지역 데이터가 필요하신가요?</span>
-      <button class="header-link" style="white-space:nowrap;" onclick="downloadRegionDataCSV()">📥 전체 데이터 CSV 다운로드</button>
+      <span style="font-size:var(--fs-caption); color:var(--ink-sub);" data-i18n="csv_prompt">전국 229개 지역 데이터가 필요하신가요?</span>
+      <button class="header-link" style="white-space:nowrap;" onclick="downloadRegionDataCSV()" data-i18n="csv_download">📥 전체 데이터 CSV 다운로드</button>
     </div>
 
     <div class="search-row" style="margin:18px 0 0;">
       <div class="search-box">
-        <input type="text" id="rvSearchInput" placeholder="지역 이름으로 찾기 (예: 봉화군)" autocomplete="off">
+        <input type="text" id="rvSearchInput" placeholder="지역 이름으로 찾기 (예: 봉화군)" data-i18n-ph="ph_rv_search" autocomplete="off">
         <div class="search-suggest" id="rvSearchSuggest" style="display:none;"></div>
       </div>
     </div>
 
     <div id="rvContent">
-      <p class="placeholder-msg" style="margin-top:24px;">👆 위에서 지역을 검색해주세요</p>
+      <p class="placeholder-msg" style="margin-top:24px;" data-i18n="rv_placeholder">👆 위에서 지역을 검색해주세요</p>
     </div>
   </div>
 </div>
@@ -516,41 +516,41 @@
   <div class="region-view-panel">
     <div class="region-view-header">
       <div>
-        <div class="region-view-title">🏢 시설 운영자</div>
-        <div class="region-view-sub">가맹을 고민 중이시거나 이미 가맹하신 시설 운영자분들을 위한 화면이에요</div>
+        <div class="region-view-title" data-i18n="fv_title">🏢 시설 운영자</div>
+        <div class="region-view-sub" data-i18n="fv_sub">가맹을 고민 중이시거나 이미 가맹하신 시설 운영자분들을 위한 화면이에요</div>
       </div>
       <button class="course-modal-close" onclick="closeFacilityView()">✕</button>
     </div>
 
     <div class="rv-section" style="margin-top:16px; padding-top:0; border-top:none;">
-      <div class="rv-section-title">① 우리 지역 잠재 수요 · 포화도 확인</div>
+      <div class="rv-section-title" data-i18n="fv_s1">① 우리 지역 잠재 수요 · 포화도 확인</div>
       <div class="search-row">
         <div class="search-box">
-          <input type="text" id="fvRegionInput" placeholder="지역 이름으로 찾기 (예: 봉화군)" autocomplete="off">
+          <input type="text" id="fvRegionInput" placeholder="지역 이름으로 찾기 (예: 봉화군)" data-i18n-ph="ph_rv_search" autocomplete="off">
           <div class="search-suggest" id="fvRegionSuggest" style="display:none;"></div>
         </div>
       </div>
       <div id="fvRegionContent">
-        <p class="placeholder-msg" style="margin-top:14px;">👆 지역을 검색하면 그 지역의 미수급(잠재 수요) 인원과 시설 포화도를 보여드려요</p>
+        <p class="placeholder-msg" style="margin-top:14px;" data-i18n="fv_placeholder1">👆 지역을 검색하면 그 지역의 미수급(잠재 수요) 인원과 시설 포화도를 보여드려요</p>
       </div>
     </div>
 
     <div class="rv-section">
-      <div class="rv-section-title">② 지역 내 차별화 확인</div>
+      <div class="rv-section-title" data-i18n="fv_s2">② 지역 내 차별화 확인</div>
       <div id="fvDiffBox">
-        <p class="placeholder-msg" style="margin:0;">먼저 위에서 지역을 검색해주세요</p>
+        <p class="placeholder-msg" style="margin:0;" data-i18n="fv_placeholder2">먼저 위에서 지역을 검색해주세요</p>
       </div>
     </div>
 
     <div class="rv-section">
-      <div class="rv-section-title">③ 가맹 신청 절차</div>
+      <div class="rv-section-title" data-i18n="fv_s3">③ 가맹 신청 절차</div>
       <ol style="margin:0; padding-left:20px; font-size:var(--fs-label); color:var(--ink-sub); line-height:2;">
-        <li>시설정보 등록</li>
-        <li>지자체 확인</li>
-        <li>PG사 가맹 등록</li>
-        <li>강좌 등록</li>
-        <li>수강신청</li>
-        <li>정산</li>
+        <li data-i18n="fv_step1">시설정보 등록</li>
+        <li data-i18n="fv_step2">지자체 확인</li>
+        <li data-i18n="fv_step3">PG사 가맹 등록</li>
+        <li data-i18n="fv_step4">강좌 등록</li>
+        <li data-i18n="fv_step5">수강신청</li>
+        <li data-i18n="fv_step6">정산</li>
       </ol>
       <p style="font-size:var(--fs-caption); color:var(--ink-faint); margin-top:8px;">
         세부 서류·절차는 공식 누리집에서 확인해주세요 →
@@ -559,32 +559,32 @@
     </div>
 
     <div class="rv-section">
-      <div class="rv-section-title">④ 내 시설 정보 조회</div>
-      <p style="font-size:var(--fs-caption); color:var(--ink-faint); margin:-4px 0 10px;">시설명이 같은 곳이 전국에 많아서(예: "해동검도" 전국 45곳), 지역까지 함께 확인해보세요</p>
+      <div class="rv-section-title" data-i18n="fv_s4">④ 내 시설 정보 조회</div>
+      <p style="font-size:var(--fs-caption); color:var(--ink-faint); margin:-4px 0 10px;" data-i18n="fv_dup_note">시설명이 같은 곳이 전국에 많아서(예: "해동검도" 전국 45곳), 지역까지 함께 확인해보세요</p>
       <div class="search-row">
         <div class="search-box">
-          <input type="text" id="fvFacilitySearch" placeholder="시설명으로 검색" autocomplete="off">
+          <input type="text" id="fvFacilitySearch" placeholder="시설명으로 검색" data-i18n-ph="ph_facility_search" autocomplete="off">
         </div>
       </div>
       <div id="fvFacilityResults" style="margin-top:10px;"></div>
     </div>
 
     <div class="rv-section">
-      <div class="rv-section-title">⑤ 정보가 정확하지 않나요?</div>
+      <div class="rv-section-title" data-i18n="fv_s5">⑤ 정보가 정확하지 않나요?</div>
       <p style="font-size:var(--fs-label); color:var(--ink-sub); line-height:1.6; margin:0 0 12px;">
         운영 중인 시설 정보가 실제와 다르면 수정을 요청해주세요.<br>
         사업자등록증 등 인증 서류를 첨부해 보내주시면 확인 후 반영해드려요.
       </p>
-      <button class="action-btn" style="width:100%;" onclick="openCorrectionMail()">📩 정보 수정 요청 보내기</button>
+      <button class="action-btn" style="width:100%;" onclick="openCorrectionMail()" data-i18n="fv_report_btn">📩 정보 수정 요청 보내기</button>
     </div>
   </div>
 </div>
 <footer style="padding:32px 20px; text-align:center; font-size:var(--fs-caption); color:var(--ink-faint); line-height:1.8; border-top:1px solid var(--line); margin-top:24px;">
-  SPOO는 스포츠강좌이용권 정보를 더 쉽게 확인할 수 있도록 만든 <b>비공식 정보 제공 서비스</b>입니다.<br>
+  SPOO는 스포츠강좌이용권 정보를 더 쉽게 확인할 수 있도록 만든 <b data-i18n="footer_unofficial">비공식 정보 제공 서비스</b>입니다.<br>
   정부·지자체 공식 서비스가 아니며, 실제 신청·결제는
   <a href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener" style="color:var(--blue-deep);">svoucher.kspo.or.kr</a>에서 진행해주세요.<br>
-  <a href="privacy.html" style="color:var(--ink-faint); text-decoration:underline;">개인정보처리방침</a> ·
-  <a href="mailto:circle1597@naver.com" style="color:var(--ink-faint); text-decoration:underline;">문의하기</a>
+  <a href="privacy.html" style="color:var(--ink-faint); text-decoration:underline;" data-i18n="footer_privacy">개인정보처리방침</a> ·
+  <a href="mailto:circle1597@naver.com" style="color:var(--ink-faint); text-decoration:underline;" data-i18n="footer_contact">문의하기</a>
 </footer>
 
 <!-- 처음 이용자에게 한 번만 보여주는 홈 화면 기능 안내 (coachmark). fairplay_seen_home_tips 저장 후 다시 안 뜸 -->
@@ -596,8 +596,8 @@
     <div class="coachmark-footer">
       <div class="coachmark-dots" id="coachmarkDots"></div>
       <div style="display:flex; gap:10px; align-items:center;">
-        <span class="coachmark-skip" onclick="closeHomeTips()">건너뛰기</span>
-        <button class="coachmark-next" id="coachmarkNextBtn" onclick="advanceHomeTip()">다음</button>
+        <span class="coachmark-skip" onclick="closeHomeTips()" data-i18n="coach_skip">건너뛰기</span>
+        <button class="coachmark-next" id="coachmarkNextBtn" data-i18n="btn_next" onclick="advanceHomeTip()">다음</button>
       </div>
     </div>
   </div>
