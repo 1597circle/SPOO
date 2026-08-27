@@ -1350,6 +1350,8 @@ function initOnboarding(){
   if(new URLSearchParams(location.search).has('reset')){
     localStorage.removeItem('fairplay_onboarded');
     localStorage.removeItem('fairplay_name');
+    localStorage.removeItem('fairplay_child_name');
+    localStorage.removeItem('fairplay_display_name');
     localStorage.removeItem('fairplay_birth');
     localStorage.removeItem('fairplay_age');
     localStorage.removeItem('fairplay_household');
@@ -1360,7 +1362,7 @@ function initOnboarding(){
     // 똑같이 스플래시("SPOO · 시작하기")부터 보여줌. "시작하기"를 누르면 wpSplashNext()가
     // 재방문자인지 확인해서 짧은 환영 화면(Return)으로 자연스럽게 이어줌.
     applyStoredProfile();
-    const name = localStorage.getItem('fairplay_name');
+    const name = localStorage.getItem('fairplay_display_name') || localStorage.getItem('fairplay_name');
     if(name) document.getElementById('wpReturnGreeting').textContent = `안녕하세요, ${name}님!`;
   }
   wpCurrentPage = 0;
@@ -1465,6 +1467,11 @@ function wpSubmitBirth(){
     return;
   }
   localStorage.setItem('fairplay_age', age);
+  // 본인이 직접 이용 대상인 경우 — 표시용 이름은 본인 이름으로 확정.
+  // (다른 세션에서 "아이가 이용해요" 흐름을 탄 적이 있다면 남아있을 수 있는
+  //  이전 아이 이름 데이터가 이후 화면에 잘못 노출되지 않도록 함께 정리합니다.)
+  localStorage.setItem('fairplay_display_name', localStorage.getItem('fairplay_name') || '');
+  localStorage.removeItem('fairplay_child_name');
   wpShowAgeNote(age);
   wpGoTo(4);
 }
@@ -1505,6 +1512,7 @@ function wpSubmitChildBirth(){
 
   if(age >= 5 && age <= 18){
     localStorage.setItem('fairplay_age', age);
+    localStorage.setItem('fairplay_display_name', childName); // 이후 화면(가정유형 결과, 서류 체크리스트 등)에 아이 이름이 뜨도록
     wpShowAgeNote(age);
     emojiEl.textContent = '🎉';
     textEl.innerHTML = `${childName} 어린이는<br>이용 가능해요!`;
@@ -1532,7 +1540,9 @@ function wpShowAgeNote(age){
 
 function wpSubmitHousehold(val){
   localStorage.setItem('fairplay_household', val);
-  const name = localStorage.getItem('fairplay_name') || '';
+  // 실제 이용 대상 이름: "아이가 이용해요" 흐름이면 아이 이름, 본인 이용이면 본인 이름.
+  // (예전 방식으로 fairplay_name만 쓰면 아이 흐름을 타도 계속 부모님 본인 이름이 떠서 수정함)
+  const name = localStorage.getItem('fairplay_display_name') || localStorage.getItem('fairplay_name') || '';
   const age = Number(localStorage.getItem('fairplay_age'));
   wpRenderEligibility(age, val, name);
   document.getElementById('wpGoalTitle').innerHTML = `${name}님,<br>무엇을 먼저 해볼까요?`;
@@ -2607,7 +2617,7 @@ function runDiagnose(){
        </div>`
     : '';
 
-  const userName = localStorage.getItem('fairplay_name');
+  const userName = localStorage.getItem('fairplay_display_name') || localStorage.getItem('fairplay_name');
   const namePrefix = userName ? `${userName}님은` : '대상자는';
 
   docsContent.innerHTML = docsHtml;
