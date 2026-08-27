@@ -697,6 +697,34 @@
   }
   .neighbor-toggle-btn:hover{filter:brightness(1.08);}
 
+  /* ---- 처음 이용자 안내 코치마크 (공용 컴포넌트) ----
+     화면 안 특정 버튼을 처음 보여줄 때 한 번만 뜨는 잔잔한 안내 말풍선.
+     position:fixed로 뷰포트 기준 좌표를 직접 계산해서 배치하기 때문에,
+     부모 요소의 position 값과 무관하게 항상 올바른 위치에 뜹니다.
+     (DESIGN_TOKENS.md 참고: 색상은 반드시 :root 변수를 통해서만 사용) */
+  .coachmark{
+    position:fixed; z-index:500; max-width:230px;
+    background:var(--blue-deep); color:#fff;
+    padding:12px 30px 12px 14px; border-radius:14px;
+    font-size:var(--fs-label); font-weight:600; line-height:1.5;
+    box-shadow:var(--shadow-lg);
+    opacity:0; transform:translateY(6px);
+    transition:opacity .25s ease, transform .25s ease;
+    pointer-events:none;
+  }
+  .coachmark.show{ opacity:1; transform:translateY(0); pointer-events:auto; }
+  .coachmark-close{
+    position:absolute; top:6px; right:8px; width:20px; height:20px;
+    background:rgba(255,255,255,.18); border:none; border-radius:50%;
+    color:#fff; font-size:12px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .coachmark-close:hover{ background:rgba(255,255,255,.3); }
+  .coachmark-arrow{
+    position:absolute; width:12px; height:12px;
+    background:var(--blue-deep); transform:rotate(45deg);
+  }
+
   /* ---- 종목 필터 / 시간대 필터 ---- */
   .type-chips{display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;}
   .chip{
@@ -830,3 +858,45 @@
     opacity:0; animation:preloadTaglineFade .6s ease 1.2s forwards;
   }
   @keyframes preloadTaglineFade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+/* ==================== 첫 방문자 전용 홈 화면 기능 안내 (coachmark) ====================
+   화면 위 특정 요소(스텝 탭, "더 알아보기" 메뉴 등)를 화살표로 짚어 짧게 설명.
+   fairplay_seen_home_tips가 저장된 이후로는 다시 안 뜸 (app.js의 maybeShowHomeTips 참고). */
+.coachmark-overlay{
+  display:none; position:fixed; top:0; left:0; right:0; bottom:0; width:100%; height:100%;
+  background:rgba(19,33,53,.55); z-index:10000;
+}
+.coachmark-overlay.show{ display:block; }
+
+.coachmark-bubble{
+  position:absolute; max-width:280px; background:var(--card); border-radius:16px;
+  padding:16px 18px; box-shadow:var(--shadow-lg);
+  opacity:0; transform:translateY(4px); transition:opacity .25s ease, transform .25s ease;
+}
+.coachmark-bubble.show{ opacity:1; transform:translateY(0); }
+
+.coachmark-arrow{
+  position:absolute; width:14px; height:14px; background:var(--card);
+  transform:rotate(45deg); /* 방향(위/아래)은 JS에서 top/bottom 위치로 결정 */
+}
+
+.coachmark-title{ font-size:var(--fs-h2); font-weight:700; color:var(--ink); margin-bottom:4px; }
+.coachmark-desc{ font-size:var(--fs-label); color:var(--ink-sub); line-height:1.5; }
+
+.coachmark-footer{
+  display:flex; align-items:center; justify-content:space-between; margin-top:14px;
+}
+.coachmark-dots{ display:flex; gap:5px; }
+.coachmark-dots span{ width:6px; height:6px; border-radius:50%; background:var(--line); }
+.coachmark-dots span.active{ background:var(--blue-deep); }
+
+.coachmark-skip{ font-size:var(--fs-caption); color:var(--ink-faint); cursor:pointer; }
+.coachmark-next{
+  background:var(--navy-gradient); color:#fff; border:none; border-radius:20px;
+  padding:7px 16px; font-size:var(--fs-label); font-weight:600; cursor:pointer;
+}
+.coachmark-next:hover{ filter:brightness(1.08); }
+
+@media (max-width:480px){
+  .coachmark-bubble{ max-width:calc(100vw - 40px); }
+}

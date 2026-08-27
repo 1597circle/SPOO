@@ -710,6 +710,79 @@ function showMoreFacilities(){
   onFilterChange();
 }
 
+/* ==================== 처음 이용자 안내 코치마크 (공용 컴포넌트) ====================
+   특정 버튼/요소를 "처음 보여줄 때" 딱 한 번, 화살표로 가리키며 짧게 설명해주는 말풍선입니다.
+   - key로 localStorage에 "이미 봤음"을 기록해서, 같은 사람에겐 다시 안 뜹니다.
+   - 버튼을 실제로 누르면(원래 하려던 행동을 하면) 그것도 "이해했다"로 보고 자동으로 닫고 기록합니다.
+   - 화면 바깥을 눌러도 닫히지만, 이 경우엔 "다시 볼 수 있게" 기록하지 않습니다 (실수로 닫았을 수 있으니).
+   새로운 곳에 쓰고 싶으면: showCoachmark(document.getElementById('버튼id'), '안내 문구', '고유키');
+*/
+function showCoachmark(targetEl, message, key, opts){
+  if(!targetEl) return;
+  if(localStorage.getItem(`fp_tip_seen_${key}`)) return; // 이미 봤으면 다시 안 띄움
+
+  const placement = (opts && opts.placement) || 'top'; // 'top' | 'bottom'
+
+  const wrap = document.createElement('div');
+  wrap.className = 'coachmark';
+  wrap.innerHTML = `
+    <button class="coachmark-close" aria-label="닫기">✕</button>
+    <span class="coachmark-text">${message}</span>
+    <span class="coachmark-arrow"></span>
+  `;
+  document.body.appendChild(wrap);
+
+  function position(){
+    const r = targetEl.getBoundingClientRect();
+    const arrow = wrap.querySelector('.coachmark-arrow');
+    const wrapW = wrap.offsetWidth;
+
+    // 화면 밖으로 안 나가게 가로 위치 보정
+    let left = r.left + r.width/2 - wrapW/2;
+    left = Math.max(12, Math.min(left, window.innerWidth - wrapW - 12));
+    wrap.style.left = `${left}px`;
+
+    if(placement === 'top'){
+      wrap.style.top = `${r.top - wrap.offsetHeight - 12}px`;
+      arrow.style.bottom = '-5px';
+    } else {
+      wrap.style.top = `${r.bottom + 12}px`;
+      arrow.style.top = '-5px';
+    }
+    // 화살표는 항상 대상 버튼의 가운데를 가리키도록
+    const arrowLeft = Math.max(14, Math.min(r.left + r.width/2 - left - 6, wrapW - 20));
+    arrow.style.left = `${arrowLeft}px`;
+  }
+
+  position();
+  requestAnimationFrame(()=> wrap.classList.add('show'));
+  window.addEventListener('resize', position);
+  window.addEventListener('scroll', position, true);
+
+  function cleanup(){
+    window.removeEventListener('resize', position);
+    window.removeEventListener('scroll', position, true);
+    wrap.remove();
+  }
+  function markSeen(){ localStorage.setItem(`fp_tip_seen_${key}`, '1'); }
+
+  // 버튼을 실제로 눌러서 원래 동작을 했다면: 이해한 것으로 보고 기록 + 닫기
+  targetEl.addEventListener('click', ()=>{ markSeen(); cleanup(); }, { once:true });
+  // 닫기(x) 버튼: 기록하고 닫기
+  wrap.querySelector('.coachmark-close').addEventListener('click', (e)=>{
+    e.stopPropagation(); markSeen(); cleanup();
+  });
+  // 말풍선 바깥을 누르면: 닫기만 하고, 다음에 다시 보여줄 수 있도록 기록은 안 함
+  setTimeout(()=>{
+    document.addEventListener('click', function onOutside(e){
+      if(!wrap.contains(e.target) && e.target !== targetEl){
+        document.removeEventListener('click', onOutside);
+        cleanup();
+      }
+    });
+  }, 0);
+}
+
 // 옆동네 시설 포함 보기 토글 (기능1) — 실제로 눌렀을 때만 이웃 지역 데이터를 불러옵니다
 async function toggleNeighborFacilities(){
   const btn = document.getElementById('neighborToggleBtn');
@@ -1438,6 +1511,7 @@ function wpBack(){
 function wpSkip(){
   document.getElementById('welcomeOverlay').classList.remove('show');
   goToStep(1);
+  maybeShowHomeTips();
 }
 
 function wpSubmitName(){
@@ -1578,6 +1652,7 @@ function wpFinish(goal){
   } else {
     goToStep(2);
   }
+  maybeShowHomeTips();
 }
 
 // 저장된 이름/나이/가정형태를 자가진단 화면에 자동 반영
@@ -1976,6 +2051,19 @@ async function onRegionClick(code, row){
       <button class="action-btn" onclick="shareRegion()">🔗 공유하기</button>
     </div>
   `;
+
+  // 처음 이용자에게만: "옆동네 확장" 버튼이 처음 등장했을 때 살짝 안내 (한 번 보면 다시 안 뜸)
+  if(neighborSectionHtml){
+    const neighborBtn = document.getElementById('neighborToggleBtn');
+    if(neighborBtn){
+      setTimeout(()=> showCoachmark(
+        neighborBtn,
+        '여기 누르면 이웃 동네 시설도 같이 보여드려요',
+        'neighbor_toggle'
+      ), 400); // 카드가 화면에 자리잡을 시간을 살짝 준 뒤 표시
+    }
+  }
+
   // 필터 바텀시트 안의 종목 목록은 지역마다 달라서 매번 새로 채워줌
   const sheetTypeFilter = document.getElementById('typeFilter');
   if(sheetTypeFilter) sheetTypeFilter.innerHTML = typeOptions;
