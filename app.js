@@ -33,6 +33,17 @@ const TOP10_PRIORITY = [
   {region:'울릉', sidoHint:'경상북'}
 ];
 
+// 재방문자 인사말 — 페이지 로드 시점과 언어 파일 로딩 완료 시점이 어긋날 수 있어
+// (언어 파일은 비동기로 불러오는데 화면은 그보다 먼저 그려질 수 있음) 함수로 분리해서
+// initOnboarding()과 setLanguage() 양쪽에서 다시 호출합니다. 어느 쪽이 나중에 끝나든
+// 최종적으로 항상 올바른 언어로 표시됩니다.
+function applyReturnGreeting(){
+  const el = document.getElementById('wpReturnGreeting');
+  if(!el) return;
+  const name = localStorage.getItem('fairplay_display_name') || localStorage.getItem('fairplay_name');
+  if(name) el.textContent = t('wp_return_greeting', `안녕하세요, ${name}님!`).replace('{name}', name);
+}
+
 function escapeAttr(str){
   return String(str||'').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
@@ -80,6 +91,7 @@ async function setLanguage(lang){
     }
   }
   applyTranslations();
+  applyReturnGreeting();      // 위와 같은 이유로 언어 로딩 완료 후 다시 한번 확실히 적용
   renderConfigNotices();       // 신청기간·결제마감 문구 (날짜 형식이 언어별로 다름)
   document.documentElement.lang = lang;
 }
@@ -92,6 +104,12 @@ function applyTranslations(){
     const key = el.getAttribute('data-i18n');
     if(!el.hasAttribute('data-i18n-ko')) el.setAttribute('data-i18n-ko', el.innerHTML);
     el.innerHTML = i18nDict[key] || el.getAttribute('data-i18n-ko');
+  });
+  // input의 placeholder는 innerHTML이 없으므로 별도 속성(data-i18n-ph)으로 처리
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const key = el.getAttribute('data-i18n-ph');
+    if(!el.hasAttribute('data-i18n-ph-ko')) el.setAttribute('data-i18n-ph-ko', el.getAttribute('placeholder') || '');
+    el.setAttribute('placeholder', i18nDict[key] || el.getAttribute('data-i18n-ph-ko'));
   });
   const label = document.getElementById('langBtnLabel');
   if(label) label.textContent = LANG_NAMES[currentLang] || '한국어';
@@ -1737,8 +1755,7 @@ function initOnboarding(){
     // 똑같이 스플래시("SPOO · 시작하기")부터 보여줌. "시작하기"를 누르면 wpSplashNext()가
     // 재방문자인지 확인해서 짧은 환영 화면(Return)으로 자연스럽게 이어줌.
     applyStoredProfile();
-    const name = localStorage.getItem('fairplay_display_name') || localStorage.getItem('fairplay_name');
-    if(name) document.getElementById('wpReturnGreeting').textContent = `안녕하세요, ${name}님!`;
+    applyReturnGreeting();
   }
   wpCurrentPage = 0;
   wpShowOnly(0);
@@ -1824,7 +1841,7 @@ function wpSubmitName(){
     return;
   }
   localStorage.setItem('fairplay_name', val);
-  document.getElementById('wpGreeting').textContent = `반갑습니다, ${val}님!`;
+  document.getElementById('wpGreeting').textContent = t('wp_greeting_named', `반갑습니다, ${val}님!`).replace('{name}', val);
   wpGoTo(2);
 }
 
@@ -1869,7 +1886,7 @@ function wpSubmitChildName(){
     return;
   }
   localStorage.setItem('fairplay_child_name', val);
-  document.getElementById('wpChildBirthQ').innerHTML = `${escapeHtml(val)} 어린이의<br>생년월일을 알려주세요`;
+  document.getElementById('wpChildBirthQ').innerHTML = t('wp_child_birth_q', `${escapeHtml(val)} 어린이의<br>생년월일을 알려주세요`).replace('{name}', escapeHtml(val));
   wpGoTo('2d');
 }
 
@@ -1891,15 +1908,15 @@ function wpSubmitChildBirth(){
     localStorage.setItem('fairplay_display_name', childName); // 이후 화면(가정유형 결과, 서류 체크리스트 등)에 아이 이름이 뜨도록
     wpShowAgeNote(age);
     emojiEl.textContent = '🎉';
-    textEl.innerHTML = `${escapeHtml(childName)} 어린이는<br>이용 가능해요!`;
-    btnEl.textContent = '이용할 시설 알아볼까요?';
+    textEl.innerHTML = t('wp_child_result_ok', `${escapeHtml(childName)} 어린이는<br>이용 가능해요!`).replace('{name}', escapeHtml(childName));
+    btnEl.textContent = t('wp_child_result_btn_ok', '이용할 시설 알아볼까요?');
     btnEl.onclick = () => wpGoTo(4);
   } else {
     emojiEl.textContent = '😅';
     textEl.innerHTML = age < 5
-      ? `${childName} 어린이는<br>아직 조금 더 커야 해요`
-      : `${childName} 어린이는<br>이미 나이가 지났어요`;
-    btnEl.textContent = '그래도 시설은 찾아볼게요';
+      ? t('wp_child_result_too_young', `${escapeHtml(childName)} 어린이는<br>아직 조금 더 커야 해요`).replace('{name}', escapeHtml(childName))
+      : t('wp_child_result_too_old', `${escapeHtml(childName)} 어린이는<br>이미 나이가 지났어요`).replace('{name}', escapeHtml(childName));
+    btnEl.textContent = t('wp_child_result_btn_facility', '그래도 시설은 찾아볼게요');
     btnEl.onclick = () => wpFinish('facility');
   }
   wpGoTo('2e');
@@ -1909,8 +1926,8 @@ function wpSubmitChildBirth(){
 function wpShowAgeNote(age){
   const el = document.getElementById('wpAgeNote');
   if(!el) return;
-  if(age === 18) el.textContent = '⏰ 올해가 지나면 대상에서 제외돼요. 지금 놓치지 마세요!';
-  else if(age === 5) el.textContent = '🎉 이제 막 이용 가능한 나이가 됐어요!';
+  if(age === 18) el.textContent = t('wp_age_note_18', '⏰ 올해가 지나면 대상에서 제외돼요. 지금 놓치지 마세요!');
+  else if(age === 5) el.textContent = t('wp_age_note_5', '🎉 이제 막 이용 가능한 나이가 됐어요!');
   else el.textContent = '';
 }
 
@@ -1921,7 +1938,7 @@ function wpSubmitHousehold(val){
   const name = localStorage.getItem('fairplay_display_name') || localStorage.getItem('fairplay_name') || '';
   const age = Number(localStorage.getItem('fairplay_age'));
   wpRenderEligibility(age, val, name);
-  document.getElementById('wpGoalTitle').innerHTML = `${escapeHtml(name)}님,<br>무엇을 먼저 해볼까요?`;
+  document.getElementById('wpGoalTitle').innerHTML = t('wp_goal_title', `${escapeHtml(name)}님,<br>무엇을 먼저 해볼까요?`).replace('{name}', escapeHtml(name));
   // 서류 안내가 있는 경우(대상+범주 확실) "신청 서류 준비하기" 선택지도 보여줌
   const docBtn = document.getElementById('wpDocGoalBtn');
   if(docBtn) docBtn.style.display = (val !== 'unsure') ? 'flex' : 'none';
@@ -1933,13 +1950,13 @@ function wpRenderEligibility(age, val, name){
   const el = document.getElementById('wpEligibilityResult');
   if(!el) return;
   if(val === 'unsure'){
-    el.innerHTML = `<div class="wp-result">헷갈리실 땐 주민센터 복지 담당자(☎ KSPO 02-410-1298~9)한테 문의해보세요</div>`;
+    el.innerHTML = `<div class="wp-result">${t('wp_elig_unsure', '헷갈리실 땐 주민센터 복지 담당자(☎ KSPO 02-410-1298~9)한테 문의해보세요')}</div>`;
     return;
   }
   if(val === 'near'){
-    el.innerHTML = `<div class="wp-result alert"><b>차상위계층도 받을 수 있어요!</b> 근데 100명 중 2~3명만 신청하고 있어요 — 꼭 신청해보세요</div>`;
+    el.innerHTML = `<div class="wp-result alert">${t('wp_elig_near', '<b>차상위계층도 받을 수 있어요!</b> 근데 100명 중 2~3명만 신청하고 있어요 — 꼭 신청해보세요')}</div>`;
   } else {
-    el.innerHTML = `<div class="wp-result ok"><b>${escapeHtml(name)}님은 지원 대상이에요! 🎉</b> 1단계에서 필요한 서류도 바로 확인할 수 있어요</div>`;
+    el.innerHTML = `<div class="wp-result ok">${t('wp_elig_ok', `<b>${escapeHtml(name)}님은 지원 대상이에요! 🎉</b> 1단계에서 필요한 서류도 바로 확인할 수 있어요`).replace('{name}', escapeHtml(name))}</div>`;
   }
 }
 
