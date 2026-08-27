@@ -113,6 +113,7 @@
         <div class="s1-vcenter-inner">
           <div class="s1-tag"><span class="dot"></span>놓치기 쉬운 안내</div>
           <div class="s1-question" style="font-size:clamp(28px, 5vw, 42px); margin-bottom:24px;">이것만은<br>놓치지 마세요</div>
+          <button class="speak-btn speak-btn-inline" onclick="speakElementsText('.important-notice .notice-item', this)">🔊 들려주기</button>
           <div class="important-notice" style="width:100%;">
             <div class="notice-item"><b>매년 재신청 필수</b> — 자동 연장이 안 돼요. 작년에 받으셨어도 올해 다시 신청해야 해요.</div>
             <div class="notice-item" id="noticeApplyPeriod"><b>신청 기간: 11월 10일~28일</b> — 1년에 한 번뿐인 전국 동시 신청 기간이에요.</div>
@@ -242,6 +243,7 @@
           <div class="result-emoji" id="resultIntroEmoji" style="text-align:center;">🎉</div>
           <div class="s1-question" id="resultIntroTitle">받을 수 있는<br>대상이에요!</div>
           <div class="s1-sub" id="resultIntroSub" style="display:none;"></div>
+          <button class="speak-btn" onclick="speakElementsText('#resultIntroTitle, #resultIntroSub', this)">🔊 들려주기</button>
           <button class="next-step-btn" id="resultIntroNextBtn" onclick="s1GoTo('docsChecklist')">필요한 서류 알아볼까요? →</button>
         </div>
       </div>

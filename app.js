@@ -388,6 +388,60 @@ function showIcsToast(){
   toast._hideTimer = setTimeout(()=> toast.classList.remove('show'), 3800);
 }
 
+/* ==================== 음성 안내 (Web Speech API) ====================
+   브라우저 내장 음성합성 기능이라 서버·비용이 들지 않습니다. (기획서 "② 음성 안내" 참고)
+   미지원 브라우저에서는 버튼 자체를 자동으로 숨겨서, 눌러도 반응 없는 버튼이 남지 않게 합니다. */
+let currentSpeakBtn = null;
+
+function speakText(text, btnEl){
+  if(!('speechSynthesis' in window) || !text || !text.trim()) return;
+
+  // 이미 읽고 있는 버튼을 다시 누르면 멈춤 (토글)
+  if(speechSynthesis.speaking){
+    const wasSameBtn = currentSpeakBtn === btnEl;
+    speechSynthesis.cancel();
+    setSpeakBtnPlaying(currentSpeakBtn, false);
+    currentSpeakBtn = null;
+    if(wasSameBtn) return; // 같은 버튼이면 멈추기만 하고 끝
+  }
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'ko-KR';
+  utter.onend = () => { setSpeakBtnPlaying(btnEl, false); currentSpeakBtn = null; };
+  utter.onerror = () => { setSpeakBtnPlaying(btnEl, false); currentSpeakBtn = null; };
+  currentSpeakBtn = btnEl;
+  setSpeakBtnPlaying(btnEl, true);
+  speechSynthesis.speak(utter);
+}
+
+function setSpeakBtnPlaying(btnEl, playing){
+  if(!btnEl) return;
+  btnEl.classList.toggle('playing', playing);
+  btnEl.textContent = playing ? '⏸ 멈추기' : '🔊 들려주기';
+}
+
+// 화면에 실제로 보이는 텍스트를 그대로 읽어줍니다 (내용이 바뀌어도 별도 텍스트 관리가 필요 없음)
+// <br>로 줄바꿈된 부분은 마침표로 바꿔서, 단어가 붙어 읽히지 않고 자연스럽게 끊어 읽히게 합니다.
+function extractSpeakableText(el){
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll('br').forEach(br => br.replaceWith('. '));
+  return (clone.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+function speakElementsText(selector, btnEl, prefix){
+  const els = document.querySelectorAll(selector);
+  if(!els.length) return;
+  const text = (prefix || '') + Array.from(els).map(extractSpeakableText).filter(Boolean).join('. ');
+  speakText(text, btnEl);
+}
+
+// 브라우저가 음성합성을 지원 안 하면, 안내 버튼들을 아예 숨겨서 눌러도 반응 없는 상태를 방지
+function hideSpeakButtonsIfUnsupported(){
+  if('speechSynthesis' in window) return;
+  document.querySelectorAll('.speak-btn').forEach(btn => btn.style.display = 'none');
+}
+document.addEventListener('DOMContentLoaded', hideSpeakButtonsIfUnsupported);
+
 async function init(){
   try{
     const [voucherRows, geo] = await Promise.all([
@@ -2790,6 +2844,7 @@ function runDiagnose(){
   const docsHtml = docs.length
     ? `<div class="doc-checklist">
         <div class="doc-title">📋 신청할 때 필요한 서류 <span class="doc-progress" id="docProgress"></span></div>
+        <button class="speak-btn speak-btn-inline" onclick="speakElementsText('.doc-item span', this, '신청할 때 필요한 서류는 다음과 같아요. ')">🔊 들려주기</button>
         ${docs.map((d,i)=>{
           const key = `fp_doc_${val}_${i}`;
           const checked = localStorage.getItem(key) === '1';
@@ -2802,6 +2857,7 @@ function runDiagnose(){
   const namePrefix = userName ? `${userName}님은` : '대상자는';
 
   docsContent.innerHTML = docsHtml;
+  hideSpeakButtonsIfUnsupported(); // 방금 새로 생긴 듣기 버튼도 미지원 브라우저면 숨김
 
   if(val === 'near'){
     introEmoji.textContent = '🎉';
