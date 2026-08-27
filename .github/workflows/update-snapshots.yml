@@ -1,0 +1,36 @@
+name: 기준 스크린샷 생성 (수동 실행용)
+
+# Actions 탭에서 "Run workflow" 버튼을 누르면, 리눅스 환경에서 기준 스크린샷을 만들어
+# 자동으로 저장소에 커밋해줍니다. 디자인을 의도적으로 바꿨을 때도 이 버튼만 누르면 갱신됩니다.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-snapshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: 기준 스크린샷 생성
+        run: npm run test:visual:update
+        env:
+          TEST_URL: https://1597circle.github.io/SPOO/
+
+      - name: 생성된 스크린샷 자동 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tests
+          git diff --cached --quiet || git commit -m "시각 테스트 기준 스크린샷 자동 생성"
+          git push
