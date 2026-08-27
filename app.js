@@ -33,6 +33,14 @@ const TOP10_PRIORITY = [
   {region:'울릉', sidoHint:'경상북'}
 ];
 
+// 온보딩을 마치고 메인 화면으로 들어올 때 호출됩니다.
+// (원래 호출만 있고 정의가 없어서 온보딩 완료 시마다 JS 오류가 나던 것을 2026-08-27 수정)
+// 현재는 홈 화면 팁을 따로 띄우지 않지만, 나중에 첫 이용자 안내를 추가하려면
+// 여기에서 showCoachmark(...)를 호출하면 됩니다.
+function maybeShowHomeTips(){
+  /* 표시할 팁 없음 — 확장 지점으로 남겨둠 */
+}
+
 // 재방문자 인사말 — 페이지 로드 시점과 언어 파일 로딩 완료 시점이 어긋날 수 있어
 // (언어 파일은 비동기로 불러오는데 화면은 그보다 먼저 그려질 수 있음) 함수로 분리해서
 // initOnboarding()과 setLanguage() 양쪽에서 다시 호출합니다. 어느 쪽이 나중에 끝나든
@@ -92,6 +100,15 @@ async function setLanguage(lang){
   }
   applyTranslations();
   applyReturnGreeting();      // 위와 같은 이유로 언어 로딩 완료 후 다시 한번 확실히 적용
+  // 슬라이더 값처럼 JS가 직접 그린 텍스트는 data-i18n으로 못 잡으므로 여기서 다시 그립니다
+  const ageSlider = document.getElementById('ageSelect');
+  const ageValueEl = document.getElementById('ageSliderValue');
+  if(ageSlider && ageValueEl && ageSlider.value){
+    ageValueEl.textContent = t('age_years', `${ageSlider.value}세`).replace('{n}', ageSlider.value);
+  }
+  // 자가진단 결과·서류 목록도 JS가 그린 것이라 언어를 바꾸면 다시 그려줘야 합니다.
+  // (언어 파일 로딩보다 결과 렌더링이 먼저 끝나면 한국어로 남는 문제를 방지)
+  try{ if(typeof runDiagnose === 'function') runDiagnose(); }catch(e){ /* 진단 정보가 아직 없으면 무시 */ }
   renderConfigNotices();       // 신청기간·결제마감 문구 (날짜 형식이 언어별로 다름)
   document.documentElement.lang = lang;
 }
@@ -378,9 +395,7 @@ async function loadConfigAndApply(){
   try{
     const cfg = await fetch('config.json').then(r=>r.json());
     spooConfig = cfg; // 캘린더 등록(.ics) 기능에서 재사용
-    const tag = document.getElementById('headerConfigTag');
-    if(tag) tag.textContent = `전국 ${cfg.regionCount}개 지역 · ${cfg.dataUpdatedAt} 기준`;
-    renderConfigNotices();
+    renderConfigNotices(); // 헤더 기준일·신청기간·결제마감 문구를 현재 언어로 렌더링
   }catch(e){
     console.log('config.json 로드 실패 — 화면에 있는 기본 안내 문구로 표시됩니다.', e);
   }
@@ -392,6 +407,10 @@ loadConfigAndApply();
 function renderConfigNotices(){
   if(!spooConfig) return;
   const cfg = spooConfig;
+  // 헤더의 "전국 N개 지역 · 기준일" — 언어를 바꿀 때마다 다시 그려야 하므로 여기에 둡니다
+  const tagEl = document.getElementById('headerConfigTag');
+  if(tagEl) tagEl.textContent = t('header_config_tag', `전국 ${cfg.regionCount}개 지역 · ${cfg.dataUpdatedAt} 기준`)
+    .replace('{count}', cfg.regionCount).replace('{date}', cfg.dataUpdatedAt);
   const isKo = (currentLang === 'ko' || !currentLang);
   const fmt = (iso) => {
     const [y,m,d] = iso.split('-');
@@ -458,7 +477,7 @@ function buildIcsContent(cfg){
   const events = [
     vevent('spoo-apply-start', 'SPOO 스포츠강좌이용권 신청 시작', 'SPOO에서 신청 서류를 미리 확인해보세요.', cfg.applyPeriod.start),
     vevent('spoo-apply-end', 'SPOO 스포츠강좌이용권 신청 마감', '오늘까지 신청을 완료해야 해요.', cfg.applyPeriod.end),
-    vevent('spoo-payment-deadline', 'SPOO 스포츠강좌이용권 결제 마감', '12월 31일이 아니라 이 날짜까지예요. 헷갈리지 마세요!', cfg.paymentDeadline),
+    vevent('spoo-payment-deadline', t('cal_ev_payment','SPOO 스포츠강좌이용권 결제 마감'), '12월 31일이 아니라 이 날짜까지예요. 헷갈리지 마세요!', cfg.paymentDeadline),
   ];
 
   return [
@@ -487,16 +506,16 @@ async function openCalendarSheet(){
   let cfg = spooConfig;
   if(!cfg){
     try{ cfg = await fetch('config.json').then(r=>r.json()); spooConfig = cfg; }
-    catch(e){ showToast('일정 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'); return; }
+    catch(e){ showToast(t('err_config_load','일정 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')); return; }
   }
   const y = (iso)=> icsDateOnly(iso);
   const applyUrl = buildGcalUrl(
-    'SPOO 스포츠강좌이용권 신청기간',
+    t('cal_ev_apply','SPOO 스포츠강좌이용권 신청기간'),
     y(cfg.applyPeriod.start), icsDateOnlyPlus1(cfg.applyPeriod.end),
     'SPOO에서 신청 서류를 미리 확인해보세요. https://1597circle.github.io/SPOO/'
   );
   const payUrl = buildGcalUrl(
-    'SPOO 스포츠강좌이용권 결제 마감',
+    t('cal_ev_payment','SPOO 스포츠강좌이용권 결제 마감'),
     y(cfg.paymentDeadline), icsDateOnlyPlus1(cfg.paymentDeadline),
     '12월 31일이 아니라 이 날짜까지예요! https://1597circle.github.io/SPOO/'
   );
@@ -508,11 +527,11 @@ async function openCalendarSheet(){
   sheet.className = 'cal-sheet-overlay';
   sheet.innerHTML = `
     <div class="cal-sheet">
-      <div class="cal-sheet-title">📅 캘린더에 추가하기</div>
-      <a class="cal-sheet-btn primary" href="${applyUrl}" target="_blank" rel="noopener">📆 신청기간 추가 (구글 캘린더)</a>
-      <a class="cal-sheet-btn primary" href="${payUrl}" target="_blank" rel="noopener">💳 결제마감 추가 (구글 캘린더)</a>
-      <button class="cal-sheet-btn" onclick="downloadApplyCalendar(); document.getElementById('calSheetOverlay').remove();">📄 파일(.ics)로 받기 — 아이폰·기타 캘린더용</button>
-      <button class="cal-sheet-close" onclick="document.getElementById('calSheetOverlay').remove()">닫기</button>
+      <div class="cal-sheet-title">${t('cal_sheet_title','📅 캘린더에 추가하기')}</div>
+      <a class="cal-sheet-btn primary" href="${applyUrl}" target="_blank" rel="noopener">${t('cal_add_apply','📆 신청기간 추가 (구글 캘린더)')}</a>
+      <a class="cal-sheet-btn primary" href="${payUrl}" target="_blank" rel="noopener">${t('cal_add_payment','💳 결제마감 추가 (구글 캘린더)')}</a>
+      <button class="cal-sheet-btn" onclick="downloadApplyCalendar(); document.getElementById('calSheetOverlay').remove();">${t('cal_download_ics','📄 파일(.ics)로 받기 — 아이폰·기타 캘린더용')}</button>
+      <button class="cal-sheet-close" onclick="document.getElementById('calSheetOverlay').remove()">${t('close','닫기')}</button>
     </div>`;
   sheet.addEventListener('click', (e)=>{ if(e.target === sheet) sheet.remove(); });
   document.body.appendChild(sheet);
@@ -522,7 +541,7 @@ async function downloadApplyCalendar(){
   let cfg = spooConfig;
   if(!cfg){
     try{ cfg = await fetch('config.json').then(r=>r.json()); }
-    catch(e){ alert('일정 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'); return; }
+    catch(e){ showToast(t('err_config_load','일정 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')); return; }
   }
   const icsText = buildIcsContent(cfg);
   const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' });
@@ -553,7 +572,7 @@ function showToast(message){
 }
 
 function showIcsToast(){
-  showToast('📅 다운로드했어요. 파일을 열어 "캘린더에 추가"를 눌러주세요 (알림 시각은 캘린더 앱 설정에 따라 다를 수 있어요)');
+  showToast(t('ics_toast','📅 다운로드했어요. 파일을 열어 "캘린더에 추가"를 눌러주세요 (알림 시각은 캘린더 앱 설정에 따라 다를 수 있어요)'));
 }
 
 /* ==================== 음성 안내 (Web Speech API) ====================
@@ -797,8 +816,8 @@ function toggleCompareFavorites(){
   compareOpen = !compareOpen;
   const box = document.getElementById('compareBox');
   const btn = document.getElementById('compareBtn');
-  if(!compareOpen){ box.innerHTML = ''; btn.textContent = '📊 즐겨찾는 동네 비교하기'; return; }
-  btn.textContent = '📊 비교 닫기';
+  if(!compareOpen){ box.innerHTML = ''; btn.textContent = t('btn_compare','📊 즐겨찾는 동네 비교하기'); return; }
+  btn.textContent = t('btn_compare_close','📊 비교 닫기');
 
   const favs = getFavorites();
   const rows = favs.map(code=>{
@@ -955,7 +974,7 @@ function renderFacilityList(facilities, filterType, timeFilter, costFilter){
   const list = filtered.slice(0, facilityListLimit);
 
   if(list.length === 0){
-    return `<p class="placeholder-msg">이 조건에 맞는 시설이 없어요</p>`;
+    return `<p class="placeholder-msg">${t('no_match_facility','이 조건에 맞는 시설이 없어요')}</p>`;
   }
   const itemsHtml = list.map(f=>{
     // 시설명만으로 찾으면 동명 시설과 섞일 수 있어 "이름+시군구" 키로 조회 (courses.csv에 sgg 없으면 이름만 사용)
@@ -1107,7 +1126,7 @@ async function toggleNeighborFacilities(){
   // 아직 이웃 지역 데이터를 안 받아왔으면(처음 누른 경우) 지금 받아옵니다
   if(!currentPanelIncludingNeighbors){
     const originalText = btn.textContent;
-    btn.textContent = '불러오는 중...';
+    btn.textContent = t('loading','불러오는 중...');
     btn.disabled = true;
     const neighborFacilitiesArrays = await Promise.all(currentPanelNeighborCodes.map(nc => getRegionFacilities(nc)));
     currentPanelIncludingNeighbors = currentPanelOwnOnly.concat(...neighborFacilitiesArrays);
@@ -1630,7 +1649,7 @@ function renderFacilityDiffBox(code, facilities){
       if(q.length < 2){ resultsEl.innerHTML=''; return; }
       const matches = facilityNameIndex.filter(f => (f.name||'').includes(q)).slice(0, 20);
       if(!matches.length){
-        resultsEl.innerHTML = `<p class="placeholder-msg" style="margin:0;">일치하는 시설이 없어요.</p>`;
+        resultsEl.innerHTML = `<p class="placeholder-msg" style="margin:0;">${t('no_facility_match','일치하는 시설이 없어요.')}</p>`;
         return;
       }
       resultsEl.innerHTML = matches.map(f=>`
@@ -1837,7 +1856,7 @@ function wpSubmitName(){
   const val = document.getElementById('wpName').value.trim();
   if(!val){
     document.getElementById('wpName').style.borderColor = 'var(--coral)';
-    document.getElementById('wpName').placeholder = '이름을 입력해주세요';
+    document.getElementById('wpName').placeholder = t('err_enter_name','이름을 입력해주세요');
     return;
   }
   localStorage.setItem('fairplay_name', val);
@@ -1882,7 +1901,7 @@ function wpSubmitChildName(){
   const val = document.getElementById('wpChildName').value.trim();
   if(!val){
     document.getElementById('wpChildName').style.borderColor = 'var(--coral)';
-    document.getElementById('wpChildName').placeholder = '아이 이름을 입력해주세요';
+    document.getElementById('wpChildName').placeholder = t('err_enter_child_name','아이 이름을 입력해주세요');
     return;
   }
   localStorage.setItem('fairplay_child_name', val);
@@ -1981,7 +2000,7 @@ function applyStoredProfile(){
   if(age && ageSel){
     ageSel.value = age;
     const valueEl = document.getElementById('ageSliderValue');
-    if(valueEl){ valueEl.textContent = `${age}세`; valueEl.classList.add('set'); }
+    if(valueEl){ valueEl.textContent = t('age_years', `${age}세`).replace('{n}', age); valueEl.classList.add('set'); }
     const pct = ((age - ageSel.min) / (ageSel.max - ageSel.min)) * 100;
     ageSel.style.setProperty('--pct', pct + '%');
   }
@@ -2025,7 +2044,7 @@ document.getElementById('closeBanner').addEventListener('click', ()=>{
     // 카카오톡은 외부 브라우저로 강제로 여는 전용 스킴을 지원함
     textEl.textContent = '⚠️ 카카오톡 안에서는 지도가 안 보일 수 있어요';
     btn.style.display = 'inline-block';
-    btn.textContent = '기본 브라우저로 열기';
+    btn.textContent = t('inapp_open','기본 브라우저로 열기');
     btn.addEventListener('click', ()=>{
       location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href);
     });
@@ -2046,10 +2065,10 @@ function computeThresholds(){
 function classifyRegion(row){
   const sLow = parseFloat(row.s_pct) <= sLowThreshold;
   const nLow = parseFloat(row.n_pct) <= nLowThreshold;
-  if(sLow && nLow) return {label:'😥 두 가정 모두 많이 아쉬워요', cls:'type-both'};
-  if(nLow) return {label:'🏙️ 차상위·한부모 가정이 유독 아쉬워요', cls:'type-city'};
-  if(sLow) return {label:'🌾 기초생활수급 가정이 유독 아쉬워요', cls:'type-rural'};
-  return {label:'✅ 두 가정 모두 잘 받고 있어요', cls:'type-good'};
+  if(sLow && nLow) return {label:t('status_both_low','😥 두 가정 모두 많이 아쉬워요'), cls:'type-both'};
+  if(nLow) return {label:t('status_near_low','🏙️ 차상위·한부모 가정이 유독 아쉬워요'), cls:'type-city'};
+  if(sLow) return {label:t('status_basic_low','🌾 기초생활수급 가정이 유독 아쉬워요'), cls:'type-rural'};
+  return {label:t('status_both_ok','✅ 두 가정 모두 잘 받고 있어요'), cls:'type-good'};
 }
 
 function initMap(){
@@ -2181,17 +2200,17 @@ function computeTopPicks(facilities){
   const used = new Set();
 
   const freeOnes = scored.filter(s => s.hasFree).sort((a,b) => b.courseCount - a.courseCount);
-  if(freeOnes.length){ picks.push({ ...freeOnes[0], badge: '내 돈 0원 강좌 있음' }); used.add(freeOnes[0].f.name); }
+  if(freeOnes.length){ picks.push({ ...freeOnes[0], badge: t('badge_free','내 돈 0원 강좌 있음') }); used.add(freeOnes[0].f.name); }
 
   const byCourseCount = scored.filter(s => !used.has(s.f.name) && s.courseCount > 0).sort((a,b) => b.courseCount - a.courseCount);
   if(byCourseCount.length){ picks.push({ ...byCourseCount[0], badge: `강좌 ${byCourseCount[0].courseCount}개 보유` }); used.add(byCourseCount[0].f.name); }
 
   const withPhone = scored.filter(s => !used.has(s.f.name) && s.f.tel).sort((a,b) => b.courseCount - a.courseCount);
-  if(withPhone.length){ picks.push({ ...withPhone[0], badge: '전화 문의 가능' }); used.add(withPhone[0].f.name); }
+  if(withPhone.length){ picks.push({ ...withPhone[0], badge: t('badge_phone','전화 문의 가능') }); used.add(withPhone[0].f.name); }
 
   if(picks.length < 3){
     scored.filter(s => !used.has(s.f.name)).slice(0, 3 - picks.length).forEach(s=>{
-      picks.push({ ...s, badge: '우리 동네 시설' });
+      picks.push({ ...s, badge: t('badge_own_region','우리 동네 시설') });
       used.add(s.f.name);
     });
   }
@@ -2204,7 +2223,7 @@ function renderTopPicksScreen(facilities){
   if(!listEl || !nextBtn) return;
   const picks = computeTopPicks(facilities);
   if(!picks.length){
-    listEl.innerHTML = `<p class="placeholder-msg">아직 강좌 정보가 없어요.<br>전체 시설 목록에서 확인해보세요.</p>`;
+    listEl.innerHTML = `<p class="placeholder-msg">${t('no_course_info','아직 강좌 정보가 없어요.')}<br>전체 시설 목록에서 확인해보세요.</p>`;
   } else {
     listEl.innerHTML = picks.map(p => `
       <div class="pick-item" onclick="closeTopPicks(); goToStep(3); setTimeout(()=>showFacilityOnMap('${escapeAttr(p.f.name)}','${escapeAttr(p.f.addr)}','${escapeAttr(p.f.sgg||'')}','${escapeAttr(p.f.naver_lat||'')}','${escapeAttr(p.f.naver_lng||'')}'), 200);">
@@ -2245,7 +2264,7 @@ async function onRegionClick(code, row){
 
   // 지역별 시설 데이터를 그때그때 불러옵니다 (지역당 평균 수십KB) — 불러오는 동안 잠깐 로딩 표시
   const facCard = document.getElementById('regionFacilityCard');
-  if(facCard) facCard.innerHTML = `<p class="placeholder-msg" style="margin-top:20px;">시설 정보를 불러오는 중...</p>`;
+  if(facCard) facCard.innerHTML = `<p class="placeholder-msg" style="margin-top:20px;">${t('loading_facility','시설 정보를 불러오는 중...')}</p>`;
   const facilities = await getRegionFacilities(code);
 
   currentPanelCode = code;
@@ -2335,18 +2354,18 @@ async function onRegionClick(code, row){
   // ---- 2단계: 우리동네 현황 카드 (숫자 먼저 미니멀 스타일, 각 숫자에 라벨·순위 명시) ----
   document.getElementById('regionStatsCard').innerHTML = `
     <div style="display:flex; justify-content:flex-end; margin-bottom:4px;">
-      <button class="fav-star ${favActive?'active':''}" onclick="toggleFavorite('${code}')" title="즐겨찾기">⭐</button>
+      <button class="fav-star ${favActive?'active':''}" onclick="toggleFavorite('${code}')" title="${t('favorite','즐겨찾기')}">⭐</button>
     </div>
     <div class="s2c-tag"><span class="dot"></span>${row.sido} ${row.region} · 스포츠강좌이용권 현황</div>
     <div style="text-align:center; margin-top:16px;"><span class="type-badge" style="background:var(--coral-soft); color:var(--coral-deep);">${type.label}</span></div>
     <div class="s2c-numbers">
       <div class="s2c-num-col">
-        <div class="s2c-num-label">기초생활수급 가정</div>
+        <div class="s2c-num-label">${t('group_basic','기초생활수급 가정')}</div>
         <span class="s2c-num" data-target="${sPct}">0<span class="s2c-pct">%</span></span>
         <div class="s2c-rank">전국 ${totalRegions}곳 중 <b>${sRank}위</b></div>
       </div>
       <div class="s2c-num-col">
-        <div class="s2c-num-label">차상위 · 한부모 가정</div>
+        <div class="s2c-num-label">${t('group_near','차상위 · 한부모 가정')}</div>
         <span class="s2c-num coral" data-target="${nPct}">0<span class="s2c-pct">%</span></span>
         <div class="s2c-rank">전국 ${totalRegions}곳 중 <b>${nRank}위</b></div>
       </div>
@@ -2402,7 +2421,7 @@ function toggleMoreInfo(){
   const isOpen = section.style.display !== 'none';
   section.style.display = isOpen ? 'none' : 'block';
   arrow.textContent = isOpen ? '▾' : '▴';
-  btn.firstChild.textContent = isOpen ? '더 많은 정보 보기 ' : '접기 ';
+  btn.firstChild.textContent = isOpen ? t('more_info_toggle','더 많은 정보 보기')+' ' : t('collapse','접기')+' ';
 }
 
 // 나이 슬라이더 초기화 — 값이 바뀔 때마다 큰 숫자로 표시하고 진단을 다시 실행
@@ -2412,7 +2431,7 @@ function populateAgeSelect(){
   if(!slider) return;
   const updateLabel = ()=>{
     if(slider.value){
-      valueEl.textContent = `${slider.value}세`;
+      valueEl.textContent = t('age_years', `${slider.value}세`).replace('{n}', slider.value);
       valueEl.classList.add('set');
       const pct = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
       slider.style.setProperty('--pct', pct + '%');
@@ -2496,10 +2515,10 @@ function runRecommend(){
   const resultEl = document.getElementById('recommendResult');
 
   if(!navigator.geolocation){
-    resultEl.innerHTML = `<p class="placeholder-msg">이 브라우저는 위치 기능을 지원하지 않아요</p>`;
+    resultEl.innerHTML = `<p class="placeholder-msg">${t('err_no_geo','이 브라우저는 위치 기능을 지원하지 않아요')}</p>`;
     return;
   }
-  resultEl.innerHTML = `<p class="placeholder-msg">📍 위치 확인 중...</p>`;
+  resultEl.innerHTML = `<p class="placeholder-msg">📍 ${t('locating','위치 확인 중...')}</p>`;
 
   navigator.geolocation.getCurrentPosition(async pos=>{
     const userLat = pos.coords.latitude, userLng = pos.coords.longitude;
@@ -2512,7 +2531,7 @@ function runRecommend(){
       if(d < nearestDist){ nearestDist = d; nearestCode = code; }
     });
     if(!nearestCode){
-      resultEl.innerHTML = `<p class="placeholder-msg">지역을 찾지 못했어요. 다시 시도해주세요.</p>`;
+      resultEl.innerHTML = `<p class="placeholder-msg">${t('err_region_notfound','지역을 찾지 못했어요. 다시 시도해주세요.')}</p>`;
       return;
     }
     const nearestRow = voucherData[nearestCode];
@@ -2559,7 +2578,7 @@ function runRecommend(){
     }, 8000);
 
     if(typeof naver === 'undefined' || !naver.maps.Service){
-      resultEl.innerHTML = `<p class="placeholder-msg">지도 기능을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</p>`;
+      resultEl.innerHTML = `<p class="placeholder-msg">${t('err_map_load','지도 기능을 불러오지 못했어요. 잠시 후 다시 시도해주세요.')}</p>`;
       return;
     }
 
@@ -2590,7 +2609,7 @@ function finishRecommend(list, resultEl, sport, nearestRow){
   list.sort((a,b)=>a.dist-b.dist);
   const top = list.slice(0,5);
   if(top.length === 0){
-    resultEl.innerHTML = `<p class="placeholder-msg">위치를 정확히 계산하지 못했어요. 다시 시도해주세요.</p>`;
+    resultEl.innerHTML = `<p class="placeholder-msg">${t('err_geo_calc','위치를 정확히 계산하지 못했어요. 다시 시도해주세요.')}</p>`;
     return;
   }
   resultEl.innerHTML = `
@@ -2625,7 +2644,7 @@ searchInput.addEventListener('input', ()=>{
   if(!q){ searchSuggest.style.display='none'; return; }
   const matches = regionSearchList.filter(r => r.label.includes(q)).slice(0,8);
   if(matches.length === 0){
-    searchSuggest.innerHTML = `<div class="sugg-item" style="color:var(--ink-faint);">검색 결과가 없어요</div>`;
+    searchSuggest.innerHTML = `<div class="sugg-item" style="color:var(--ink-faint);">${t('no_search_result','검색 결과가 없어요')}</div>`;
   } else {
     searchSuggest.innerHTML = matches.map(m=>
       `<div class="sugg-item" data-code="${m.code}">${m.label}</div>`
@@ -2684,7 +2703,7 @@ if(searchInputCompact){
     if(!q){ searchSuggestCompact.style.display='none'; return; }
     const matches = regionSearchList.filter(r => r.label.includes(q)).slice(0,8);
     searchSuggestCompact.innerHTML = matches.length === 0
-      ? `<div class="sugg-item" style="color:var(--ink-faint);">검색 결과가 없어요</div>`
+      ? `<div class="sugg-item" style="color:var(--ink-faint);">${t('no_search_result','검색 결과가 없어요')}</div>`
       : matches.map(m=>`<div class="sugg-item" data-code="${m.code}">${m.label}</div>`).join('');
     searchSuggestCompact.style.display = 'block';
   });
@@ -2714,7 +2733,7 @@ function bindRegionViewSearch(){
     if(!q){ rvSearchSuggest.style.display='none'; return; }
     const matches = regionSearchList.filter(r => r.label.includes(q)).slice(0,8);
     rvSearchSuggest.innerHTML = matches.length === 0
-      ? `<div class="sugg-item" style="color:var(--ink-faint);">검색 결과가 없어요</div>`
+      ? `<div class="sugg-item" style="color:var(--ink-faint);">${t('no_search_result','검색 결과가 없어요')}</div>`
       : matches.map(m=>`<div class="sugg-item" data-code="${m.code}">${m.label}</div>`).join('');
     rvSearchSuggest.style.display = 'block';
   });
@@ -2754,7 +2773,7 @@ document.getElementById('locateBtn').addEventListener('click', ()=>{
     },
     ()=>{
       btn.classList.remove('loading');
-      alert('위치 정보를 가져올 수 없어요. 브라우저 위치 권한을 확인해주세요.');
+      alert(t('err_geo_denied','위치 정보를 가져올 수 없어요. 브라우저 위치 권한을 확인해주세요.'));
     }
   );
 });
@@ -3168,7 +3187,7 @@ window.addEventListener('load', ()=>{
   setTimeout(()=>{
     if(typeof naver === 'undefined' && !window.__NAVER_AUTH_FAILED){
       document.getElementById('map').innerHTML =
-        '<div style="padding:24px;font-family:sans-serif;color:#F04452;">네이버 지도가 안 열려요. Client ID를 넣었는지 확인해주세요.</div>';
+        `<div style="padding:24px;font-family:sans-serif;color:#F04452;">${t('map_error','네이버 지도가 안 열려요. Client ID를 넣었는지 확인해주세요.')}</div>`;
       return;
     }
     if(typeof naver !== 'undefined'){ init(); }
@@ -3204,7 +3223,7 @@ function setupInstallPrompt(){
     if(isSafari){
       banner.querySelector('span').textContent = '📱 하단 공유 버튼 → "홈 화면에 추가"로 앱처럼 쓸 수 있어요';
     } else {
-      banner.querySelector('span').textContent = '📱 홈 화면 추가는 사파리에서만 가능해요 — 사파리로 열어서 시도해주세요';
+      banner.querySelector('span').textContent = t('ios_safari_only','📱 홈 화면 추가는 사파리에서만 가능해요 — 사파리로 열어서 시도해주세요');
     }
     banner.style.display = 'flex';
     return;
