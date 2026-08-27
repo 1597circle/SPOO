@@ -108,7 +108,7 @@
       <div class="s1-step s1-vcenter-wrap" id="s1-docsChecklist" style="display:none;">
         <div class="s1-vcenter-inner">
           <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_docs">필요한 서류</span></div>
-          <div class="s1-question" style="font-size:clamp(28px, 5vw, 42px); margin-bottom:22px;" data-i18n="q_docs">서류를<br>준비해볼까요?</div>
+          <div class="s1-question" style="margin-bottom:22px;" data-i18n="q_docs">서류를<br>준비해볼까요?</div>
           <div id="priorityNotice" style="width:100%;"></div>
           <div id="docsContent" style="width:100%;"></div>
           <button class="next-step-btn secondary" data-i18n="btn_prev" onclick="s1GoTo('resultIntro')" style="margin-top:26px; margin-bottom:8px;">← 이전</button>
@@ -119,7 +119,7 @@
       <div class="s1-step s1-vcenter-wrap" id="s1-docsNotice" style="display:none;">
         <div class="s1-vcenter-inner">
           <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_notice">놓치기 쉬운 안내</span></div>
-          <div class="s1-question" style="font-size:clamp(28px, 5vw, 42px); margin-bottom:24px;" data-i18n="q_notice">이것만은<br>놓치지 마세요</div>
+          <div class="s1-question" style="margin-bottom:24px;" data-i18n="q_notice">이것만은<br>놓치지 마세요</div>
           <button class="speak-btn speak-btn-inline" onclick="speakElementsText('.important-notice .notice-item', this)" data-i18n="speak_listen">🔊 들려주기</button>
           <div class="important-notice" style="width:100%;">
             <div class="notice-item" data-i18n="notice_1"><b>매년 재신청 필수</b> — 자동 연장이 안 돼요. 작년에 받으셨어도 올해 다시 신청해야 해요.</div>
@@ -128,7 +128,7 @@
             <div class="notice-item" data-i18n="notice_4"><b>3개월 연속 미사용 시 지원 중단</b> — 중단되면 다음 해 선정 순위도 불리해질 수 있어요.</div>
             <div class="notice-item" data-i18n="notice_5"><b>문화누리카드와 중복 신청 가능</b> — 둘 다 받고 계셔도 걱정 안 하셔도 돼요.</div>
           </div>
-          <button class="calendar-btn" data-i18n="action_calendar_full" onclick="downloadApplyCalendar()">📅 신청기간 내 캘린더에 추가하기</button>
+          <button class="calendar-btn" data-i18n="action_calendar_full" onclick="openCalendarSheet()">📅 신청기간 내 캘린더에 추가하기</button>
           <button class="next-step-btn secondary" data-i18n="btn_prev" onclick="s1GoTo('docsChecklist')" style="margin-top:26px; margin-bottom:8px;">← 이전</button>
           <button class="next-step-btn" data-i18n="btn_next_arrow" onclick="s1GoTo('docsContact')">다음 →</button>
         </div>
@@ -137,10 +137,10 @@
       <div class="s1-step s1-vcenter-wrap" id="s1-docsContact" style="display:none;">
         <div class="s1-vcenter-inner">
           <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_contact">문의처</span></div>
-          <div class="s1-question" style="font-size:clamp(28px, 5vw, 42px); margin-bottom:24px;" data-i18n="q_contact">궁금한 점이<br>있으면</div>
+          <div class="s1-question" style="margin-bottom:24px;" data-i18n="q_contact">궁금한 점이<br>있으면</div>
           <a class="apply-help-item" href="tel:1551-0078" style="width:100%;"><span data-i18n="contact_center_label">상담센터</span> 1551-0078 <span data-i18n="contact_center_sub">신청·자격 문의</span></a>
           <a class="apply-help-item" href="tel:1544-7000" style="width:100%;"><span data-i18n="contact_card_label">신한카드</span> 1544-7000 <span data-i18n="contact_card_sub">카드 발급·분실 문의</span></a>
-          <a class="apply-help-item" href="https://svoucher.kspo.or.kr" target="_blank" style="width:100%;"><span data-i18n="contact_local_label">우리 동네 담당자 찾기 →</span> <span data-i18n="contact_local_sub">지자체별 담당자 조회</span></a>
+          <a class="apply-help-item" href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener" style="width:100%;"><span data-i18n="contact_local_label">우리 동네 담당자 찾기 →</span> <span data-i18n="contact_local_sub">지자체별 담당자 조회</span></a>
           <button class="next-step-btn secondary" data-i18n="btn_prev" onclick="s1GoTo('docsNotice')" style="margin-top:26px; margin-bottom:8px;">← 이전</button>
           <button class="next-step-btn" data-i18n="btn_next_arrow" onclick="s1GoTo('resultAction')">다음 →</button>
         </div>
@@ -265,7 +265,7 @@
           <button class="household-card" style="width:100%; margin-top:8px;" onclick="s1GoTo('recommend')">
             <span class="hc-emoji" aria-hidden="true">📍</span><span class="hc-text" data-i18n="action_find_facility">이미 신청하셨나요? 시설 알아보기</span>
           </button>
-          <button class="household-card" style="width:100%; margin-top:8px;" onclick="downloadApplyCalendar()">
+          <button class="household-card" style="width:100%; margin-top:8px;" onclick="openCalendarSheet()">
             <span class="hc-emoji" aria-hidden="true">📅</span><span class="hc-text" data-i18n="action_calendar">신청기간 내 캘린더에 추가하기</span>
           </button>
           <div class="s1-tiny-links">
@@ -277,7 +277,7 @@
 <div class="s1-step s1-vcenter-wrap" id="s1-recommend" style="display:none;">
         <div class="s1-vcenter-inner">
           <div class="s1-tag"><span class="dot"></span>시설 추천</div>
-          <div class="s1-question" style="font-size:clamp(30px, 5.5vw, 44px); margin-bottom:10px;">딱 맞는 시설<br>추천받기</div>
+          <div class="s1-question" style="margin-bottom:10px;">딱 맞는 시설<br>추천받기</div>
           <div class="s1-sub" style="margin-top:0; margin-bottom:30px;">실제 거리 계산으로 가까운 순으로 찾아드려요</div>
           <label class="field-label" for="favoriteSport" style="width:100%; text-align:left;">좋아하는 운동이 있나요? (선택)</label>
           <select id="favoriteSport" class="recommend-select"><option value="">전체 종목에서 찾기</option></select>
@@ -554,7 +554,7 @@
       </ol>
       <p style="font-size:var(--fs-caption); color:var(--ink-faint); margin-top:8px;">
         세부 서류·절차는 공식 누리집에서 확인해주세요 →
-        <a href="https://svoucher.kspo.or.kr" target="_blank" style="color:var(--blue-deep);">svoucher.kspo.or.kr</a>
+        <a href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener" style="color:var(--blue-deep);">svoucher.kspo.or.kr</a>
       </p>
     </div>
 
@@ -579,10 +579,10 @@
     </div>
   </div>
 </div>
-<footer style="padding:32px 20px; text-align:center; font-size:12px; color:var(--ink-faint); line-height:1.8; border-top:1px solid var(--line); margin-top:24px;">
+<footer style="padding:32px 20px; text-align:center; font-size:var(--fs-caption); color:var(--ink-faint); line-height:1.8; border-top:1px solid var(--line); margin-top:24px;">
   SPOO는 스포츠강좌이용권 정보를 더 쉽게 확인할 수 있도록 만든 <b>비공식 정보 제공 서비스</b>입니다.<br>
   정부·지자체 공식 서비스가 아니며, 실제 신청·결제는
-  <a href="https://svoucher.kspo.or.kr" target="_blank" style="color:var(--blue-deep);">svoucher.kspo.or.kr</a>에서 진행해주세요.<br>
+  <a href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener" style="color:var(--blue-deep);">svoucher.kspo.or.kr</a>에서 진행해주세요.<br>
   <a href="privacy.html" style="color:var(--ink-faint); text-decoration:underline;">개인정보처리방침</a> ·
   <a href="mailto:circle1597@naver.com" style="color:var(--ink-faint); text-decoration:underline;">문의하기</a>
 </footer>

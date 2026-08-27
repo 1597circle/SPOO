@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v3'; // v2→v3: index.html을 index.html/style.css/app.js로 분리한 구조 변경 반영
+const CACHE_NAME = 'spoo-v4'; // v3→v4: 신규 기능 4종(캘린더·음성·다국어·PWA바로가기) + 타이포 통일 릴리스 반영
 const CORE_FILES = [
   './index.html',
   './style.css',
@@ -17,7 +17,12 @@ const CORE_FILES = [
   './privacy.html',
   './icon-192.png',
   './icon-512.png',
-  './apple-touch-icon.png'
+  './apple-touch-icon.png',
+  './i18n/en.json',
+  './i18n/vi.json',
+  './i18n/zh.json',
+  './shortcut-diagnose.png',
+  './shortcut-facility.png'
   // courses.csv, facilities/{code}.json 은 용량이 크고 지역별로 그때그때 필요한 것만 불러오는
   // 파일들이라 여기서 미리 캐시하지 않습니다 (fetch 이벤트에서 요청 시점에 자동으로 캐시됨).
 ];

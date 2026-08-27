@@ -37,6 +37,12 @@ function escapeAttr(str){
   return String(str||'').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
+// 사용자가 입력한 텍스트(이름 등)를 innerHTML에 넣기 전에 반드시 이 함수를 거칩니다.
+// 이름에 <script> 같은 태그를 넣어도 코드로 실행되지 않고 글자 그대로 보이게 합니다.
+function escapeHtml(str){
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 /* ==================== 다국어 지원 (i18n) ====================
    서버·회원가입 없이, 언어별 사전 파일(i18n/en.json 등)을 그때그때 불러와 텍스트를 바꿔치기합니다.
    선택한 언어만 localStorage에 저장하고, 사전에 없는 키는 항상 원래 한국어로 자연스럽게 대체됩니다.
@@ -60,10 +66,17 @@ async function setLanguage(lang){
     i18nDict = {};
   } else {
     try{
-      i18nDict = await fetch(`i18n/${lang}.json`).then(r=>r.json());
+      // 현재 주소가 /SPOO 든 /SPOO/ 든 /SPOO/index.html 이든 항상 올바른 위치를 가리키도록 경로를 직접 계산
+      const dir = location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/[^/]*$/, '');
+      const res = await fetch(`${dir}i18n/${lang}.json`, { cache: 'no-cache' });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      i18nDict = await res.json();
     }catch(e){
       console.log(`i18n/${lang}.json 로드 실패 — 한국어로 유지합니다.`, e);
       i18nDict = {};
+      showToast('⚠️ 번역 파일을 불러오지 못해 한국어로 표시돼요. 잠시 후 다시 시도해주세요.');
+      currentLang = 'ko';
+      localStorage.setItem('spoo_lang', 'ko');
     }
   }
   applyTranslations();
@@ -440,6 +453,53 @@ function buildIcsContent(cfg){
   ].join('\r\n');
 }
 
+// 구글 캘린더 "바로 추가" 링크 생성 — 파일 다운로드 없이 캘린더 앱이 바로 열립니다 (모바일에서 가장 확실한 방법)
+function buildGcalUrl(title, startYmd, endYmdExclusive, details){
+  const p = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: title,
+    dates: `${startYmd}/${endYmdExclusive}`,
+    details: details || '',
+  });
+  return `https://calendar.google.com/calendar/render?${p.toString()}`;
+}
+
+// 캘린더 추가 방법 선택 시트 — 구글 캘린더(권장) 또는 .ics 파일
+async function openCalendarSheet(){
+  let cfg = spooConfig;
+  if(!cfg){
+    try{ cfg = await fetch('config.json').then(r=>r.json()); spooConfig = cfg; }
+    catch(e){ showToast('일정 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'); return; }
+  }
+  const y = (iso)=> icsDateOnly(iso);
+  const applyUrl = buildGcalUrl(
+    'SPOO 스포츠강좌이용권 신청기간',
+    y(cfg.applyPeriod.start), icsDateOnlyPlus1(cfg.applyPeriod.end),
+    'SPOO에서 신청 서류를 미리 확인해보세요. https://1597circle.github.io/SPOO/'
+  );
+  const payUrl = buildGcalUrl(
+    'SPOO 스포츠강좌이용권 결제 마감',
+    y(cfg.paymentDeadline), icsDateOnlyPlus1(cfg.paymentDeadline),
+    '12월 31일이 아니라 이 날짜까지예요! https://1597circle.github.io/SPOO/'
+  );
+
+  let sheet = document.getElementById('calSheetOverlay');
+  if(sheet) sheet.remove();
+  sheet = document.createElement('div');
+  sheet.id = 'calSheetOverlay';
+  sheet.className = 'cal-sheet-overlay';
+  sheet.innerHTML = `
+    <div class="cal-sheet">
+      <div class="cal-sheet-title">📅 캘린더에 추가하기</div>
+      <a class="cal-sheet-btn primary" href="${applyUrl}" target="_blank" rel="noopener">📆 신청기간 추가 (구글 캘린더)</a>
+      <a class="cal-sheet-btn primary" href="${payUrl}" target="_blank" rel="noopener">💳 결제마감 추가 (구글 캘린더)</a>
+      <button class="cal-sheet-btn" onclick="downloadApplyCalendar(); document.getElementById('calSheetOverlay').remove();">📄 파일(.ics)로 받기 — 아이폰·기타 캘린더용</button>
+      <button class="cal-sheet-close" onclick="document.getElementById('calSheetOverlay').remove()">닫기</button>
+    </div>`;
+  sheet.addEventListener('click', (e)=>{ if(e.target === sheet) sheet.remove(); });
+  document.body.appendChild(sheet);
+}
+
 async function downloadApplyCalendar(){
   let cfg = spooConfig;
   if(!cfg){
@@ -459,7 +519,8 @@ async function downloadApplyCalendar(){
   showIcsToast();
 }
 
-function showIcsToast(){
+// 화면 하단에 잠깐 떴다 사라지는 공용 안내 토스트
+function showToast(message){
   let toast = document.getElementById('icsToast');
   if(!toast){
     toast = document.createElement('div');
@@ -467,10 +528,14 @@ function showIcsToast(){
     toast.className = 'ics-toast';
     document.body.appendChild(toast);
   }
-  toast.textContent = '📅 다운로드했어요. 파일을 열어 "캘린더에 추가"를 눌러주세요 (알림 시각은 캘린더 앱 설정에 따라 다를 수 있어요)';
+  toast.textContent = message;
   toast.classList.add('show');
   clearTimeout(toast._hideTimer);
   toast._hideTimer = setTimeout(()=> toast.classList.remove('show'), 3800);
+}
+
+function showIcsToast(){
+  showToast('📅 다운로드했어요. 파일을 열어 "캘린더에 추가"를 눌러주세요 (알림 시각은 캘린더 앱 설정에 따라 다를 수 있어요)');
 }
 
 /* ==================== 음성 안내 (Web Speech API) ====================
@@ -1804,7 +1869,7 @@ function wpSubmitChildName(){
     return;
   }
   localStorage.setItem('fairplay_child_name', val);
-  document.getElementById('wpChildBirthQ').innerHTML = `${val} 어린이의<br>생년월일을 알려주세요`;
+  document.getElementById('wpChildBirthQ').innerHTML = `${escapeHtml(val)} 어린이의<br>생년월일을 알려주세요`;
   wpGoTo('2d');
 }
 
@@ -1826,7 +1891,7 @@ function wpSubmitChildBirth(){
     localStorage.setItem('fairplay_display_name', childName); // 이후 화면(가정유형 결과, 서류 체크리스트 등)에 아이 이름이 뜨도록
     wpShowAgeNote(age);
     emojiEl.textContent = '🎉';
-    textEl.innerHTML = `${childName} 어린이는<br>이용 가능해요!`;
+    textEl.innerHTML = `${escapeHtml(childName)} 어린이는<br>이용 가능해요!`;
     btnEl.textContent = '이용할 시설 알아볼까요?';
     btnEl.onclick = () => wpGoTo(4);
   } else {
@@ -1856,7 +1921,7 @@ function wpSubmitHousehold(val){
   const name = localStorage.getItem('fairplay_display_name') || localStorage.getItem('fairplay_name') || '';
   const age = Number(localStorage.getItem('fairplay_age'));
   wpRenderEligibility(age, val, name);
-  document.getElementById('wpGoalTitle').innerHTML = `${name}님,<br>무엇을 먼저 해볼까요?`;
+  document.getElementById('wpGoalTitle').innerHTML = `${escapeHtml(name)}님,<br>무엇을 먼저 해볼까요?`;
   // 서류 안내가 있는 경우(대상+범주 확실) "신청 서류 준비하기" 선택지도 보여줌
   const docBtn = document.getElementById('wpDocGoalBtn');
   if(docBtn) docBtn.style.display = (val !== 'unsure') ? 'flex' : 'none';
@@ -1874,7 +1939,7 @@ function wpRenderEligibility(age, val, name){
   if(val === 'near'){
     el.innerHTML = `<div class="wp-result alert"><b>차상위계층도 받을 수 있어요!</b> 근데 100명 중 2~3명만 신청하고 있어요 — 꼭 신청해보세요</div>`;
   } else {
-    el.innerHTML = `<div class="wp-result ok"><b>${name}님은 지원 대상이에요! 🎉</b> 1단계에서 필요한 서류도 바로 확인할 수 있어요</div>`;
+    el.innerHTML = `<div class="wp-result ok"><b>${escapeHtml(name)}님은 지원 대상이에요! 🎉</b> 1단계에서 필요한 서류도 바로 확인할 수 있어요</div>`;
   }
 }
 
@@ -2283,7 +2348,7 @@ async function onRegionClick(code, row){
     ${neighborSectionHtml}
     ${filterHtml}
     <div id="facilityListBox">${facilitiesHtml}</div>
-    <a class="official-link" href="https://svoucher.kspo.or.kr" target="_blank">실시간 강좌 정보 보러가기 →</a>
+    <a class="official-link" href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener">실시간 강좌 정보 보러가기 →</a>
     <div class="action-row">
       <button class="action-btn" onclick="shareRegion()">🔗 공유하기</button>
     </div>
@@ -2952,13 +3017,13 @@ function runDiagnose(){
 
   if(val === 'near'){
     introEmoji.textContent = '🎉';
-    introTitle.innerHTML = t('result_near_title', `${namePrefix}<br>차상위계층도 받을 수 있어요!`).replace('{name}', displayName);
+    introTitle.innerHTML = t('result_near_title', `${escapeHtml(namePrefix)}<br>차상위계층도 받을 수 있어요!`).replace('{name}', escapeHtml(displayName));
     introSub.className = 's1-sub';
     introSub.style.display = 'block';
     introSub.innerHTML = t('result_near_sub', `100명 중 <b class="stat-callout">2~3명</b>만 신청 중이에요<br>대부분 몰라서 못 받고 있는 거예요`);
   } else {
     introEmoji.textContent = '🎉';
-    introTitle.innerHTML = t('result_eligible_title', `${namePrefix}<br>받을 수 있는 대상이에요!`).replace('{name}', displayName);
+    introTitle.innerHTML = t('result_eligible_title', `${escapeHtml(namePrefix)}<br>받을 수 있는 대상이에요!`).replace('{name}', escapeHtml(displayName));
     introSub.className = 's1-sub';
     introSub.style.display = 'none';
   }
@@ -2983,7 +3048,7 @@ function applyHelpHtml(){
       <div class="doc-title" style="margin-bottom:10px;">📞 궁금한 점이 있으면</div>
       <a class="apply-help-item" href="tel:1551-0078">상담센터 1551-0078 <span>신청·자격 문의</span></a>
       <a class="apply-help-item" href="tel:1544-7000">신한카드 1544-7000 <span>카드 발급·분실 문의</span></a>
-      <a class="apply-help-item" href="https://svoucher.kspo.or.kr" target="_blank">우리 동네 담당자 찾기 → <span>지자체별 담당자 조회</span></a>
+      <a class="apply-help-item" href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener">우리 동네 담당자 찾기 → <span>지자체별 담당자 조회</span></a>
     </div>`;
 }
 
