@@ -49,6 +49,13 @@
   .header-link{font-size:var(--fs-label); color:rgba(255,255,255,.6); font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:4px; transition:.15s;}
   .header-link:hover{color:#fff;}
 
+  /* ---- 언어 선택 드롭다운 ---- */
+  .lang-menu-item{
+    padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer;
+    border-radius:8px; white-space:nowrap; transition:.12s;
+  }
+  .lang-menu-item:hover{ background:var(--paper); }
+
   /* ---- 지역 현황 보기 오버레이 ---- */
   .region-view-overlay{
     display:none; position:fixed; top:0; left:0; right:0; bottom:0; width:100%; height:100%; background:rgba(19,33,53,.6); z-index:9998;

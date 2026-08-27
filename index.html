@@ -73,6 +73,13 @@
       <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openRegionView();">📊 지역 현황이 궁금하신가요?</div>
       <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openFacilityView();">🏢 시설을 운영하고 계신가요?</div>
     </div>
+    <span class="header-link" onclick="toggleLangMenu()">🌐 <span id="langBtnLabel">한국어</span> ▾</span>
+    <div id="langMenu" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:160px; z-index:2000;">
+      <div class="lang-menu-item" onclick="setLanguage('ko')">한국어</div>
+      <div class="lang-menu-item" onclick="setLanguage('en')">English</div>
+      <div class="lang-menu-item" onclick="setLanguage('vi')">Tiếng Việt</div>
+      <div class="lang-menu-item" onclick="setLanguage('zh')">中文</div>
+    </div>
     <span class="tag" id="headerConfigTag">전국 229개 지역 · 2025.7 기준</span>
   </div>
 </header>
@@ -100,42 +107,42 @@
            온보딩과 같은 전체화면 한 장씩 방식으로 3개 화면(서류→안내→문의처)에 나눠 담음) -->
       <div class="s1-step s1-vcenter-wrap" id="s1-docsChecklist" style="display:none;">
         <div class="s1-vcenter-inner">
-          <div class="s1-tag"><span class="dot"></span>필요한 서류</div>
-          <div class="s1-question" style="font-size:clamp(28px, 5vw, 42px); margin-bottom:22px;">서류를<br>준비해볼까요?</div>
+          <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_docs">필요한 서류</span></div>
+          <div class="s1-question" style="font-size:clamp(28px, 5vw, 42px); margin-bottom:22px;" data-i18n="q_docs">서류를<br>준비해볼까요?</div>
           <div id="priorityNotice" style="width:100%;"></div>
           <div id="docsContent" style="width:100%;"></div>
-          <button class="next-step-btn secondary" onclick="s1GoTo('resultIntro')" style="margin-top:26px; margin-bottom:8px;">← 이전</button>
-          <button class="next-step-btn" onclick="s1GoTo('docsNotice')">다음 →</button>
+          <button class="next-step-btn secondary" data-i18n="btn_prev" onclick="s1GoTo('resultIntro')" style="margin-top:26px; margin-bottom:8px;">← 이전</button>
+          <button class="next-step-btn" data-i18n="btn_next_arrow" onclick="s1GoTo('docsNotice')">다음 →</button>
         </div>
       </div>
 
       <div class="s1-step s1-vcenter-wrap" id="s1-docsNotice" style="display:none;">
         <div class="s1-vcenter-inner">
-          <div class="s1-tag"><span class="dot"></span>놓치기 쉬운 안내</div>
-          <div class="s1-question" style="font-size:clamp(28px, 5vw, 42px); margin-bottom:24px;">이것만은<br>놓치지 마세요</div>
-          <button class="speak-btn speak-btn-inline" onclick="speakElementsText('.important-notice .notice-item', this)">🔊 들려주기</button>
+          <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_notice">놓치기 쉬운 안내</span></div>
+          <div class="s1-question" style="font-size:clamp(28px, 5vw, 42px); margin-bottom:24px;" data-i18n="q_notice">이것만은<br>놓치지 마세요</div>
+          <button class="speak-btn speak-btn-inline" onclick="speakElementsText('.important-notice .notice-item', this)" data-i18n="speak_listen">🔊 들려주기</button>
           <div class="important-notice" style="width:100%;">
-            <div class="notice-item"><b>매년 재신청 필수</b> — 자동 연장이 안 돼요. 작년에 받으셨어도 올해 다시 신청해야 해요.</div>
+            <div class="notice-item" data-i18n="notice_1"><b>매년 재신청 필수</b> — 자동 연장이 안 돼요. 작년에 받으셨어도 올해 다시 신청해야 해요.</div>
             <div class="notice-item" id="noticeApplyPeriod"><b>신청 기간: 11월 10일~28일</b> — 1년에 한 번뿐인 전국 동시 신청 기간이에요.</div>
             <div class="notice-item" id="noticePaymentDeadline"><b>결제는 12월 10일까지</b> — 12월 31일이 아니라 12월 10일에 마감돼요, 헷갈리지 마세요.</div>
-            <div class="notice-item"><b>3개월 연속 미사용 시 지원 중단</b> — 중단되면 다음 해 선정 순위도 불리해질 수 있어요.</div>
-            <div class="notice-item"><b>문화누리카드와 중복 신청 가능</b> — 둘 다 받고 계셔도 걱정 안 하셔도 돼요.</div>
+            <div class="notice-item" data-i18n="notice_4"><b>3개월 연속 미사용 시 지원 중단</b> — 중단되면 다음 해 선정 순위도 불리해질 수 있어요.</div>
+            <div class="notice-item" data-i18n="notice_5"><b>문화누리카드와 중복 신청 가능</b> — 둘 다 받고 계셔도 걱정 안 하셔도 돼요.</div>
           </div>
-          <button class="calendar-btn" onclick="downloadApplyCalendar()">📅 신청기간 내 캘린더에 추가하기</button>
-          <button class="next-step-btn secondary" onclick="s1GoTo('docsChecklist')" style="margin-top:26px; margin-bottom:8px;">← 이전</button>
-          <button class="next-step-btn" onclick="s1GoTo('docsContact')">다음 →</button>
+          <button class="calendar-btn" data-i18n="action_calendar_full" onclick="downloadApplyCalendar()">📅 신청기간 내 캘린더에 추가하기</button>
+          <button class="next-step-btn secondary" data-i18n="btn_prev" onclick="s1GoTo('docsChecklist')" style="margin-top:26px; margin-bottom:8px;">← 이전</button>
+          <button class="next-step-btn" data-i18n="btn_next_arrow" onclick="s1GoTo('docsContact')">다음 →</button>
         </div>
       </div>
 
       <div class="s1-step s1-vcenter-wrap" id="s1-docsContact" style="display:none;">
         <div class="s1-vcenter-inner">
-          <div class="s1-tag"><span class="dot"></span>문의처</div>
-          <div class="s1-question" style="font-size:clamp(28px, 5vw, 42px); margin-bottom:24px;">궁금한 점이<br>있으면</div>
-          <a class="apply-help-item" href="tel:1551-0078" style="width:100%;">상담센터 1551-0078 <span>신청·자격 문의</span></a>
-          <a class="apply-help-item" href="tel:1544-7000" style="width:100%;">신한카드 1544-7000 <span>카드 발급·분실 문의</span></a>
-          <a class="apply-help-item" href="https://svoucher.kspo.or.kr" target="_blank" style="width:100%;">우리 동네 담당자 찾기 → <span>지자체별 담당자 조회</span></a>
-          <button class="next-step-btn secondary" onclick="s1GoTo('docsNotice')" style="margin-top:26px; margin-bottom:8px;">← 이전</button>
-          <button class="next-step-btn" onclick="s1GoTo('resultAction')">다음 →</button>
+          <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_contact">문의처</span></div>
+          <div class="s1-question" style="font-size:clamp(28px, 5vw, 42px); margin-bottom:24px;" data-i18n="q_contact">궁금한 점이<br>있으면</div>
+          <a class="apply-help-item" href="tel:1551-0078" style="width:100%;"><span data-i18n="contact_center_label">상담센터</span> 1551-0078 <span data-i18n="contact_center_sub">신청·자격 문의</span></a>
+          <a class="apply-help-item" href="tel:1544-7000" style="width:100%;"><span data-i18n="contact_card_label">신한카드</span> 1544-7000 <span data-i18n="contact_card_sub">카드 발급·분실 문의</span></a>
+          <a class="apply-help-item" href="https://svoucher.kspo.or.kr" target="_blank" style="width:100%;"><span data-i18n="contact_local_label">우리 동네 담당자 찾기 →</span> <span data-i18n="contact_local_sub">지자체별 담당자 조회</span></a>
+          <button class="next-step-btn secondary" data-i18n="btn_prev" onclick="s1GoTo('docsNotice')" style="margin-top:26px; margin-bottom:8px;">← 이전</button>
+          <button class="next-step-btn" data-i18n="btn_next_arrow" onclick="s1GoTo('resultAction')">다음 →</button>
         </div>
       </div>
 
@@ -198,71 +205,71 @@
 <!-- 아래 7개는 온보딩 오버레이와 동일하게 body 최상위에 둬서, position:fixed가 어떤 조상 요소의 영향도 안 받게 함 -->
 <div class="s1-step s1-vcenter-wrap" id="s1-age" style="display:none;">
         <div class="s1-vcenter-inner">
-          <div class="s1-tag"><span class="dot"></span>자가진단</div>
-          <div class="s1-question">아이 나이가<br>어떻게 되나요?</div>
+          <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_selfcheck">자가진단</span></div>
+          <div class="s1-question" data-i18n="q_age">아이 나이가<br>어떻게 되나요?</div>
           <div class="age-slider-box">
             <div class="age-slider-value set" id="ageSliderValue">10세</div>
             <input type="range" id="ageSelect" min="5" max="18" step="1" value="10" class="age-slider" aria-label="아이 나이 선택 (5세~18세)">
             <div class="age-slider-track-labels"><span>5세</span><span>18세</span></div>
           </div>
-          <button class="next-step-btn" onclick="s1GoTo('household')">다음</button>
+          <button class="next-step-btn" data-i18n="btn_next" onclick="s1GoTo('household')">다음</button>
         </div>
       </div>
 
 <div class="s1-step s1-vcenter-wrap" id="s1-household" style="display:none;">
         <div class="s1-vcenter-inner">
-          <div class="s1-tag"><span class="dot"></span>자가진단</div>
-          <div class="s1-question">우리 가정은<br>어디에 해당하나요?</div>
+          <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_selfcheck">자가진단</span></div>
+          <div class="s1-question" data-i18n="q_household">우리 가정은<br>어디에 해당하나요?</div>
           <div id="householdGroup" class="household-cards">
-            <label class="household-card"><input type="radio" name="household" value="crime"><span class="hc-emoji" aria-hidden="true">🛡️</span><span class="hc-text">범죄 피해를 입은 가정이에요</span></label>
-            <label class="household-card"><input type="radio" name="household" value="basic"><span class="hc-emoji" aria-hidden="true">🏠</span><span class="hc-text">기초생활수급 가정이에요</span></label>
-            <label class="household-card"><input type="radio" name="household" value="near"><span class="hc-emoji" aria-hidden="true">🌱</span><span class="hc-text">차상위계층이에요</span></label>
-            <label class="household-card"><input type="radio" name="household" value="single"><span class="hc-emoji" aria-hidden="true">👪</span><span class="hc-text">한부모 가정이에요</span></label>
-            <label class="household-card"><input type="radio" name="household" value="unsure"><span class="hc-emoji" aria-hidden="true">🤔</span><span class="hc-text">잘 모르겠어요</span></label>
+            <label class="household-card"><input type="radio" name="household" value="crime"><span class="hc-emoji" aria-hidden="true">🛡️</span><span class="hc-text" data-i18n="household_crime">범죄 피해를 입은 가정이에요</span></label>
+            <label class="household-card"><input type="radio" name="household" value="basic"><span class="hc-emoji" aria-hidden="true">🏠</span><span class="hc-text" data-i18n="household_basic">기초생활수급 가정이에요</span></label>
+            <label class="household-card"><input type="radio" name="household" value="near"><span class="hc-emoji" aria-hidden="true">🌱</span><span class="hc-text" data-i18n="household_near">차상위계층이에요</span></label>
+            <label class="household-card"><input type="radio" name="household" value="single"><span class="hc-emoji" aria-hidden="true">👪</span><span class="hc-text" data-i18n="household_single">한부모 가정이에요</span></label>
+            <label class="household-card"><input type="radio" name="household" value="unsure"><span class="hc-emoji" aria-hidden="true">🤔</span><span class="hc-text" data-i18n="opt_unsure">잘 모르겠어요</span></label>
           </div>
-          <button class="next-step-btn secondary" onclick="s1GoTo('age')">← 이전</button>
+          <button class="next-step-btn secondary" data-i18n="btn_prev" onclick="s1GoTo('age')">← 이전</button>
         </div>
       </div>
 
 <div class="s1-step s1-vcenter-wrap" id="s1-priorhistory" style="display:none;">
         <div class="s1-vcenter-inner">
-          <div class="s1-tag"><span class="dot"></span>자가진단</div>
-          <div class="s1-question">전에 스포츠강좌이용권을<br>받아보신 적 있나요?</div>
+          <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_selfcheck">자가진단</span></div>
+          <div class="s1-question" data-i18n="q_priorhistory">전에 스포츠강좌이용권을<br>받아보신 적 있나요?</div>
           <div class="household-cards" style="width:100%;">
-            <label class="household-card" onclick="s1SubmitPriorHistory('new')"><span class="hc-emoji" aria-hidden="true">🆕</span><span class="hc-text">아니요, 처음이에요</span></label>
-            <label class="household-card" onclick="s1SubmitPriorHistory('existing')"><span class="hc-emoji" aria-hidden="true">🔁</span><span class="hc-text">네, 받아본 적 있어요</span></label>
-            <label class="household-card" onclick="s1SubmitPriorHistory('unsure')"><span class="hc-emoji" aria-hidden="true">🤔</span><span class="hc-text">잘 모르겠어요</span></label>
+            <label class="household-card" onclick="s1SubmitPriorHistory('new')"><span class="hc-emoji" aria-hidden="true">🆕</span><span class="hc-text" data-i18n="prior_new">아니요, 처음이에요</span></label>
+            <label class="household-card" onclick="s1SubmitPriorHistory('existing')"><span class="hc-emoji" aria-hidden="true">🔁</span><span class="hc-text" data-i18n="prior_existing">네, 받아본 적 있어요</span></label>
+            <label class="household-card" onclick="s1SubmitPriorHistory('unsure')"><span class="hc-emoji" aria-hidden="true">🤔</span><span class="hc-text" data-i18n="opt_unsure">잘 모르겠어요</span></label>
           </div>
-          <button class="next-step-btn secondary" onclick="s1GoTo('household')">← 이전</button>
+          <button class="next-step-btn secondary" data-i18n="btn_prev" onclick="s1GoTo('household')">← 이전</button>
         </div>
       </div>
 
 <div class="s1-step s1-vcenter-wrap" id="s1-resultIntro" style="display:none;">
         <div class="s1-vcenter-inner">
-          <div class="s1-tag"><span class="dot"></span>자가진단 결과</div>
+          <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_result">자가진단 결과</span></div>
           <div class="result-emoji" id="resultIntroEmoji" style="text-align:center;">🎉</div>
           <div class="s1-question" id="resultIntroTitle">받을 수 있는<br>대상이에요!</div>
           <div class="s1-sub" id="resultIntroSub" style="display:none;"></div>
-          <button class="speak-btn" onclick="speakElementsText('#resultIntroTitle, #resultIntroSub', this)">🔊 들려주기</button>
-          <button class="next-step-btn" id="resultIntroNextBtn" onclick="s1GoTo('docsChecklist')">필요한 서류 알아볼까요? →</button>
+          <button class="speak-btn" data-i18n="speak_listen" onclick="speakElementsText('#resultIntroTitle, #resultIntroSub', this)">🔊 들려주기</button>
+          <button class="next-step-btn" id="resultIntroNextBtn" data-i18n="btn_docs_next" onclick="s1GoTo('docsChecklist')">필요한 서류 알아볼까요? →</button>
         </div>
       </div>
 
 <div class="s1-step s1-vcenter-wrap" id="s1-resultAction" style="display:none;">
         <div class="s1-vcenter-inner">
-          <div class="s1-tag"><span class="dot"></span>다음 단계</div>
-          <div class="s1-question">이제 무엇을<br>해볼까요?</div>
+          <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_nextstep">다음 단계</span></div>
+          <div class="s1-question" data-i18n="q_nextstep">이제 무엇을<br>해볼까요?</div>
           <button class="household-card" style="width:100%;" onclick="window.open('https://svoucher.kspo.or.kr','_blank')">
-            <span class="hc-emoji" aria-hidden="true">📝</span><span class="hc-text">그럼 신청하러 가볼까요?</span>
+            <span class="hc-emoji" aria-hidden="true">📝</span><span class="hc-text" data-i18n="action_apply">그럼 신청하러 가볼까요?</span>
           </button>
           <button class="household-card" style="width:100%; margin-top:8px;" onclick="s1GoTo('recommend')">
-            <span class="hc-emoji" aria-hidden="true">📍</span><span class="hc-text">이미 신청하셨나요? 시설 알아보기</span>
+            <span class="hc-emoji" aria-hidden="true">📍</span><span class="hc-text" data-i18n="action_find_facility">이미 신청하셨나요? 시설 알아보기</span>
           </button>
           <button class="household-card" style="width:100%; margin-top:8px;" onclick="downloadApplyCalendar()">
-            <span class="hc-emoji" aria-hidden="true">📅</span><span class="hc-text">신청기간 내 캘린더에 추가하기</span>
+            <span class="hc-emoji" aria-hidden="true">📅</span><span class="hc-text" data-i18n="action_calendar">신청기간 내 캘린더에 추가하기</span>
           </button>
           <div class="s1-tiny-links">
-            <span onclick="saveDiagnoseResult()">📸 결과 저장</span> · <span onclick="s1GoTo('age')">다시 진단하기</span>
+            <span onclick="saveDiagnoseResult()" data-i18n="tiny_save">📸 결과 저장</span> · <span onclick="s1GoTo('age')" data-i18n="tiny_retry">다시 진단하기</span>
           </div>
         </div>
       </div>

@@ -37,6 +37,69 @@ function escapeAttr(str){
   return String(str||'').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
+/* ==================== 다국어 지원 (i18n) ====================
+   서버·회원가입 없이, 언어별 사전 파일(i18n/en.json 등)을 그때그때 불러와 텍스트를 바꿔치기합니다.
+   선택한 언어만 localStorage에 저장하고, 사전에 없는 키는 항상 원래 한국어로 자연스럽게 대체됩니다.
+   (기획서 "③ 다국어 지원" 참고 — 1단계로 자가진단·서류 안내 화면부터 적용) */
+let currentLang = localStorage.getItem('spoo_lang') || 'ko';
+let i18nDict = {};
+
+const LANG_NAMES = { ko:'한국어', en:'English', vi:'Tiếng Việt', zh:'中文' };
+
+// key로 사전에서 찾고, 없으면 한국어 원문(fallback)을 그대로 반환 — 항상 안전하게 뭔가는 보여줌
+function t(key, fallback){
+  return i18nDict[key] || fallback;
+}
+
+async function setLanguage(lang){
+  currentLang = lang;
+  localStorage.setItem('spoo_lang', lang);
+  closeLangMenu();
+
+  if(lang === 'ko'){
+    i18nDict = {};
+  } else {
+    try{
+      i18nDict = await fetch(`i18n/${lang}.json`).then(r=>r.json());
+    }catch(e){
+      console.log(`i18n/${lang}.json 로드 실패 — 한국어로 유지합니다.`, e);
+      i18nDict = {};
+    }
+  }
+  applyTranslations();
+  renderConfigNotices();       // 신청기간·결제마감 문구 (날짜 형식이 언어별로 다름)
+  document.documentElement.lang = lang;
+}
+
+// 페이지의 data-i18n 요소를 전부 치환. <br> 등 태그가 섞여 있을 수 있어 textContent가 아닌
+// innerHTML을 사용하고, 최초 1회 원본 한국어를 data-i18n-ko에 저장해둬서 언어를 왔다갔다 해도
+// 원본이 안전하게 보존되도록 합니다.
+function applyTranslations(){
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if(!el.hasAttribute('data-i18n-ko')) el.setAttribute('data-i18n-ko', el.innerHTML);
+    el.innerHTML = i18nDict[key] || el.getAttribute('data-i18n-ko');
+  });
+  const label = document.getElementById('langBtnLabel');
+  if(label) label.textContent = LANG_NAMES[currentLang] || '한국어';
+}
+
+function toggleLangMenu(){
+  const menu = document.getElementById('langMenu');
+  if(!menu) return;
+  closeHeaderMoreMenu();
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+function closeLangMenu(){
+  const menu = document.getElementById('langMenu');
+  if(menu) menu.style.display = 'none';
+}
+
+// 저장된 언어가 있으면(재방문자) 페이지 로드 시 바로 적용
+if(currentLang !== 'ko'){
+  document.addEventListener('DOMContentLoaded', () => setLanguage(currentLang));
+}
+
 // 전화번호를 보기 좋게 하이픈 형식으로 변환 (02는 2자리 지역번호, 그 외는 3자리 지역번호)
 function formatPhone(tel){
   if(!tel) return null;
@@ -284,18 +347,40 @@ async function loadConfigAndApply(){
   try{
     const cfg = await fetch('config.json').then(r=>r.json());
     spooConfig = cfg; // 캘린더 등록(.ics) 기능에서 재사용
-    const fmt = (iso) => { const [y,m,d] = iso.split('-'); return `${parseInt(m)}월 ${parseInt(d)}일`; };
     const tag = document.getElementById('headerConfigTag');
     if(tag) tag.textContent = `전국 ${cfg.regionCount}개 지역 · ${cfg.dataUpdatedAt} 기준`;
-    const applyEl = document.getElementById('noticeApplyPeriod');
-    if(applyEl) applyEl.innerHTML = `<b>신청 기간: ${fmt(cfg.applyPeriod.start)}~${fmt(cfg.applyPeriod.end).replace(/^\d+월 /,'')}</b> — 1년에 한 번뿐인 전국 동시 신청 기간이에요.`;
-    const payEl = document.getElementById('noticePaymentDeadline');
-    if(payEl) payEl.innerHTML = `<b>결제는 ${fmt(cfg.paymentDeadline)}까지</b> — 마감일을 헷갈리지 마세요.`;
+    renderConfigNotices();
   }catch(e){
     console.log('config.json 로드 실패 — 화면에 있는 기본 안내 문구로 표시됩니다.', e);
   }
 }
 loadConfigAndApply();
+
+// 신청기간/결제마감 안내 문구를 현재 언어에 맞게 렌더링. config.json을 다시 불러올 필요 없이
+// 캐시된 spooConfig를 재사용하며, 언어를 바꿀 때마다 다시 호출됩니다.
+function renderConfigNotices(){
+  if(!spooConfig) return;
+  const cfg = spooConfig;
+  const isKo = (currentLang === 'ko' || !currentLang);
+  const fmt = (iso) => {
+    const [y,m,d] = iso.split('-');
+    return isKo ? `${parseInt(m)}월 ${parseInt(d)}일` : `${parseInt(m)}/${parseInt(d)}`;
+  };
+
+  const applyEl = document.getElementById('noticeApplyPeriod');
+  if(applyEl){
+    const range = isKo
+      ? `${fmt(cfg.applyPeriod.start)}~${fmt(cfg.applyPeriod.end).replace(/^\d+월 /,'')}`
+      : `${fmt(cfg.applyPeriod.start)} ~ ${fmt(cfg.applyPeriod.end)}`;
+    const line = t('notice_apply_period_template', '신청 기간: {range}').replace('{range}', range);
+    applyEl.innerHTML = `<b>${line}</b> — ${t('notice_apply_period_sub','1년에 한 번뿐인 전국 동시 신청 기간이에요.')}`;
+  }
+  const payEl = document.getElementById('noticePaymentDeadline');
+  if(payEl){
+    const line = t('notice_payment_template', '결제는 {date}까지').replace('{date}', fmt(cfg.paymentDeadline));
+    payEl.innerHTML = `<b>${line}</b> — ${t('notice_payment_sub','마감일을 헷갈리지 마세요.')}`;
+  }
+}
 
 /* ==================== 신청기간 캘린더 등록 (.ics 다운로드) ====================
    서버·회원가입 없이, 브라우저에서 표준 iCalendar(.ics) 파일을 만들어 다운로드합니다.
@@ -406,7 +491,7 @@ function speakText(text, btnEl){
   }
 
   const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'ko-KR';
+  utter.lang = { ko:'ko-KR', en:'en-US', vi:'vi-VN', zh:'zh-CN' }[currentLang] || 'ko-KR';
   utter.onend = () => { setSpeakBtnPlaying(btnEl, false); currentSpeakBtn = null; };
   utter.onerror = () => { setSpeakBtnPlaying(btnEl, false); currentSpeakBtn = null; };
   currentSpeakBtn = btnEl;
@@ -417,7 +502,7 @@ function speakText(text, btnEl){
 function setSpeakBtnPlaying(btnEl, playing){
   if(!btnEl) return;
   btnEl.classList.toggle('playing', playing);
-  btnEl.textContent = playing ? '⏸ 멈추기' : '🔊 들려주기';
+  btnEl.textContent = playing ? t('speak_stop','⏸ 멈추기') : t('speak_listen','🔊 들려주기');
 }
 
 // 화면에 실제로 보이는 텍스트를 그대로 읽어줍니다 (내용이 바뀌어도 별도 텍스트 관리가 필요 없음)
@@ -1037,6 +1122,7 @@ function closeFilterSheet(){ document.getElementById('filterSheetOverlay').class
 // 헤더 "더 알아보기" 드롭다운 — 담당자·운영자용 링크를 하나로 묶어 헤더가 덜 복잡해 보이게 함
 function toggleHeaderMoreMenu(){
   const menu = document.getElementById('headerMoreMenu');
+  closeLangMenu();
   menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
 }
 function closeHeaderMoreMenu(){
@@ -1046,6 +1132,10 @@ document.addEventListener('click', (e)=>{
   const menu = document.getElementById('headerMoreMenu');
   if(menu && menu.style.display === 'block' && !e.target.closest('#headerMoreMenu') && !e.target.closest('.header-link')){
     menu.style.display = 'none';
+  }
+  const langMenu = document.getElementById('langMenu');
+  if(langMenu && langMenu.style.display === 'block' && !e.target.closest('#langMenu') && !e.target.closest('.header-link')){
+    langMenu.style.display = 'none';
   }
 });
 
@@ -2811,40 +2901,40 @@ function runDiagnose(){
   if(val === 'unsure'){
     if(priorityEl) priorityEl.innerHTML = '';
     introEmoji.textContent = '🤔';
-    introTitle.innerHTML = '헷갈리실 땐<br>이렇게 확인해보세요';
+    introTitle.innerHTML = t('result_unsure_title', '헷갈리실 땐<br>이렇게 확인해보세요');
     introSub.className = 's1-info-box';
     introSub.style.display = 'block';
-    introSub.innerHTML = `
+    introSub.innerHTML = t('result_unsure_sub', `
       <div class="info-row">📍 우리 동네 <b>주민센터</b> 복지 담당자에게 문의</div>
-      <div class="info-row">📞 <a href="tel:02-410-1298">KSPO 고객센터 02-410-1298~9</a></div>`;
+      <div class="info-row">📞 <a href="tel:02-410-1298">KSPO 고객센터 02-410-1298~9</a></div>`);
     docsContent.innerHTML = '';
     // 서류 페이지엔 보여줄 정보가 없으니, 확인 후 바로 다음 단계(시설 찾기 등)로 안내
-    setResultIntroNextBtn('확인했어요, 다음으로 →', 'resultAction');
+    setResultIntroNextBtn(t('btn_action_next', '확인했어요, 다음으로 →'), 'resultAction');
     return;
   }
   if(age < 5 || age > 18){
     if(priorityEl) priorityEl.innerHTML = '';
     introEmoji.textContent = '😅';
-    introTitle.innerHTML = '아쉽지만<br>대상이 아니에요';
+    introTitle.innerHTML = t('result_ineligible_title', '아쉽지만<br>대상이 아니에요');
     introSub.className = 's1-info-box';
     introSub.style.display = 'block';
-    introSub.innerHTML = `<div class="info-row">이 지원은 <b>만 5~18세</b>만 받을 수 있어요</div>`;
+    introSub.innerHTML = t('result_ineligible_sub', `<div class="info-row">이 지원은 <b>만 5~18세</b>만 받을 수 있어요</div>`);
     docsContent.innerHTML = '';
-    setResultIntroNextBtn('그래도 시설은 둘러볼게요 →', 'resultAction');
+    setResultIntroNextBtn(t('btn_facility_next', '그래도 시설은 둘러볼게요 →'), 'resultAction');
     return;
   }
 
   const docChecklist = {
-    crime: ['신분증', '신청서 (신청 시 현장 작성 가능)', '사건사고사실확인원 (관할 경찰서 발급)'],
-    basic: ['신분증', '신청서 (신청 시 현장 작성 가능)', '기초생활수급자 증명서 (주민센터 발급, 온라인 정부24 가능)'],
-    near: ['신분증', '신청서 (신청 시 현장 작성 가능)', '차상위계층 확인서 (주민센터 발급 — 꼭 미리 받아두세요)'],
-    single: ['신분증', '신청서 (신청 시 현장 작성 가능)', '한부모가족증명서 (주민센터 발급)'],
+    crime: [t('doc_id_card','신분증'), t('doc_application_form','신청서 (신청 시 현장 작성 가능)'), t('doc_cert_crime','사건사고사실확인원 (관할 경찰서 발급)')],
+    basic: [t('doc_id_card','신분증'), t('doc_application_form','신청서 (신청 시 현장 작성 가능)'), t('doc_cert_basic','기초생활수급자 증명서 (주민센터 발급, 온라인 정부24 가능)')],
+    near: [t('doc_id_card','신분증'), t('doc_application_form','신청서 (신청 시 현장 작성 가능)'), t('doc_cert_near','차상위계층 확인서 (주민센터 발급 — 꼭 미리 받아두세요)')],
+    single: [t('doc_id_card','신분증'), t('doc_application_form','신청서 (신청 시 현장 작성 가능)'), t('doc_cert_single','한부모가족증명서 (주민센터 발급)')],
   };
   const docs = docChecklist[val] || [];
   const docsHtml = docs.length
     ? `<div class="doc-checklist">
-        <div class="doc-title">📋 신청할 때 필요한 서류 <span class="doc-progress" id="docProgress"></span></div>
-        <button class="speak-btn speak-btn-inline" onclick="speakElementsText('.doc-item span', this, '신청할 때 필요한 서류는 다음과 같아요. ')">🔊 들려주기</button>
+        <div class="doc-title">📋 ${t('doc_title_text','신청할 때 필요한 서류')} <span class="doc-progress" id="docProgress"></span></div>
+        <button class="speak-btn speak-btn-inline" onclick="speakElementsText('.doc-item span', this, '${escapeAttr(t('doc_speak_prefix','신청할 때 필요한 서류는 다음과 같아요. '))}')">${t('speak_listen','🔊 들려주기')}</button>
         ${docs.map((d,i)=>{
           const key = `fp_doc_${val}_${i}`;
           const checked = localStorage.getItem(key) === '1';
@@ -2854,24 +2944,25 @@ function runDiagnose(){
     : '';
 
   const userName = localStorage.getItem('fairplay_display_name') || localStorage.getItem('fairplay_name');
-  const namePrefix = userName ? `${userName}님은` : '대상자는';
+  const displayName = userName || t('generic_applicant', '대상자');
+  const namePrefix = userName ? `${userName}${t('name_suffix','님은')}` : t('generic_applicant_subject','대상자는');
 
   docsContent.innerHTML = docsHtml;
   hideSpeakButtonsIfUnsupported(); // 방금 새로 생긴 듣기 버튼도 미지원 브라우저면 숨김
 
   if(val === 'near'){
     introEmoji.textContent = '🎉';
-    introTitle.innerHTML = `${namePrefix}<br>차상위계층도 받을 수 있어요!`;
+    introTitle.innerHTML = t('result_near_title', `${namePrefix}<br>차상위계층도 받을 수 있어요!`).replace('{name}', displayName);
     introSub.className = 's1-sub';
     introSub.style.display = 'block';
-    introSub.innerHTML = `100명 중 <b class="stat-callout">2~3명</b>만 신청 중이에요<br>대부분 몰라서 못 받고 있는 거예요`;
+    introSub.innerHTML = t('result_near_sub', `100명 중 <b class="stat-callout">2~3명</b>만 신청 중이에요<br>대부분 몰라서 못 받고 있는 거예요`);
   } else {
     introEmoji.textContent = '🎉';
-    introTitle.innerHTML = `${namePrefix}<br>받을 수 있는 대상이에요!`;
+    introTitle.innerHTML = t('result_eligible_title', `${namePrefix}<br>받을 수 있는 대상이에요!`).replace('{name}', displayName);
     introSub.className = 's1-sub';
     introSub.style.display = 'none';
   }
-  setResultIntroNextBtn('필요한 서류 알아볼까요? →', 'docsChecklist');
+  setResultIntroNextBtn(t('btn_docs_next', '필요한 서류 알아볼까요? →'), 'docsChecklist');
   updateDocProgress();
 }
 
