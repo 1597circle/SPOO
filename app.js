@@ -1718,9 +1718,9 @@ function selectTypeChip(type){
 function bucketUnmetCount(n){
   const buckets = [1000, 500, 300, 100, 50];
   for(const b of buckets){
-    if(n >= b) return `${b.toLocaleString()}명 넘게`;
+    if(n >= b) return t('unmet_over_n', `${b.toLocaleString()}명 넘게`).replace('{n}', b.toLocaleString());
   }
-  return n > 0 ? '여러 명' : '';
+  return n > 0 ? t('unmet_several', '여러 명') : '';
 }
 
 function shareRegion(){
@@ -1730,10 +1730,10 @@ function shareRegion(){
   const unmet = Math.max(0, (Number(row.s_target)||0) - (Number(row.s_recv)||0))
               + Math.max(0, (Number(row.n_target)||0) - (Number(row.n_recv)||0));
   const unmetText = bucketUnmetCount(unmet);
-  const title = `${row.sido} ${row.region} · 스포츠강좌이용권 현황`;
+  const title = t('share_title', `{region} · 스포츠강좌이용권 현황`).replace('{region}', `${row.sido} ${row.region}`);
   const desc = unmetText
-    ? `${row.sido} ${row.region}, 아직 신청 안 하신 분이 ${unmetText} 있어요. SPOO에서 확인해보세요.`
-    : `${row.sido} ${row.region}의 스포츠강좌이용권 지원 현황을 SPOO에서 확인해보세요!`;
+    ? t('share_desc', `{region}, 아직 신청 안 하신 분이 {n} 있어요. SPOO에서 확인해보세요.`).replace('{region}', `${row.sido} ${row.region}`).replace('{n}', unmetText)
+    : t('share_desc_fallback', `{region}의 스포츠강좌이용권 지원 현황을 SPOO에서 확인해보세요!`).replace('{region}', `${row.sido} ${row.region}`);
 
   // 1순위: 카카오톡 공유 (JS 키·도메인 등록 완료 시)
   if(typeof Kakao !== 'undefined' && Kakao.isInitialized && Kakao.isInitialized() && Kakao.Share){
@@ -1746,7 +1746,7 @@ function shareRegion(){
         link: { webUrl: location.href, mobileWebUrl: location.href }
       },
       buttons: [{
-        title: '지원 현황 보러가기',
+        title: t('share_kakao_btn_title', '지원 현황 보러가기'),
         link: { webUrl: location.href, mobileWebUrl: location.href }
       }]
     });
@@ -1758,9 +1758,9 @@ function shareRegion(){
     navigator.share({ title:'SPOO', text: desc, url: location.href }).catch(()=>{});
   } else {
     navigator.clipboard.writeText(`${desc}\n${location.href}`).then(()=>{
-      alert('링크를 복사했어요! 카카오톡 등에 붙여넣어 공유해보세요 😊');
+      alert(t('share_copied', '링크를 복사했어요! 카카오톡 등에 붙여넣어 공유해보세요 😊'));
     }).catch(()=>{
-      alert('공유하기를 지원하지 않는 환경이에요. 주소를 직접 복사해주세요.');
+      alert(t('share_unsupported', '공유하기를 지원하지 않는 환경이에요. 주소를 직접 복사해주세요.'));
     });
   }
 }
@@ -3335,9 +3335,14 @@ function s1RenderRegionConfirm(row, targetId){
               + Math.max(0, (Number(row.n_target)||0) - (Number(row.n_recv)||0));
   const unmetText = bucketUnmetCount(unmet);
   confirmEl.style.display = 'block';
+  const regionLabel = `${row.sido} ${row.region}`;
+  const baseLine = t('region_confirm_base', `📍 {region} 기준으로 안내해드릴게요`).replace('{region}', `<b>${regionLabel}</b>`);
+  const shareLine = unmetText
+    ? '<br>' + t('region_confirm_share', `우리 지역에 아직 신청 안 하신 분이 {n} 있어요. 주변 사람들에게 공유해보아요!`).replace('{n}', `<b>${unmetText}</b>`)
+    : '';
   confirmEl.innerHTML = `
-    📍 <b>${row.sido} ${row.region}</b> 기준으로 안내해드릴게요
-    ${unmetText ? `<br>우리 지역에 아직 신청 안 하신 분이 <b>${unmetText}</b> 있어요. 주변 사람들에게 공유해보아요!` : ''}
+    ${baseLine}
+    ${shareLine}
     ${kakaoShareButtonHtml()}
   `;
 }
@@ -3352,7 +3357,7 @@ function kakaoShareButtonHtml(){
              padding:12px; border:none; border-radius:12px; background:#FEE500; color:#191919;
              font-family:inherit; font-size:14px; font-weight:800; cursor:pointer;">
       <img src="kakaotalk_sharing_btn_small.png" alt="" style="width:22px; height:22px; border-radius:6px;">
-      카카오톡으로 공유하기
+      ${t('kakao_share_btn', '카카오톡으로 공유하기')}
     </button>
   `;
 }
