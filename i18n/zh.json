@@ -268,5 +268,19 @@
   "guide_priority_1_cond": "新申请·基础生活保障",
   "guide_priority_2_cond": "新申请·次贫困/单亲",
   "guide_priority_3_cond": "长期·基础生活保障",
-  "guide_priority_4_cond": "长期·次贫困/单亲"
+  "guide_priority_4_cond": "长期·次贫困/单亲",
+  "q_region": "您住在<br>哪个地区？",
+  "q_region_sub": "我们会将结果和您所在地区的支持现况、附近设施一并显示",
+  "skip_region": "地区信息稍后再告诉您",
+  "unmet_over_n": "超过{n}",
+  "unmet_several": "几",
+  "region_confirm_base": "📍 将以{region}为准为您提供指引",
+  "region_confirm_share": "您所在地区可能还有{n}人未申请。快分享给身边的人吧！",
+  "kakao_share_btn": "分享到KakaoTalk",
+  "share_title": "{region} · 体育课程券现况",
+  "share_desc": "{region}，可能还有{n}人未申请。快在SPOO上查看吧。",
+  "share_desc_fallback": "在SPOO上查看{region}的体育课程券支持现况吧！",
+  "share_kakao_btn_title": "查看支持现况",
+  "share_copied": "链接已复制！粘贴到KakaoTalk等应用中分享吧 😊",
+  "share_unsupported": "当前环境不支持分享功能，请手动复制网址。"
 }
