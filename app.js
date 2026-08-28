@@ -2388,7 +2388,8 @@ async function onRegionClick(code, row){
       </div>
     </div>
     <div class="s2c-caption">대상자 중 실제로 지원받은 비율이에요</div>
-    <div class="s2c-cheer">얼른 이용해보세요! 🎉</div>
+    <div class="s2c-cheer">${t('s2c_cheer','신청해도 손해볼 건 없어요 📝')}</div>
+    <div class="s2c-cheer-sub">${t('s2c_cheer_sub','선정은 지자체 예산·순위에 따라 달라질 수 있어요')}</div>
   `;
   animateRegionStats();
   renderTopPicksScreen(facilities);
@@ -3073,7 +3074,7 @@ function runDiagnose(){
     introTitle.innerHTML = t('result_near_title', `${escapeHtml(namePrefix)}<br>차상위계층도 받을 수 있어요!`).replace('{name}', escapeHtml(displayName));
     introSub.className = 's1-sub';
     introSub.style.display = 'block';
-    introSub.innerHTML = t('result_near_sub', `100명 중 <b class="stat-callout">2~3명</b>만 신청 중이에요<br>대부분 몰라서 못 받고 있는 거예요`);
+    introSub.innerHTML = t('result_near_sub', `100명 중 <b class="stat-callout">2~3명</b>만 신청 중이에요<br>아직 신청 안 하신 분이 있을 수 있어요`);
   } else {
     introEmoji.textContent = '🎉';
     introTitle.innerHTML = t('result_eligible_title', `${escapeHtml(namePrefix)}<br>받을 수 있는 대상이에요!`).replace('{name}', escapeHtml(displayName));

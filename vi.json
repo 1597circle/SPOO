@@ -237,5 +237,8 @@
   "ics_toast": "📅 Đã tải xuống. Mở tệp và nhấn \"Thêm vào lịch\" (giờ nhắc có thể khác tùy ứng dụng lịch)",
   "err_config_load": "Không tải được thông tin lịch. Vui lòng thử lại sau.",
   "cal_ev_apply": "Thời gian đăng ký phiếu học thể thao SPOO",
-  "cal_ev_payment": "Hạn thanh toán phiếu học thể thao SPOO"
+  "cal_ev_payment": "Hạn thanh toán phiếu học thể thao SPOO",
+  "s2c_cheer": "Đăng ký không mất gì cả 📝",
+  "s2c_cheer_sub": "Việc chọn tùy vào ngân sách & thứ tự ưu tiên địa phương",
+  "alt_path_note": "💡 Dù lần này không được chọn, bạn vẫn có thể đăng ký <b>Thẻ Văn hóa (문화누리카드)</b>"
 }

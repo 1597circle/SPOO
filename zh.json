@@ -237,5 +237,8 @@
   "ics_toast": "📅 已下载。请打开文件并点击\"添加到日历\"（提醒时间可能因日历应用而异）",
   "err_config_load": "未能加载日程信息，请稍后重试。",
   "cal_ev_apply": "SPOO体育课程券申请期间",
-  "cal_ev_payment": "SPOO体育课程券缴费截止"
+  "cal_ev_payment": "SPOO体育课程券缴费截止",
+  "s2c_cheer": "申请也不会有损失 📝",
+  "s2c_cheer_sub": "是否入选取决于地方预算和优先顺位",
+  "alt_path_note": "💡 即使这次未被选中，您仍可以申请<b>文化乐园卡</b>"
 }

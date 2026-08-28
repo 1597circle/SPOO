@@ -237,5 +237,8 @@
   "ics_toast": "📅 Downloaded. Open the file and tap \"Add to calendar\" (reminder times may vary by calendar app)",
   "err_config_load": "Couldn't load the schedule info. Please try again shortly.",
   "cal_ev_apply": "SPOO sports voucher application period",
-  "cal_ev_payment": "SPOO sports voucher payment deadline"
+  "cal_ev_payment": "SPOO sports voucher payment deadline",
+  "s2c_cheer": "No harm in applying 📝",
+  "s2c_cheer_sub": "Selection depends on local budget & priority",
+  "alt_path_note": "💡 Even if not selected this time, you may also apply for the <b>Culture Card (문화누리카드)</b>"
 }
