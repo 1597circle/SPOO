@@ -282,5 +282,20 @@
   "share_desc_fallback": "Kiểm tra tình trạng hỗ trợ phiếu học thể thao của {region} trên SPOO!",
   "share_kakao_btn_title": "Xem tình trạng hỗ trợ",
   "share_copied": "Đã sao chép liên kết! Dán vào KakaoTalk hoặc nơi khác để chia sẻ 😊",
-  "share_unsupported": "Môi trường này không hỗ trợ chia sẻ. Vui lòng sao chép địa chỉ theo cách thủ công."
+  "share_unsupported": "Môi trường này không hỗ trợ chia sẻ. Vui lòng sao chép địa chỉ theo cách thủ công.",
+  "label_style": "Bạn thích phong cách nào?",
+  "opt_style_all": "Không có ưu tiên",
+  "opt_style_team": "👥 Tôi thích làm cùng mọi người",
+  "opt_style_solo": "🧘 Tôi thích tập trung một mình",
+  "style_filter_hint": "💡 Chỉ là gợi ý tính cách vui thôi — MBTI hướng ngoại (E) thường hợp thể thao đồng đội, hướng nội (I) thường hợp thể thao cá nhân",
+  "tag_exam_help": "Tính vào môn thi thực hành HLV Thể thao Quần chúng cấp 2",
+  "tag_police_bonus": "Môn được công nhận điểm cộng võ thuật khi tuyển cảnh sát (đai 2 trở lên)",
+  "tag_police_bonus_ext": "Được các tổ chức mở rộng công nhận điểm cộng cảnh sát (tùy tổ chức)",
+  "tag_police_grip_like": "Dùng sức tương tự động tác 'kéo cứu hộ' trong bài thi thể lực cảnh sát",
+  "tag_police_pull_like": "Dùng sức tương tự động tác 'kéo' trong bài thi thể lực cảnh sát",
+  "tag_fire_endur": "Giúp ích cho bài thi sức bền của lính cứu hỏa (chạy con thoi, v.v.)",
+  "tag_fire_grip": "Giúp ích cho bài thi lực nắm/lưng của lính cứu hỏa",
+  "tag_fire_flex": "Giúp ích cho bài thi độ dẻo của lính cứu hỏa",
+  "tag_military_endur": "Giúp ích cho bài chạy 3km của quân đội",
+  "tag_military_core": "Giúp ích cho bài chống đẩy/gập bụng của quân đội"
 }
