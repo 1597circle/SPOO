@@ -2507,11 +2507,7 @@ async function onRegionClick(code, row){
     <div id="facilityListBox">${facilitiesHtml}</div>
     <a class="official-link" href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener">실시간 강좌 정보 보러가기 →</a>
     <div class="action-row" style="justify-content:center;">
-      <img src="kakaotalk_sharing_btn_medium.png" alt="카카오톡 공유하기" title="카카오톡 공유하기"
-           onclick="shareRegion()"
-           onmouseover="this.src='kakaotalk_sharing_btn_medium_ov.png'"
-           onmouseout="this.src='kakaotalk_sharing_btn_medium.png'"
-           style="cursor:pointer; display:block;">
+      ${kakaoShareButtonHtml()}
     </div>
   `;
 
@@ -3250,9 +3246,16 @@ document.getElementById('ageSelect').addEventListener('change', runDiagnose);
 document.querySelectorAll('input[name="household"]').forEach(el=>{
   el.addEventListener('change', ()=>{
     runDiagnose();
+    const regionCode = currentPanelCode || localStorage.getItem('fairplay_region_code');
+    const regionRow = regionCode ? voucherData[regionCode] : null;
     // "잘 모르겠어요"는 순위 계산이 의미 없으니 바로 결과로, 나머지는 이전 이용 여부부터 물어봄
-    if(el.value === 'unsure'){ s1GoTo('resultIntro'); }
-    else{ s1GoTo('priorhistory'); }
+    if(el.value === 'unsure'){
+      if(regionRow) s1RenderRegionConfirm(regionRow, 's1RegionConfirm');
+      s1GoTo('resultIntro');
+    } else {
+      if(regionRow) s1RenderRegionConfirm(regionRow, 's1PriorHistoryRegionNote');
+      s1GoTo('priorhistory');
+    }
   });
 });
 
@@ -3262,6 +3265,9 @@ function s1SubmitPriorHistory(val){
   localStorage.setItem('fairplay_prior_history', val);
   const household = document.querySelector('input[name="household"]:checked')?.value;
   renderPriorityNotice(household, val);
+  const regionCode = currentPanelCode || localStorage.getItem('fairplay_region_code');
+  const regionRow = regionCode ? voucherData[regionCode] : null;
+  if(regionRow) s1RenderRegionConfirm(regionRow, 's1RegionConfirm');
   s1GoTo('resultIntro');
 }
 
@@ -3316,10 +3322,11 @@ document.getElementById('s1LocateBtn')?.addEventListener('click', ()=>{
   );
 });
 
-// 결과 화면의 "📍 OO시 OO구 기준" 확인 박스 — 지역을 고른 경우, 미수급 인원(구간형)과
+// "📍 OO시 OO구 기준" 확인 박스 — 지역을 고른 경우, 미수급 인원(구간형)과
 // 공유 버튼도 함께 보여줌. 문구 원칙은 shareRegion()과 동일(인과 단정 없이 관측 사실만).
-function s1RenderRegionConfirm(row){
-  const confirmEl = document.getElementById('s1RegionConfirm');
+// targetId를 받아 여러 화면(가정형태 다음 화면·결과화면 등)에서 재사용합니다.
+function s1RenderRegionConfirm(row, targetId){
+  const confirmEl = document.getElementById(targetId || 's1RegionConfirm');
   if(!confirmEl || !row) return;
   const unmet = Math.max(0, (Number(row.s_target)||0) - (Number(row.s_recv)||0))
               + Math.max(0, (Number(row.n_target)||0) - (Number(row.n_recv)||0));
@@ -3328,11 +3335,22 @@ function s1RenderRegionConfirm(row){
   confirmEl.innerHTML = `
     📍 <b>${row.sido} ${row.region}</b> 기준으로 안내해드릴게요
     ${unmetText ? `<br>우리 지역에 아직 신청 안 하신 분이 <b>${unmetText}</b> 있어요. 주변 사람들에게 공유해보아요!` : ''}
-    <img src="kakaotalk_sharing_btn_medium.png" alt="카카오톡 공유하기" title="카카오톡 공유하기"
-         onclick="shareRegion()"
-         onmouseover="this.src='kakaotalk_sharing_btn_medium_ov.png'"
-         onmouseout="this.src='kakaotalk_sharing_btn_medium.png'"
-         style="cursor:pointer; display:block; margin:10px auto 0;">
+    ${kakaoShareButtonHtml()}
+  `;
+}
+
+// 카카오 공식 아이콘(말풍선) + 한글 라벨을 조합한 공유 버튼 — 여러 화면에서 재사용
+function kakaoShareButtonHtml(){
+  return `
+    <button onclick="shareRegion()"
+      onmouseover="this.querySelector('img').src='kakaotalk_sharing_btn_small_ov.png'"
+      onmouseout="this.querySelector('img').src='kakaotalk_sharing_btn_small.png'"
+      style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:10px;
+             padding:12px; border:none; border-radius:12px; background:#FEE500; color:#191919;
+             font-family:inherit; font-size:14px; font-weight:800; cursor:pointer;">
+      <img src="kakaotalk_sharing_btn_small.png" alt="" style="width:22px; height:22px; border-radius:6px;">
+      카카오톡으로 공유하기
+    </button>
   `;
 }
 
