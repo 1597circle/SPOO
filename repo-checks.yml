@@ -1,0 +1,106 @@
+name: 저장소 점검 (실수 방지)
+
+# HANDOVER.md "5. 알아야 할 함정들"에 정리된, 실제로 반복됐던 실수들을
+# 사람이 매번 눈으로 확인하지 않아도 되도록 자동화한 체크입니다.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch: {}
+
+jobs:
+  forbidden-files:
+    name: 삭제됐어야 하는 파일이 다시 올라왔는지 확인
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 금지 파일 목록 검사
+        run: |
+          FORBIDDEN=(
+            "voucher_facilities.csv"
+            "facilities.zip"
+            "01_initial.png"
+            "04_region_view.png"
+            "README (1).md"
+            "gitignore"
+            "면허"
+          )
+          FOUND=0
+          for f in "${FORBIDDEN[@]}"; do
+            if [ -e "$f" ]; then
+              echo "::error file=$f::이 파일은 저장소에 있으면 안 됩니다 (HANDOVER.md 2장 참고). 실수로 다시 올라간 것일 수 있습니다."
+              FOUND=1
+            fi
+          done
+          if [ "$FOUND" -eq 1 ]; then
+            exit 1
+          fi
+          echo "✅ 금지 파일 없음"
+
+  json-validate:
+    name: 모든 JSON 파일이 정상적으로 파싱되는지 확인
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JSON 유효성 검사
+        run: |
+          fail=0
+          shopt -s nullglob
+          for f in *.json; do
+            if ! python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8'))" "$f" 2>/tmp/err.log; then
+              echo "::error file=$f::JSON 파싱 실패 — $(cat /tmp/err.log)"
+              fail=1
+            fi
+          done
+          if [ "$fail" -eq 1 ]; then exit 1; fi
+          echo "✅ 모든 JSON 파일 정상"
+
+  region-data-consistency:
+    name: 지역 코드 데이터 정합성 확인 (229개 지역 · 인접 매핑)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: voucher_data.csv ↔ {코드}.json ↔ 인접시군구_매핑.json 교차 검증
+        run: |
+          python3 <<'PYEOF'
+          import csv, json, glob, os, sys
+
+          region_files = set(
+              os.path.basename(f)[:-5]
+              for f in glob.glob('[0-9][0-9][0-9][0-9][0-9].json')
+          )
+
+          with open('voucher_data.csv', encoding='utf-8-sig') as f:
+              csv_codes = set(row['code'] for row in csv.DictReader(f))
+
+          problems = []
+
+          if len(region_files) != 229:
+              problems.append(f"지역별 JSON 파일이 229개가 아님: {len(region_files)}개")
+
+          missing_neighbor_file = not os.path.exists('인접시군구_매핑.json')
+          if missing_neighbor_file:
+              print("⚠️ 인접시군구_매핑.json 없음 — 옆동네 확장 기능이 비활성 상태로 배포됩니다 (에러는 안 남).")
+          else:
+              with open('인접시군구_매핑.json', encoding='utf-8') as f:
+                  neighbor_data = json.load(f)
+              neighbor_codes = set(neighbor_data.keys())
+              if neighbor_codes - region_files:
+                  problems.append(f"인접 매핑에는 있는데 지역 파일이 없는 코드: {sorted(neighbor_codes - region_files)}")
+              if region_files - neighbor_codes:
+                  problems.append(f"지역 파일은 있는데 인접 매핑이 없는 코드: {sorted(region_files - neighbor_codes)}")
+              for code, info in neighbor_data.items():
+                  for n in info.get('neighbors', []):
+                      if n['code'] not in region_files:
+                          problems.append(f"{code}의 이웃 {n['code']}가 실제 지역 파일에 없음")
+
+          if problems:
+              for p in problems:
+                  print(f"::error::{p}")
+              sys.exit(1)
+          print("✅ 지역 데이터 정합성 문제 없음")
+          PYEOF
