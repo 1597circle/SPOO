@@ -980,6 +980,86 @@ function getSportEmoji(typeStr){
   return '🏅';
 }
 
+/* ==================== 종목별 진로·자격증·스타일 태깅 (2026-08-28 공식 자료 조사 기반) ====================
+   근거:
+   - 경찰 무도가산점: 2025년 개편 기준 2·3단 1점, 4단↑ 2점. 인정종목 태권도·유도·검도·합기도 및
+     대한체육회 가맹/8개 이상 광역지부 요건 충족 51개 단체(주짓수 등 포함)
+   - 소방 체력시험(2026년까지): 악력·배근력·앉아윗몸앞으로굽히기·제자리멀리뛰기·윗몸일으키기·왕복오래달리기
+     (2027~28년부터 현장형 순환식(당기기·오르기·끌기·옮기기)으로 단계적 개편 예정 — 아래 태그는 현행 기준)
+   - 경찰 체력시험(2026년 전면 순환식): 장애물코스달리기·장대허들넘기·당기기밀기·구조하기·방아쇠당기기
+   - 군 체력검정: 3km달리기·윗몸일으키기·팔굽혀펴기 (특급전사 기준)
+   - 생활스포츠지도사 2급 실기 66개 종목 (sqms.kspo.or.kr 원문 확인)
+   ⚠️ 제도는 매년 바뀔 수 있어 "확정 사실(가산점표 등재)"과 "정성적 추정(동작 유사성)"을 문구로 구분함 */
+const SPORT_BENEFIT_TABLE = [
+  { keys:['태권도'], career:['police_bonus','fire_endur'], exam:true, mbti:'solo' },
+  { keys:['합기도'], career:['police_bonus'], exam:false, mbti:'solo' },
+  { keys:['유도'], career:['police_bonus','police_grip_like'], exam:true, mbti:'solo' },
+  { keys:['검도'], career:['police_bonus'], exam:true, mbti:'solo' },
+  { keys:['주짓수'], career:['police_bonus_ext'], exam:false, mbti:'solo' },
+  { keys:['복싱','킥복싱'], career:['fire_grip','military_core'], exam:true, mbti:'solo' },
+  { keys:['수영'], career:['fire_endur','military_endur'], exam:true, mbti:'solo' },
+  { keys:['축구','풋살'], career:['fire_endur','military_endur'], exam:true, mbti:'team' },
+  { keys:['농구'], career:['fire_endur','military_endur'], exam:true, mbti:'team' },
+  { keys:['배구'], career:[], exam:true, mbti:'team' },
+  { keys:['야구'], career:[], exam:true, mbti:'team' },
+  { keys:['배드민턴'], career:[], exam:true, mbti:'both' },
+  { keys:['탁구'], career:[], exam:true, mbti:'both' },
+  { keys:['테니스'], career:[], exam:true, mbti:'both' },
+  { keys:['스쿼시'], career:[], exam:true, mbti:'solo' },
+  { keys:['볼링'], career:[], exam:true, mbti:'solo' },
+  { keys:['골프'], career:[], exam:true, mbti:'solo' },
+  { keys:['필라테스','요가'], career:['fire_flex'], exam:false, mbti:'solo' },
+  { keys:['헬스','피트니스','크로스핏'], career:['fire_grip','military_core'], exam:false, mbti:'solo' },
+  { keys:['댄스','에어로빅'], career:['fire_flex'], exam:true, mbti:'both' },
+  { keys:['발레','무용'], career:[], exam:false, mbti:'solo' },
+  { keys:['클라이밍'], career:['police_pull_like'], exam:false, mbti:'solo' },
+  { keys:['스케이트','인라인','롤러'], career:[], exam:true, mbti:'solo' },
+  { keys:['승마'], career:[], exam:true, mbti:'solo' },
+  { keys:['양궁'], career:[], exam:false, mbti:'solo' },
+  { keys:['체조'], career:['military_core'], exam:false, mbti:'solo' },
+  { keys:['줄넘기'], career:['fire_endur','military_endur'], exam:true, mbti:'solo' },
+  { keys:['펜싱'], career:[], exam:true, mbti:'solo' },
+  { keys:['당구'], career:[], exam:true, mbti:'both' },
+];
+
+const SPORT_TAG_INFO = {
+  police_bonus:     { icon:'👮', label: () => t('tag_police_bonus','경찰 채용 무도가산점 인정 종목(2단 이상)') },
+  police_bonus_ext: { icon:'👮', label: () => t('tag_police_bonus_ext','경찰 채용 무도가산점 인정 확대종목(단체별 상이)') },
+  police_grip_like: { icon:'👮', label: () => t('tag_police_grip_like','경찰 체력시험 구조하기 동작과 유사한 근력 사용') },
+  police_pull_like: { icon:'👮', label: () => t('tag_police_pull_like','경찰 체력시험 당기기 동작과 유사한 근력 사용') },
+  fire_endur:       { icon:'🚒', label: () => t('tag_fire_endur','소방 체력시험 지구력 종목(왕복오래달리기 등)에 도움') },
+  fire_grip:        { icon:'🚒', label: () => t('tag_fire_grip','소방 체력시험 악력·배근력 종목에 도움') },
+  fire_flex:        { icon:'🚒', label: () => t('tag_fire_flex','소방 체력시험 유연성 종목에 도움') },
+  military_endur:   { icon:'🎖️', label: () => t('tag_military_endur','군 체력검정 3km 달리기에 도움') },
+  military_core:    { icon:'🎖️', label: () => t('tag_military_core','군 체력검정 팔굽혀펴기·윗몸일으키기에 도움') },
+};
+
+function findSportBenefit(sportStr){
+  const s = String(sportStr || '');
+  return SPORT_BENEFIT_TABLE.find(row => row.keys.some(k => s.includes(k))) || null;
+}
+
+// 시설·강좌 목록의 종목명 옆에 붙는 작은 배지 HTML (직업 도움 + 자격증 도움)
+function getSportBenefitBadges(sportStr){
+  const row = findSportBenefit(sportStr);
+  if(!row) return '';
+  const careerBadges = row.career.map(key => {
+    const info = SPORT_TAG_INFO[key];
+    if(!info) return '';
+    return `<span class="sport-badge" title="${escapeAttr(info.label())}">${info.icon}</span>`;
+  }).join('');
+  const examBadge = row.exam
+    ? `<span class="sport-badge exam" title="${escapeAttr(t('tag_exam_help','생활스포츠지도사 2급 실기 응시 종목이에요'))}">🎓</span>`
+    : '';
+  return careerBadges + examBadge;
+}
+
+// 종목명으로 팀/개인 성향 조회 ('team'|'solo'|'both'|null)
+function getSportMbtiType(sportStr){
+  const row = findSportBenefit(sportStr);
+  return row ? row.mbti : null;
+}
+
 // 가격 필터용 구간 분류 (0원 / 3만원까지 / 5만원까지) — 실제 데이터 분포(68.3%/75.6%/84.2%) 기준
 function getCostBand(amt){
   const b = getCostBreakdown(amt);
@@ -990,7 +1070,7 @@ function getCostBand(amt){
   return 'over5';
 }
 
-function renderFacilityList(facilities, filterType, timeFilter, costFilter){
+function renderFacilityList(facilities, filterType, timeFilter, costFilter, styleFilter){
   const filtered = filterType && filterType !== '__all__'
     ? facilities.filter(f => (f.type||'').includes(filterType))
     : facilities;
@@ -1015,6 +1095,14 @@ function renderFacilityList(facilities, filterType, timeFilter, costFilter){
         return true;
       });
     }
+    // 팀/개인 스타일 선호 필터 — 매칭 안 되는(태깅 없는) 종목은 굳이 안 숨김 (재미로 보는 참고용 필터라 과하게 걸러내지 않음)
+    if(styleFilter && styleFilter !== '__all__'){
+      courses = courses.filter(c => {
+        const mbti = getSportMbtiType(c.item_nm || c.course_nm);
+        if(!mbti) return true;
+        return mbti === styleFilter || mbti === 'both';
+      });
+    }
     // 종목·요일·금액이 완전히 똑같은 강좌는 중복으로 보이니 하나만 남김 (금액은 그대로 정확히 표시)
     const seenCourseKeys = new Set();
     courses = courses.filter(c=>{
@@ -1028,12 +1116,13 @@ function renderFacilityList(facilities, filterType, timeFilter, costFilter){
       const costLabel = getCostLabelShort(c.settl_amt);
       const isFree = costLabel === '내 돈 0원';
       const emoji = getSportEmoji(c.item_nm || c.course_nm);
+      const benefitBadges = getSportBenefitBadges(c.item_nm || c.course_nm);
       const payload = escapeAttr(JSON.stringify({
         facility: f.name, course_nm: c.course_nm||'', item_nm: c.item_nm||'',
         day: c.day||'', start_tm: c.start_tm||'', end_tm: c.end_tm||'',
         settl_amt: c.settl_amt||'', desc: (c.course_seta_desc_cn||'').slice(0,500)
       }));
-      return `<span class="course-tag${isFree?' cost-free':''}" onclick="event.stopPropagation(); showCourseDetail('${payload}')">${emoji} ${parts.join(' · ')} · <b>${costLabel}</b>${isFree?' ✅':''} <span class="cm-hint">▸</span></span>`;
+      return `<span class="course-tag${isFree?' cost-free':''}" onclick="event.stopPropagation(); showCourseDetail('${payload}')">${emoji} ${parts.join(' · ')} · <b>${costLabel}</b>${isFree?' ✅':''}${benefitBadges} <span class="cm-hint">▸</span></span>`;
     }).join('');
     const hasAnyCourse = courses.length > 0 || (coursesByFacility[facilityKey] || []).length > 0;
     const emptyMsg = timeFilter && timeFilter !== '__all__' && hasAnyCourse
@@ -1218,12 +1307,14 @@ function onFilterChange(){
   const typeSel = document.getElementById('typeFilter');
   const timeSel = document.getElementById('timeFilter');
   const costSel = document.getElementById('costFilter');
+  const styleSel = document.getElementById('styleFilter');
   const listBox = document.getElementById('facilityListBox');
   if(!listBox) return;
   const typeVal = typeSel ? typeSel.value : '__all__';
   const timeVal = timeSel ? timeSel.value : '__all__';
   const costVal = costSel ? costSel.value : '__all__';
-  listBox.innerHTML = renderFacilityList(currentPanelFacilities, typeVal, timeVal, costVal);
+  const styleVal = styleSel ? styleSel.value : '__all__';
+  listBox.innerHTML = renderFacilityList(currentPanelFacilities, typeVal, timeVal, costVal, styleVal);
   document.querySelectorAll('#typeChips .chip').forEach(el=>{
     el.classList.toggle('active', el.dataset.type === typeVal);
   });
@@ -1685,7 +1776,7 @@ function renderFacilityDiffBox(code, facilities){
 })();
 
 function resetFilterSheet(){
-  ['timeFilter','costFilter'].forEach(id=>{
+  ['timeFilter','costFilter','styleFilter'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '__all__';
   });
@@ -1694,7 +1785,7 @@ function resetFilterSheet(){
 function updateFilterBadge(){
   const badge = document.getElementById('filterActiveBadge');
   if(!badge) return;
-  const ids = ['typeFilter','timeFilter','costFilter'];
+  const ids = ['typeFilter','timeFilter','costFilter','styleFilter'];
   const activeCount = ids.filter(id=>{
     const el = document.getElementById(id);
     return el && el.value !== '__all__';

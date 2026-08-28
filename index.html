@@ -574,6 +574,13 @@
       <option value="under3" data-i18n="opt_cost_3">내 돈 3만원까지</option>
       <option value="under5" data-i18n="opt_cost_5">내 돈 5만원까지</option>
     </select>
+    <label class="field-label" data-i18n="label_style">어떤 스타일을 좋아하나요?</label>
+    <select class="recommend-select" id="styleFilter" onchange="facilityListLimit=5; onFilterChange()">
+      <option value="__all__" data-i18n="opt_style_all">상관없어요</option>
+      <option value="team" data-i18n="opt_style_team">👥 여러 명이 함께하는 게 좋아요</option>
+      <option value="solo" data-i18n="opt_style_solo">🧘 혼자 집중하는 게 좋아요</option>
+    </select>
+    <div class="filter-hint" data-i18n="style_filter_hint">💡 재미로 보는 성향 참고예요 — MBTI E(외향)는 팀스포츠, I(내향)는 개인스포츠가 잘 맞는 경우가 많아요</div>
     <button class="recommend-btn" style="margin-top:20px;" onclick="closeFilterSheet()" data-i18n="btn_apply">적용하기</button>
   </div>
 </div>
