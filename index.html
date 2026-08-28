@@ -40,6 +40,25 @@
 </head>
 <body>
 
+<header>
+  <h1 onclick="goHome()" style="cursor:pointer;">🏃 SPOO <span data-i18n="header_sub">· 우리 아이 스포츠강좌 지원받기</span></h1>
+  <div style="display:flex; align-items:center; gap:14px; position:relative;">
+    <span class="header-link" onclick="toggleHeaderMoreMenu()" data-i18n="header_more">더 알아보기 ▾</span>
+    <div id="headerMoreMenu" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:200px; z-index:2000;">
+      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openRegionView();" data-i18n="menu_region">📊 지역 현황이 궁금하신가요?</div>
+      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openFacilityView();" data-i18n="menu_operator">🏢 시설을 운영하고 계신가요?</div>
+    </div>
+    <span class="header-link" onclick="toggleLangMenu()">🌐 <span id="langBtnLabel">한국어</span> ▾</span>
+    <div id="langMenu" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:160px; z-index:2000;">
+      <div class="lang-menu-item" onclick="setLanguage('ko')">한국어</div>
+      <div class="lang-menu-item" onclick="setLanguage('en')">English</div>
+      <div class="lang-menu-item" onclick="setLanguage('vi')">Tiếng Việt</div>
+      <div class="lang-menu-item" onclick="setLanguage('zh')">中文</div>
+    </div>
+    <span class="tag" id="headerConfigTag">전국 229개 지역 · 2025.7 기준</span>
+  </div>
+</header>
+
 <div class="preload-splash" id="preloadSplash">
   <div class="preload-logo-wrap">
     <span class="preload-part-left">SPO</span><span class="preload-part-right">O</span>
@@ -65,29 +84,11 @@
   </div>
 </div>
 
-<header>
-  <h1 onclick="goHome()" style="cursor:pointer;">🏃 SPOO <span data-i18n="header_sub">· 우리 아이 스포츠강좌 지원받기</span></h1>
-  <div style="display:flex; align-items:center; gap:14px; position:relative;">
-    <span class="header-link" onclick="toggleHeaderMoreMenu()" data-i18n="header_more">더 알아보기 ▾</span>
-    <div id="headerMoreMenu" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:200px; z-index:2000;">
-      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openRegionView();" data-i18n="menu_region">📊 지역 현황이 궁금하신가요?</div>
-      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openFacilityView();" data-i18n="menu_operator">🏢 시설을 운영하고 계신가요?</div>
-    </div>
-    <span class="header-link" onclick="toggleLangMenu()">🌐 <span id="langBtnLabel">한국어</span> ▾</span>
-    <div id="langMenu" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:160px; z-index:2000;">
-      <div class="lang-menu-item" onclick="setLanguage('ko')">한국어</div>
-      <div class="lang-menu-item" onclick="setLanguage('en')">English</div>
-      <div class="lang-menu-item" onclick="setLanguage('vi')">Tiếng Việt</div>
-      <div class="lang-menu-item" onclick="setLanguage('zh')">中文</div>
-    </div>
-    <span class="tag" id="headerConfigTag">전국 229개 지역 · 2025.7 기준</span>
-  </div>
-</header>
-
 <div id="app" class="no-map">
   <div id="sidebar">
     <div class="step-nav" id="stepNav">
       <button class="step-tab active" data-step="1" onclick="goToStep(1)"><span class="step-num">1</span><span data-i18n="tab_selfcheck">자가진단</span></button>
+
       <button class="step-tab" data-step="2" onclick="goToStep(2)"><span class="step-num">2</span><span data-i18n="tab_myarea">우리동네</span></button>
       <button class="step-tab" data-step="3" onclick="goToStep(3)"><span class="step-num">3</span><span data-i18n="tab_facility">시설찾기</span></button>
     </div>
