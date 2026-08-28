@@ -1797,7 +1797,7 @@ function saveRegionResult(){
 let wpCurrentPage = 0;
 let wpHistory = [];
 // 진행 점(dot) 표시용 — 메인 흐름상의 페이지 순서 (분기 페이지 2b/2c는 점에 포함 안 함)
-const WP_DOT_MAIN_PAGES = ['1','2','4','3'];
+const WP_DOT_MAIN_PAGES = ['1','2','5','4','3'];
 
 // 어떤 상황에서도 온보딩 페이지가 두 개 이상 겹쳐 보이지 않도록,
 // 보여줄 페이지를 정하기 전에 나머지는 전부 강제로 숨김
@@ -1945,7 +1945,7 @@ function wpSubmitBirth(){
   localStorage.setItem('fairplay_display_name', localStorage.getItem('fairplay_name') || '');
   localStorage.removeItem('fairplay_child_name');
   wpShowAgeNote(age);
-  wpGoTo(4);
+  wpGoTo(5);
 }
 
 function wpCalcAge(dateStr){
@@ -1989,7 +1989,7 @@ function wpSubmitChildBirth(){
     emojiEl.textContent = '🎉';
     textEl.innerHTML = t('wp_child_result_ok', `${escapeHtml(childName)} 어린이는<br>이용 가능해요!`).replace('{name}', escapeHtml(childName));
     btnEl.textContent = t('wp_child_result_btn_ok', '이용할 시설 알아볼까요?');
-    btnEl.onclick = () => wpGoTo(4);
+    btnEl.onclick = () => wpGoTo(5);
   } else {
     emojiEl.textContent = '😅';
     textEl.innerHTML = age < 5
@@ -2008,6 +2008,66 @@ function wpShowAgeNote(age){
   if(age === 18) el.textContent = t('wp_age_note_18', '⏰ 올해가 지나면 대상에서 제외돼요. 지금 놓치지 마세요!');
   else if(age === 5) el.textContent = t('wp_age_note_5', '🎉 이제 막 이용 가능한 나이가 됐어요!');
   else el.textContent = '';
+}
+
+/* ---- 온보딩 5페이지: 지역 선택 (자가진단의 지역선택과 동일한 방식) ---- */
+const wpRegionInput = document.getElementById('wpRegionInput');
+const wpRegionSuggest = document.getElementById('wpRegionSuggest');
+if(wpRegionInput){
+  wpRegionInput.addEventListener('input', ()=>{
+    const q = wpRegionInput.value.trim();
+    if(!q){ wpRegionSuggest.style.display='none'; return; }
+    const matches = regionSearchList.filter(r => r.label.includes(q)).slice(0,8);
+    wpRegionSuggest.innerHTML = matches.length === 0
+      ? `<div class="sugg-item" style="color:var(--ink-faint);">${t('no_search_result','검색 결과가 없어요')}</div>`
+      : matches.map(m=>`<div class="sugg-item" data-code="${m.code}">${m.label}</div>`).join('');
+    wpRegionSuggest.style.display = 'block';
+  });
+  wpRegionSuggest.addEventListener('click', (e)=>{
+    const item = e.target.closest('.sugg-item[data-code]');
+    if(!item) return;
+    wpSelectRegion(item.dataset.code);
+  });
+  document.addEventListener('click', (e)=>{
+    if(!e.target.closest('#wp5 .search-box')) wpRegionSuggest.style.display = 'none';
+  });
+  bindEnterToFirstSuggestion(wpRegionInput, wpRegionSuggest);
+}
+
+document.getElementById('wpLocateBtn')?.addEventListener('click', ()=>{
+  const btn = document.getElementById('wpLocateBtn');
+  if(!navigator.geolocation){
+    alert('이 브라우저는 위치 찾기를 지원하지 않아요.');
+    return;
+  }
+  btn.classList.add('loading');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      btn.classList.remove('loading');
+      const { latitude, longitude } = pos.coords;
+      const hit = polygons.find(p => pointInRing(longitude, latitude, p.ring));
+      if(hit){
+        wpSelectRegion(hit.code);
+      } else {
+        alert('현재 위치를 지도 범위 안에서 찾지 못했어요. 검색으로 동네를 찾아보세요.');
+      }
+    },
+    ()=>{
+      btn.classList.remove('loading');
+      alert(t('err_geo_denied','위치 정보를 가져올 수 없어요. 브라우저 위치 권한을 확인해주세요.'));
+    }
+  );
+});
+
+function wpSelectRegion(code){
+  const row = voucherData[code];
+  if(!row) return;
+  onRegionClick(code, row);
+  localStorage.setItem('fairplay_region_code', code);
+  wpGoTo(4);
+}
+function wpSkipRegion(){
+  wpGoTo(4);
 }
 
 function wpSubmitHousehold(val){
