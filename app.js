@@ -1706,15 +1706,52 @@ function selectTypeChip(type){
   onFilterChange();
 }
 
-/* ==================== 공유하기 ==================== */
+/* ==================== 공유하기 ====================
+   문구 원칙(SPOO_인수인계_깃허브구현용.md 4장): 인과 단정("~몰라서 못 받고 있어요") 대신
+   관측 사실만 전달하는 구간형 문구("OOO명 넘게 있어요")를 씁니다. */
+function bucketUnmetCount(n){
+  const buckets = [1000, 500, 300, 100, 50];
+  for(const b of buckets){
+    if(n >= b) return `${b.toLocaleString()}명 넘게`;
+  }
+  return n > 0 ? '여러 명' : '';
+}
+
 function shareRegion(){
   const row = voucherData[currentPanelCode];
   if(!row) return;
-  const text = `${row.sido} ${row.region}의 스포츠강좌이용권 지원 현황을 SPOO에서 확인해보세요!`;
+
+  const unmet = Math.max(0, (Number(row.s_target)||0) - (Number(row.s_recv)||0))
+              + Math.max(0, (Number(row.n_target)||0) - (Number(row.n_recv)||0));
+  const unmetText = bucketUnmetCount(unmet);
+  const title = `${row.sido} ${row.region} · 스포츠강좌이용권 현황`;
+  const desc = unmetText
+    ? `${row.sido} ${row.region}, 아직 신청 안 하신 분이 ${unmetText} 있어요. SPOO에서 확인해보세요.`
+    : `${row.sido} ${row.region}의 스포츠강좌이용권 지원 현황을 SPOO에서 확인해보세요!`;
+
+  // 1순위: 카카오톡 공유 (JS 키·도메인 등록 완료 시)
+  if(typeof Kakao !== 'undefined' && Kakao.isInitialized && Kakao.isInitialized() && Kakao.Share){
+    Kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title: title,
+        description: desc,
+        imageUrl: location.origin + '/icon-512.png',
+        link: { webUrl: location.href, mobileWebUrl: location.href }
+      },
+      buttons: [{
+        title: '지원 현황 보러가기',
+        link: { webUrl: location.href, mobileWebUrl: location.href }
+      }]
+    });
+    return;
+  }
+
+  // 2순위: 네이티브 공유(navigator.share) — 카카오 SDK를 못 불러온 경우 대비
   if(navigator.share){
-    navigator.share({ title:'SPOO', text, url: location.href }).catch(()=>{});
+    navigator.share({ title:'SPOO', text: desc, url: location.href }).catch(()=>{});
   } else {
-    navigator.clipboard.writeText(`${text}\n${location.href}`).then(()=>{
+    navigator.clipboard.writeText(`${desc}\n${location.href}`).then(()=>{
       alert('링크를 복사했어요! 카카오톡 등에 붙여넣어 공유해보세요 😊');
     }).catch(()=>{
       alert('공유하기를 지원하지 않는 환경이에요. 주소를 직접 복사해주세요.');
@@ -3212,6 +3249,11 @@ window.addEventListener('load', ()=>{
   if(!handlePwaShortcut()) initOnboarding();
   registerServiceWorker();
   setupInstallPrompt();
+
+  // 카카오 공유하기 초기화 — index.html <head>에 카카오 JS SDK <script> 태그가 먼저 로드되어 있어야 함
+  if(typeof Kakao !== 'undefined' && !Kakao.isInitialized()){
+    Kakao.init('f0d5e3f67d1acc19d203a8f1a5d04035'); // developers.kakao.com > 앱 설정 > 플랫폼 키 > JavaScript 키
+  }
   setTimeout(()=>{
     if(typeof naver === 'undefined' && !window.__NAVER_AUTH_FAILED){
       document.getElementById('map').innerHTML =
