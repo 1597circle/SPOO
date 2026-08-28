@@ -268,5 +268,19 @@
   "guide_priority_1_cond": "Mới · trợ cấp sinh hoạt cơ bản",
   "guide_priority_2_cond": "Mới · cận nghèo/đơn thân",
   "guide_priority_3_cond": "Dài hạn · trợ cấp sinh hoạt cơ bản",
-  "guide_priority_4_cond": "Dài hạn · cận nghèo/đơn thân"
+  "guide_priority_4_cond": "Dài hạn · cận nghèo/đơn thân",
+  "q_region": "Bạn sống ở<br>khu vực nào?",
+  "q_region_sub": "Chúng tôi sẽ hiển thị tình trạng hỗ trợ khu vực và cơ sở gần đó cùng với kết quả của bạn",
+  "skip_region": "Tôi sẽ cho biết khu vực sau",
+  "unmet_over_n": "hơn {n}",
+  "unmet_several": "một vài",
+  "region_confirm_base": "📍 Chúng tôi sẽ hướng dẫn theo khu vực {region}",
+  "region_confirm_share": "Khu vực của bạn có thể có {n} người chưa đăng ký. Hãy chia sẻ với mọi người xung quanh!",
+  "kakao_share_btn": "Chia sẻ qua KakaoTalk",
+  "share_title": "{region} · Tình trạng phiếu học thể thao",
+  "share_desc": "{region}, có thể có {n} người chưa đăng ký. Kiểm tra ngay trên SPOO.",
+  "share_desc_fallback": "Kiểm tra tình trạng hỗ trợ phiếu học thể thao của {region} trên SPOO!",
+  "share_kakao_btn_title": "Xem tình trạng hỗ trợ",
+  "share_copied": "Đã sao chép liên kết! Dán vào KakaoTalk hoặc nơi khác để chia sẻ 😊",
+  "share_unsupported": "Môi trường này không hỗ trợ chia sẻ. Vui lòng sao chép địa chỉ theo cách thủ công."
 }
