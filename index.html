@@ -273,7 +273,22 @@
             <input type="range" id="ageSelect" min="5" max="18" step="1" value="10" class="age-slider" aria-label="아이 나이 선택 (5세~18세)">
             <div class="age-slider-track-labels"><span data-i18n="age_min">5세</span><span data-i18n="age_max">18세</span></div>
           </div>
-          <button class="next-step-btn" data-i18n="btn_next" onclick="s1GoTo('household')">다음</button>
+          <button class="next-step-btn" data-i18n="btn_next" onclick="s1GoTo('region')">다음</button>
+        </div>
+      </div>
+
+<div class="s1-step s1-vcenter-wrap" id="s1-region" style="display:none;">
+        <div class="s1-vcenter-inner">
+          <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_selfcheck">자가진단</span></div>
+          <div class="s1-question" data-i18n="q_region">어느 동네에<br>사시나요?</div>
+          <div class="s1-sub" data-i18n="q_region_sub">결과와 함께 우리 동네 지원 현황·가까운 시설도 바로 보여드릴게요</div>
+          <div class="search-box" style="width:100%; margin-top:8px;">
+            <input type="text" id="s1RegionInput" placeholder="동네 이름으로 찾기 (예: 강남구)" data-i18n-ph="ph_region_search" autocomplete="off">
+            <div class="search-suggest" id="s1RegionSuggest" style="display:none;"></div>
+          </div>
+          <button class="locate-pin-btn" id="s1LocateBtn" data-i18n="btn_locate">📍 내 위치로 찾기</button>
+          <div class="s1-tiny-links"><span onclick="s1GoTo('household')" data-i18n="skip_region">동네는 나중에 알려드릴게요</span></div>
+          <button class="next-step-btn secondary" data-i18n="btn_prev" onclick="s1GoTo('age')">← 이전</button>
         </div>
       </div>
 
@@ -288,7 +303,7 @@
             <label class="household-card"><input type="radio" name="household" value="single"><span class="hc-emoji" aria-hidden="true">👪</span><span class="hc-text" data-i18n="household_single">한부모 가정이에요</span></label>
             <label class="household-card"><input type="radio" name="household" value="unsure"><span class="hc-emoji" aria-hidden="true">🤔</span><span class="hc-text" data-i18n="opt_unsure">잘 모르겠어요</span></label>
           </div>
-          <button class="next-step-btn secondary" data-i18n="btn_prev" onclick="s1GoTo('age')">← 이전</button>
+          <button class="next-step-btn secondary" data-i18n="btn_prev" onclick="s1GoTo('region')">← 이전</button>
         </div>
       </div>
 
@@ -311,6 +326,7 @@
           <div class="result-emoji" id="resultIntroEmoji" style="text-align:center;">🎉</div>
           <div class="s1-question" id="resultIntroTitle" data-i18n="result_default_title">받을 수 있는<br>대상이에요!</div>
           <div class="s1-sub" id="resultIntroSub" style="display:none;"></div>
+          <div class="s1-info-box" id="s1RegionConfirm" style="display:none; margin-top:14px;"></div>
           <button class="speak-btn" data-i18n="speak_listen" onclick="speakElementsText('#resultIntroTitle, #resultIntroSub', this)">🔊 들려주기</button>
           <button class="next-step-btn" id="resultIntroNextBtn" data-i18n="btn_docs_next" onclick="s1GoTo('docsChecklist')">필요한 서류 알아볼까요? →</button>
         </div>
