@@ -282,5 +282,20 @@
   "share_desc_fallback": "Check {region}'s sports voucher support status on SPOO!",
   "share_kakao_btn_title": "See support status",
   "share_copied": "Link copied! Paste it into KakaoTalk or elsewhere to share 😊",
-  "share_unsupported": "Sharing isn't supported in this environment. Please copy the address manually."
+  "share_unsupported": "Sharing isn't supported in this environment. Please copy the address manually.",
+  "label_style": "What style do you like?",
+  "opt_style_all": "No preference",
+  "opt_style_team": "👥 I like doing things with others",
+  "opt_style_solo": "🧘 I like focusing on my own",
+  "style_filter_hint": "💡 Just a fun personality guide — MBTI Extroverts (E) often enjoy team sports, Introverts (I) often enjoy individual sports",
+  "tag_exam_help": "Counts toward the Level-2 Community Sports Instructor practical exam",
+  "tag_police_bonus": "Recognized for police recruitment martial arts bonus points (2nd dan or higher)",
+  "tag_police_bonus_ext": "Recognized by expanded police bonus-point organizations (varies by organization)",
+  "tag_police_grip_like": "Uses strength similar to the police fitness test's 'rescue drag' event",
+  "tag_police_pull_like": "Uses strength similar to the police fitness test's 'pulling' event",
+  "tag_fire_endur": "Helps with firefighter fitness test endurance events (shuttle run, etc.)",
+  "tag_fire_grip": "Helps with firefighter fitness test grip/back strength events",
+  "tag_fire_flex": "Helps with firefighter fitness test flexibility event",
+  "tag_military_endur": "Helps with the military's 3km run fitness test",
+  "tag_military_core": "Helps with military push-up/sit-up fitness test"
 }
