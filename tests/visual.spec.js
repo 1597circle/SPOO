@@ -28,14 +28,57 @@ async function openApp(page){
   await page.waitForTimeout(5000); // 인트로 스플래시(약 3.4초) 종료 + CI 환경 여유분 대기
 }
 
+/*
+  ⚠ 스크린샷 비교만으로는 "사이트가 죽은 것"을 못 잡습니다.
+  실제로 2026-08-28 점검에서, 네이버 지도 스크립트가 안 뜨면 init()이 통째로
+  실행되지 않아 수급 데이터·시설·검색이 전부 빈 상태가 되는 문제가 확인됐습니다.
+  그런데 첫 화면과 진입 화면은 정적 HTML이라 픽셀이 똑같아서 테스트는 통과했습니다.
+
+  그래서 "화면이 그대로인가"와 별개로 "데이터가 실제로 들어왔는가"를 함께 봅니다.
+  이 어서션 하나가 사이트 전체 장애를 매일 06시에 잡아냅니다.
+*/
+async function expectDataLoaded(page, expect){
+  const state = await page.evaluate(() => ({
+    voucher:  typeof voucherData       !== 'undefined' ? Object.keys(voucherData).length   : -1,
+    counts:   typeof facilityCounts    !== 'undefined' ? Object.keys(facilityCounts).length: -1,
+    search:   typeof regionSearchList  !== 'undefined' ? regionSearchList.length           : -1,
+    polygons: typeof polygons          !== 'undefined' ? polygons.length                   : -1,
+  }));
+  expect(state.voucher,  '수급 데이터(voucherData)가 로드되지 않았습니다').toBe(229);
+  expect(state.counts,   '시설 개수(facilityCounts)가 로드되지 않았습니다').toBe(229);
+  expect(state.search,   '지역 검색 목록이 비어 있습니다').toBe(229);
+  expect(state.polygons, '지역 경계 데이터가 없습니다 — 「내 위치로 찾기」가 동작하지 않습니다')
+    .toBeGreaterThan(200);
+}
+
 test.beforeEach(async ({ context }) => {
   // 위치 권한 팝업이 스크린샷마다 다르게 뜨는 것을 방지 (항상 거부 상태로 고정)
   await context.grantPermissions([]);
 });
 
+test.describe('데이터 로딩 (화면보다 먼저 확인할 것)', () => {
+  test('필수 데이터 229개 지역이 모두 들어왔는지', async ({ page }) => {
+    await openApp(page);
+    await expectDataLoaded(page, expect);
+  });
+
+  test('지도가 안 떠도 나머지 기능은 살아있는지', async ({ page, context }) => {
+    // 네이버 지도 스크립트만 차단해서, 지도 장애가 사이트 전체를 죽이지 않는지 확인합니다.
+    await context.route('**/openapi.map.naver.com/**', route => route.abort());
+    await openApp(page);
+    await expectDataLoaded(page, expect);
+
+    // 지도 자리에는 안내가 떠야 하고, 데이터 로딩 문구는 정상이어야 합니다.
+    const status = await page.locator('#loadStatus').innerText();
+    expect(status, '지도 장애가 데이터 오류로 잘못 안내되고 있습니다').not.toContain('불러오지 못했어요');
+    expect(status).toContain('개 지역');
+  });
+});
+
 test.describe('보호자용 화면 (5-1)', () => {
   test('첫 화면', async ({ page }) => {
     await openApp(page);
+    await expectDataLoaded(page, expect);
     await expect(page).toHaveScreenshot('5-1_home.png', { fullPage: true });
   });
 });
