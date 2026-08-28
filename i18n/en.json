@@ -268,5 +268,19 @@
   "guide_priority_1_cond": "New · basic livelihood support",
   "guide_priority_2_cond": "New · near-poverty/single-parent",
   "guide_priority_3_cond": "Long-term · basic livelihood support",
-  "guide_priority_4_cond": "Long-term · near-poverty/single-parent"
+  "guide_priority_4_cond": "Long-term · near-poverty/single-parent",
+  "q_region": "Which neighborhood<br>do you live in?",
+  "q_region_sub": "We'll show your region's support status and nearby facilities right along with your result",
+  "skip_region": "I'll add my area later",
+  "unmet_over_n": "over {n}",
+  "unmet_several": "several",
+  "region_confirm_base": "📍 We'll guide you based on {region}",
+  "region_confirm_share": "There may be {n} people in your area who haven't applied yet. Share this with people nearby!",
+  "kakao_share_btn": "Share on KakaoTalk",
+  "share_title": "{region} · Sports Voucher Status",
+  "share_desc": "{region}: there may be {n} people who haven't applied yet. Check it out on SPOO.",
+  "share_desc_fallback": "Check {region}'s sports voucher support status on SPOO!",
+  "share_kakao_btn_title": "See support status",
+  "share_copied": "Link copied! Paste it into KakaoTalk or elsewhere to share 😊",
+  "share_unsupported": "Sharing isn't supported in this environment. Please copy the address manually."
 }
