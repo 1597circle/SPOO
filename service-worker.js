@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v4'; // v3→v4: 신규 기능 4종(캘린더·음성·다국어·PWA바로가기) + 타이포 통일 릴리스 반영
+const CACHE_NAME = 'spoo-v5'; // v4→v5: 데이터 정리 릴리스(엔티티 디코딩·전화번호 검증·defer) 반영
 const CORE_FILES = [
   './index.html',
   './style.css',
@@ -57,11 +57,20 @@ self.addEventListener('fetch', (event) => {
   // 네이버 지도 API, 외부 CDN 등은 서비스워커가 건드리지 않고 그대로 통과시킴
   if (!event.request.url.startsWith(self.location.origin)) return;
 
+  // courses.csv(약 14MB)는 캐시하지 않습니다 — 모바일에서 저장 공간을 순식간에 채우고,
+  // 어차피 강좌 정보는 온라인일 때만 의미가 있습니다.
+  const isHuge = event.request.url.includes('courses.csv');
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        if (!isHuge) {
+          const clone = response.clone();
+          // 저장 공간이 가득 차도 화면 동작에는 영향이 없도록 실패를 조용히 무시
+          caches.open(CACHE_NAME)
+            .then((cache) => cache.put(event.request, clone))
+            .catch(() => {});
+        }
         return response;
       })
       .catch(() => caches.match(event.request))

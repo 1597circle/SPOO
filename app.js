@@ -62,13 +62,52 @@ function applyReturnGreeting(){
 }
 
 function escapeAttr(str){
-  return String(str||'').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  // onclick="fn('...')" 형태의 속성 안에 들어가는 문자열용.
+  // 역슬래시·꺾쇠까지 처리해야 이름에 <MJ> 나 \ 가 든 시설도 깨지지 않습니다.
+  return String(str||'')
+    .replace(/\\/g, '\\\\')
+    .replace(/&/g, '&amp;')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 // 사용자가 입력한 텍스트(이름 등)를 innerHTML에 넣기 전에 반드시 이 함수를 거칩니다.
 // 이름에 <script> 같은 태그를 넣어도 코드로 실행되지 않고 글자 그대로 보이게 합니다.
 function escapeHtml(str){
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* 원본 데이터에 남아 있는 HTML 엔티티(&amp; &lt; 등)를 진짜 글자(& <)로 되돌립니다.
+   수집 과정에서 이스케이프된 채 저장된 시설명·강좌명이 952건+ 있는데,
+   화면·엑셀·PDF·음성·공유 어디서든 "강호합기도&amp;주짓수"처럼 보이지 않게
+   데이터를 "불러오는 시점"에 한 번만 정리합니다.
+   ⚠ 시설(JSON)과 강좌(CSV) 양쪽 모두에 적용해야 합니다 — 이름이 연결 키라서,
+     한쪽만 디코딩하면 그 시설의 강좌가 화면에서 사라집니다. */
+function decodeEntities(s){
+  if(!s || s.indexOf('&') === -1) return s;
+  const el = decodeEntities._el || (decodeEntities._el = document.createElement('textarea'));
+  // '&amp;amp;'처럼 두 번 인코딩된 값도 있어서(29건 확인) 더 안 바뀔 때까지 반복 (최대 3번)
+  let prev = String(s);
+  for(let i = 0; i < 3; i++){
+    el.innerHTML = prev; // textarea 안에서는 태그가 실행되지 않아 안전하게 디코딩만 됩니다
+    const next = el.value;
+    if(next === prev) break;
+    prev = next;
+  }
+  return prev;
+}
+
+
+/* 강좌 설명에서 시설이 작성 양식을 지우지 않고 제출한 흔적을 걸러냅니다.
+   ('☎ 문의: 000-000-0000' 더미 번호 2,558건, '(예시) ...' 문구 3,069건 확인)
+   사용자가 000-000-0000으로 전화를 걸어보는 일이 없도록, 해당 줄만 제거합니다. */
+function cleanCourseDesc(desc){
+  if(!desc) return '';
+  return String(desc).split(/\r?\n/)
+    .filter(line => !line.includes('000-000-0000') && !line.includes('(예시)'))
+    .join('\n').trim();
 }
 
 /* ==================== 다국어 지원 (i18n) ====================
@@ -166,7 +205,9 @@ if(currentLang !== 'ko'){
 function formatPhone(tel){
   if(!tel) return null;
   const d = String(tel).replace(/[^0-9]/g,'');
-  if(d.length < 9) return d || null;
+  // 지역번호만 적힌 값('02', '051' 등)이나 자릿수가 모자란 번호는
+  // 전화가 안 걸리거나 엉뚱한 곳으로 연결되므로 아예 표시하지 않습니다.
+  if(d.length < 9 || d.length > 11) return null;
   if(d.startsWith('02')){
     if(d.length===9) return d.slice(0,2)+'-'+d.slice(2,5)+'-'+d.slice(5);
     if(d.length===10) return d.slice(0,2)+'-'+d.slice(2,6)+'-'+d.slice(6);
@@ -341,20 +382,41 @@ function restorePolygonColors(){
 
 async function loadCSV(path){
   const text = await (await fetch(path)).text();
-  const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(',').map(h=>h.replace(/^\uFEFF/,''));
-  return lines.slice(1).map(line=>{
-    const cells = [];
-    let cur = '', inQuotes = false;
-    for(let i=0;i<line.length;i++){
-      const ch = line[i];
-      if(ch === '"'){ inQuotes = !inQuotes; }
-      else if(ch === ',' && !inQuotes){ cells.push(cur); cur=''; }
-      else{ cur += ch; }
+  /* CSV \uD45C\uC900(RFC 4180)\uB300\uB85C \uD55C \uAE00\uC790\uC529 \uC77D\uC2B5\uB2C8\uB2E4.
+     \u26A0 \uC608\uC804 \uBC84\uC804\uC740 \uBA3C\uC800 \uC904 \uB2E8\uC704\uB85C \uC790\uB978 \uB4A4 \uB530\uC634\uD45C\uB97C \uCC98\uB9AC\uD588\uB294\uB370,
+       courses.csv\uC758 \uAC15\uC88C \uC124\uBA85(course_seta_desc_cn)\uC5D0\uB294 \uB530\uC634\uD45C \uC548\uC5D0 \uC904\uBC14\uAFC8\uC774 \uB4E0 \uD589\uC774
+       \uC218\uCC9C \uAC74 \uC788\uC5B4\uC11C, \uADF8\uB7F0 \uD589\uC774 \uC5EC\uB7EC \uAC1C\uC758 \uAE68\uC9C4 \uD589\uC73C\uB85C \uCABC\uAC1C\uC84C\uC2B5\uB2C8\uB2E4
+       (\uC2E4\uC81C 60,533\uD589\uC774 68,000\uC5EC \uAC1C\uC758 \uC870\uAC01\uC73C\uB85C \uC77D\uD788\uB358 \uBC84\uADF8. 2026-08-28 \uC218\uC815).
+     - "..." \uC548\uC758 \uC904\uBC14\uAFC8\u00B7\uC27C\uD45C\uB294 \uAC12\uC758 \uC77C\uBD80\uB85C \uCDE8\uAE09
+     - "" (\uB530\uC634\uD45C \uB450 \uAC1C)\uB294 \uB530\uC634\uD45C \uD55C \uAE00\uC790\uB85C \uCDE8\uAE09 */
+  const rows = [];
+  let cells = [], cur = '', inQuotes = false;
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if(inQuotes){
+      if(ch === '"'){
+        if(text[i+1] === '"'){ cur += '"'; i++; } // \uC774\uC2A4\uCF00\uC774\uD504\uB41C \uB530\uC634\uD45C
+        else inQuotes = false;
+      } else cur += ch;
+    } else {
+      if(ch === '"') inQuotes = true;
+      else if(ch === ','){ cells.push(cur); cur = ''; }
+      else if(ch === '\n' || ch === '\r'){
+        if(ch === '\r' && text[i+1] === '\n') i++; // \r\n\uC744 \uD55C \uC904\uBC14\uAFC8\uC73C\uB85C
+        cells.push(cur); cur = '';
+        if(cells.length > 1 || cells[0] !== '') rows.push(cells); // \uBE48 \uC904 \uBB34\uC2DC
+        cells = [];
+      }
+      else cur += ch;
     }
-    cells.push(cur);
+  }
+  if(cur !== '' || cells.length){ cells.push(cur); rows.push(cells); }
+
+  if(!rows.length) return [];
+  const headers = rows[0].map(h => h.replace(/^\uFEFF/, '').trim());
+  return rows.slice(1).map(cells => {
     const obj = {};
-    headers.forEach((h,i)=> obj[h.trim()] = cells[i] ? cells[i].trim() : '');
+    headers.forEach((h, i) => obj[h] = cells[i] ? cells[i].trim() : '');
     return obj;
   });
 }
@@ -370,6 +432,13 @@ async function getRegionFacilities(code){
   if(!facilitiesFetchCache[code]){
     facilitiesFetchCache[code] = fetch(`${code}.json`)
       .then(r => r.ok ? r.json() : [])
+      .then(rows => rows.map(f => ({
+        ...f,
+        // 원본에 남은 &amp; 등 엔티티 정리 (강좌 쪽 loadCoursesInBackground와 반드시 함께)
+        name: decodeEntities(f.name),
+        addr: decodeEntities(f.addr),
+        naver_title: decodeEntities(f.naver_title)
+      })))
       .catch(() => []);
   }
   const rows = await facilitiesFetchCache[code];
@@ -385,8 +454,13 @@ function loadCoursesInBackground(){
     try{
       const courseRows = await loadCSV('courses.csv');
       courseRows.forEach(r=>{
-        const name = (r.name || r.facil_nm || '').trim();
+        const name = decodeEntities((r.name || r.facil_nm || '').trim());
         if(!name) return;
+        // 시설 쪽(getRegionFacilities)에서도 이름을 디코딩하므로, 키가 서로 맞습니다.
+        r.name = name;
+        r.course_nm = decodeEntities(r.course_nm);
+        r.item_nm = decodeEntities(r.item_nm);
+        r.course_seta_desc_cn = decodeEntities(r.course_seta_desc_cn);
         const key = r.sgg ? `${name}|${r.sgg}` : name;
         if(!coursesByFacility[key]) coursesByFacility[key] = [];
         coursesByFacility[key].push(r);
@@ -1252,7 +1326,7 @@ function renderFacilityList(facilities, filterType, timeFilter, costFilter, styl
       const payload = escapeAttr(JSON.stringify({
         facility: f.name, course_nm: c.course_nm||'', item_nm: c.item_nm||'',
         day: c.day||'', start_tm: c.start_tm||'', end_tm: c.end_tm||'',
-        settl_amt: c.settl_amt||'', desc: (c.course_seta_desc_cn||'').slice(0,500)
+        settl_amt: c.settl_amt||'', desc: cleanCourseDesc(c.course_seta_desc_cn).slice(0,500)
       }));
       return `<span class="course-tag${isFree?' cost-free':''}" onclick="event.stopPropagation(); showCourseDetail('${payload}')">${emoji} ${parts.join(' · ')} · <b>${costLabel}</b>${isFree?' ✅':''}${benefitBadges} <span class="cm-hint">▸</span></span>`;
     }).join('');
@@ -1265,8 +1339,8 @@ function renderFacilityList(facilities, filterType, timeFilter, costFilter, styl
     const sportIcon = getSportEmoji(f.type);
     const fkey = escapeAttr(f.sgg ? `${f.name}|${f.sgg}` : f.name);
     return `<div class="facility-item" data-fkey="${fkey}" onclick="showFacilityOnMap('${escapeAttr(f.name)}','${escapeAttr(f.addr)}','${escapeAttr(f.sgg||'')}','${escapeAttr(f.naver_lat||'')}','${escapeAttr(f.naver_lng||'')}')">
-      <div class="fname"><span class="sport-icon">${sportIcon}</span><span onclick="event.stopPropagation(); openNaverSearch('${escapeAttr(f.name)}','${escapeAttr(f.addr)}','${escapeAttr(f.sgg||'')}','${escapeAttr(phone||'')}','${escapeAttr(f.naver_title||'')}')">${f.name}</span></div>
-      <div class="faddr">📍 ${f.addr}<span class="fdist" style="display:none;"></span></div>
+      <div class="fname"><span class="sport-icon">${sportIcon}</span><span onclick="event.stopPropagation(); openNaverSearch('${escapeAttr(f.name)}','${escapeAttr(f.addr)}','${escapeAttr(f.sgg||'')}','${escapeAttr(phone||'')}','${escapeAttr(f.naver_title||'')}')">${escapeHtml(f.name)}</span></div>
+      <div class="faddr">📍 ${escapeHtml(f.addr)}<span class="fdist" style="display:none;"></span></div>
       ${phoneHtml}
       <div class="fhint-row">
         <span class="fhint-tap">👆 눌러서 정확한 위치 확인</span>
@@ -1417,7 +1491,7 @@ function showCourseDetail(jsonStr){
     : '';
 
   document.getElementById('courseModalBody').innerHTML = `
-    <h3>${c.course_nm || c.item_nm || '강좌 정보'}</h3>
+    <h3>${escapeHtml(c.course_nm || c.item_nm || '강좌 정보')}</h3>
     <div class="cm-facility">${c.facility}</div>
     <div class="cm-price">${priceHtml}</div>
     ${costHtml}
@@ -1498,8 +1572,8 @@ function closeRegionView(){
 
 const RESPONSE_TEXT = {
   'type-both': { title: '양쪽 모두 최우선 유형', desc: '두 집단 모두 최하위권이에요. 복합 대응이 필요하고, 지역 여건에 따른 판단이 필요해요.' },
-  'type-city': { title: '대도시형', desc: '차상위·한부모 집단만 유독 저조해요. 이 집단은 시설 밀도와 통계적으로 무관해서(상관 -0.072), 시설 확충보다 학교·지역아동센터 연계, 신청 창구 접근성 개선 등 인지도 개선에 우선 배분하는 게 효과적일 수 있어요.' },
-  'type-rural': { title: '농어촌형', desc: '대상 인원 자체가 적은 편이에요(전국 평균 483명). 기초생활수급 집단은 시설 밀도와 관련 있어서(상관 0.494), 비율(%)보다 실인원 기준으로 관리하고 개별 접촉을 시도하는 게 유효할 수 있어요.' },
+  'type-city': { title: '대도시형', desc: '차상위·한부모 집단만 유독 저조해요. 이 집단은 시설 밀도와 통계적으로 무관해서(상관 약 −0.09, 2026-07 데이터 기준), 시설 확충보다 학교·지역아동센터 연계, 신청 창구 접근성 개선 등 인지도 개선에 우선 배분하는 게 효과적일 수 있어요.' },
+  'type-rural': { title: '농어촌형', desc: '대상 인원 자체가 적은 편이에요(군 단위 평균 약 690명, 2026-07 데이터 기준). 기초생활수급 집단은 시설 밀도와 관련 있어서(상관 약 0.50, 2026-07 데이터 기준), 비율(%)보다 실인원 기준으로 관리하고 개별 접촉을 시도하는 게 유효할 수 있어요.' },
   'type-good': { title: '양호', desc: '두 집단 모두 비교적 잘 받고 있는 지역이에요. 다만 실제 미수급 인원이 있는지는 아래 수치로 함께 확인해보세요.' },
 };
 
@@ -1900,7 +1974,7 @@ function renderFacilityDiffBox(code, facilities){
       }
       resultsEl.innerHTML = matches.map(f=>`
         <div class="neighbor-row" style="border-bottom:1px solid var(--line); padding:8px 0;">
-          <span><b>${f.name}</b><br><span style="color:var(--ink-faint); font-size:12px;">${f.sido} ${f.sgg} · ${f.addr||''}</span></span>
+          <span><b>${escapeHtml(f.name)}</b><br><span style="color:var(--ink-faint); font-size:12px;">${escapeHtml(f.sido)} ${escapeHtml(f.sgg)} · ${escapeHtml(f.addr||'')}</span></span>
         </div>
       `).join('');
     }
@@ -2577,7 +2651,7 @@ function renderTopPicksScreen(facilities){
       <div class="pick-item" onclick="closeTopPicks(); goToStep(3); setTimeout(()=>showFacilityOnMap('${escapeAttr(p.f.name)}','${escapeAttr(p.f.addr)}','${escapeAttr(p.f.sgg||'')}','${escapeAttr(p.f.naver_lat||'')}','${escapeAttr(p.f.naver_lng||'')}'), 200);">
         <span class="pick-icon">${getSportEmoji(p.f.type)}</span>
         <div class="pick-body">
-          <div class="pick-name">${p.f.name}</div>
+          <div class="pick-name">${escapeHtml(p.f.name)}</div>
           <span class="pick-badge">${p.badge}</span>
         </div>
         <span class="pick-arrow">→</span>
@@ -2975,7 +3049,7 @@ function finishRecommend(list, resultEl, sport, nearestRow){
     <div class="recommend-title">🤖 ${sport ? sport+' · ' : ''}가까운 순 추천 ${top.length}곳 (${nearestRow.sido} ${nearestRow.region} 기준)</div>
     ${top.map(f=>{ const phone = formatPhone(f.tel); return `
       <div class="facility-item" onclick="showFacilityOnMap('${escapeAttr(f.name)}','${escapeAttr(f.addr)}','${escapeAttr(f.sgg||'')}','${escapeAttr(f.naver_lat||'')}','${escapeAttr(f.naver_lng||'')}')">
-        <div class="fname" onclick="event.stopPropagation(); openNaverSearch('${escapeAttr(f.name)}','${escapeAttr(f.addr)}','${escapeAttr(f.sgg||'')}','${escapeAttr(phone||'')}','${escapeAttr(f.naver_title||'')}')">${f.name}</div>
+        <div class="fname" onclick="event.stopPropagation(); openNaverSearch('${escapeAttr(f.name)}','${escapeAttr(f.addr)}','${escapeAttr(f.sgg||'')}','${escapeAttr(phone||'')}','${escapeAttr(f.naver_title||'')}')">${escapeHtml(f.name)}</div>
         <div class="faddr">📍 ${f.addr} · <b>${f.dist.toFixed(1)}km</b></div>
         <div class="fhint-row">
           <span class="fhint-tap">👆 눌러서 정확한 위치 확인</span>
@@ -3259,7 +3333,7 @@ async function placeFacilityPinsFor(facilities){
       const marker = new naver.maps.Marker({
         position: pos, map: map,
         icon: {
-          content: `<div style="background:#fff; border:2px solid var(--coral,#1B64DA); color:var(--coral-deep,#0F4DAD); padding:4px 10px; border-radius:14px; font-size:11px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; box-shadow:0 2px 6px rgba(0,0,0,.2); cursor:pointer;" title="${f.name}">📍 ${f.name}${distLabel}</div>`,
+          content: `<div style="background:#fff; border:2px solid var(--coral,#1B64DA); color:var(--coral-deep,#0F4DAD); padding:4px 10px; border-radius:14px; font-size:11px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; box-shadow:0 2px 6px rgba(0,0,0,.2); cursor:pointer;" title="${escapeAttr(f.name)}">📍 ${escapeHtml(f.name)}${distLabel}</div>`,
           anchor: new naver.maps.Point(0, 0)
         }
       });

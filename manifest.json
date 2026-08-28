@@ -7,7 +7,7 @@
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#F7F5F1",
-  "theme_color": "#1B64DA",
+  "theme_color": "#3182F6",
   "lang": "ko",
   "icons": [
     {
@@ -29,14 +29,26 @@
       "short_name": "자가진단",
       "description": "우리 아이가 대상인지 1분만에 확인해보세요",
       "url": "./index.html?shortcut=diagnose",
-      "icons": [{ "src": "shortcut-diagnose.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "shortcut-diagnose.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "우리동네 시설찾기",
       "short_name": "시설찾기",
       "description": "가까운 스포츠 시설을 강좌·가격까지 한눈에",
       "url": "./index.html?shortcut=facility",
-      "icons": [{ "src": "shortcut-facility.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "shortcut-facility.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
