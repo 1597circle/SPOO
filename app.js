@@ -2432,6 +2432,16 @@ async function onRegionClick(code, row){
 }
 
 // 2단계: 즐겨찾기/TOP10을 기본으로 접어두고, 필요할 때만 펼침 (여백 있는 화면 유지)
+// 신청 가이드 화면(4개 섹션)의 접기/펼치기 — 여러 섹션이 각자 독립적으로 열리고 닫힙니다
+function toggleGuideSection(id){
+  const body = document.getElementById(id);
+  const arrow = document.getElementById(id + 'Arrow');
+  if(!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if(arrow) arrow.textContent = isOpen ? '▾' : '▴';
+}
+
 function toggleMoreInfo(){
   const section = document.getElementById('moreInfoSection');
   const arrow = document.getElementById('moreInfoArrow');

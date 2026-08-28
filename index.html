@@ -137,8 +137,66 @@
 
       <div class="s1-step s1-vcenter-wrap" id="s1-docsContact" style="display:none;">
         <div class="s1-vcenter-inner">
-          <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_contact">문의처</span></div>
-          <div class="s1-question" style="margin-bottom:24px;" data-i18n="q_contact">궁금한 점이<br>있으면</div>
+          <div class="s1-tag"><span class="dot"></span><span data-i18n="tag_guide">신청 가이드</span></div>
+          <div class="s1-question" style="margin-bottom:24px;" data-i18n="q_guide">신청부터 이용까지<br>한번에 알아보기</div>
+
+          <div class="guide-accordion">
+            <button class="guide-acc-head" onclick="toggleGuideSection('guideApply')">
+              <span>📝 <span data-i18n="guide_apply_title">신청 방법</span></span><span class="guide-acc-arrow" id="guideApplyArrow">▾</span>
+            </button>
+            <div class="guide-acc-body" id="guideApply" style="display:none;">
+              <ol class="guide-steps">
+                <li data-i18n="guide_apply_step1">홈페이지(svoucher.kspo.or.kr)에서 신청지역 선택</li>
+                <li data-i18n="guide_apply_step2">회원약관·개인정보처리방침 동의</li>
+                <li data-i18n="guide_apply_step3">본인인증(14세 미만은 보호자 동의) 후 수급자격 조회</li>
+                <li data-i18n="guide_apply_step4">신청서 상세정보 입력 후 제출</li>
+              </ol>
+              <div class="guide-tip" data-i18n="guide_apply_tip">💡 전년도에 이용하셨다면 로그인 후 "간편신청"으로 훨씬 빠르게 신청할 수 있어요 (수급자격만 다시 확인하면 돼요)</div>
+            </div>
+
+            <button class="guide-acc-head" onclick="toggleGuideSection('guideRegister')">
+              <span>💳 <span data-i18n="guide_register_title">등록(카드 발급) 방법</span></span><span class="guide-acc-arrow" id="guideRegisterArrow">▾</span>
+            </button>
+            <div class="guide-acc-body" id="guideRegister" style="display:none;">
+              <ul class="guide-steps">
+                <li data-i18n="guide_register_1"><b>온라인</b>: 선정 후 신한카드 홈페이지에서 직접 신청 (카드발급자 정보는 신청 시 정보와 동일해야 해요)</li>
+                <li data-i18n="guide_register_2"><b>유선</b>: 선정 후 7일 이내 신청 안 하면 신한카드(1544-7000)에서 전화로 안내해줘요</li>
+              </ul>
+            </div>
+
+            <button class="guide-acc-head" onclick="toggleGuideSection('guideUse')">
+              <span>🏃 <span data-i18n="guide_use_title">이용(결제) 방법</span></span><span class="guide-acc-arrow" id="guideUseArrow">▾</span>
+            </button>
+            <div class="guide-acc-body" id="guideUse" style="display:none;">
+              <ol class="guide-steps">
+                <li data-i18n="guide_use_step1">홈페이지에서 시설·강좌 검색 후 선택</li>
+                <li data-i18n="guide_use_step2">결제금액 확인 후 결제 (신한 SOL페이가 가장 간편해요)</li>
+              </ol>
+              <div class="guide-example" data-i18n="guide_use_example">📊 예: 강좌료 14만 5천원, 지원금 10만 5천원 → <b>본인부담금 4만원</b>이 카드 연결계좌에 있어야 결제돼요</div>
+              <div class="guide-tip warn" data-i18n="guide_use_warn">⚠️ 3개월 연속 미사용 시 자동으로 지원이 중단돼요 — 한 달에 한 번은 꼭 결제해주세요</div>
+            </div>
+
+            <button class="guide-acc-head" onclick="toggleGuideSection('guideTarget')">
+              <span>👤 <span data-i18n="guide_target_title">대상자 상세 조건</span></span><span class="guide-acc-arrow" id="guideTargetArrow">▾</span>
+            </button>
+            <div class="guide-acc-body" id="guideTarget" style="display:none;">
+              <ul class="guide-steps">
+                <li data-i18n="guide_target_1">외국인등록번호가 있으면 서면신청으로 가능해요</li>
+                <li data-i18n="guide_target_2">만 14세 미만은 법정대리인(보호자)이 신청해요</li>
+                <li data-i18n="guide_target_3">시설보호(거주) 아동은 시설장이 학생별로 신청해요</li>
+              </ul>
+              <table class="guide-priority-table">
+                <tr><th data-i18n="guide_priority_rank">순위</th><th data-i18n="guide_priority_cond">해당 조건</th></tr>
+                <tr><td data-i18n="guide_priority_top">우선</td><td data-i18n="guide_priority_top_cond">범죄피해가정</td></tr>
+                <tr><td>1</td><td data-i18n="guide_priority_1_cond">신규·기초생활수급</td></tr>
+                <tr><td>2</td><td data-i18n="guide_priority_2_cond">신규·차상위·한부모</td></tr>
+                <tr><td>3</td><td data-i18n="guide_priority_3_cond">장기·기초생활수급</td></tr>
+                <tr><td>4</td><td data-i18n="guide_priority_4_cond">장기·차상위·한부모</td></tr>
+              </table>
+            </div>
+          </div>
+
+          <div class="s1-tag" style="margin-top:28px;"><span class="dot"></span><span data-i18n="tag_contact">문의처</span></div>
           <a class="apply-help-item" href="tel:1551-0078" style="width:100%;"><span data-i18n="contact_center_label">상담센터</span> 1551-0078 <span data-i18n="contact_center_sub">신청·자격 문의</span></a>
           <a class="apply-help-item" href="tel:1544-7000" style="width:100%;"><span data-i18n="contact_card_label">신한카드</span> 1544-7000 <span data-i18n="contact_card_sub">카드 발급·분실 문의</span></a>
           <a class="apply-help-item" href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener" style="width:100%;"><span data-i18n="contact_local_label">우리 동네 담당자 찾기 →</span> <span data-i18n="contact_local_sub">지자체별 담당자 조회</span></a>

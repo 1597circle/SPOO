@@ -477,6 +477,35 @@
   .apply-help-item span{font-size:var(--fs-caption); font-weight:600; color:var(--ink-sub);}
   .apply-help-item:hover{opacity:.85;}
 
+  /* ---- 신청 가이드 아코디언 (신청·등록·이용·대상자) ---- */
+  .guide-accordion{ width:100%; }
+  .guide-acc-head{
+    width:100%; display:flex; justify-content:space-between; align-items:center;
+    padding:16px 18px; margin-bottom:8px; border:1.5px solid var(--line); border-radius:14px;
+    background:#fff; font-family:inherit; font-size:var(--fs-option); font-weight:800; color:var(--ink);
+    cursor:pointer; text-align:left;
+  }
+  .guide-acc-head:hover{ background:var(--paper); }
+  .guide-acc-arrow{ color:var(--blue-deep); font-weight:800; }
+  .guide-acc-body{
+    padding:4px 18px 18px; margin:-12px 0 12px; border:1.5px solid var(--line); border-top:none;
+    border-radius:0 0 14px 14px; text-align:left;
+  }
+  .guide-steps{ margin:12px 0; padding-left:22px; }
+  .guide-steps li{ font-size:var(--fs-body); color:var(--ink); line-height:1.8; margin-bottom:6px; }
+  .guide-tip{
+    margin-top:10px; padding:12px 14px; border-radius:12px; background:var(--blue-soft);
+    color:var(--blue-deep); font-size:var(--fs-label); line-height:1.6;
+  }
+  .guide-tip.warn{ background:var(--coral-soft); color:var(--coral-deep); }
+  .guide-example{
+    margin-top:10px; padding:12px 14px; border-radius:12px; background:var(--paper);
+    color:var(--ink); font-size:var(--fs-label); line-height:1.7;
+  }
+  .guide-priority-table{ width:100%; border-collapse:collapse; margin-top:12px; font-size:var(--fs-label); }
+  .guide-priority-table th{ background:var(--paper); padding:8px 10px; text-align:left; font-weight:800; color:var(--ink-sub); }
+  .guide-priority-table td{ padding:8px 10px; border-top:1px solid var(--line); color:var(--ink); }
+
   .priority-notice{margin-bottom:20px; padding:20px 22px; background:var(--coral-soft); border-radius:18px; text-align:left;}
   .priority-notice b{color:var(--coral-deep);}
   .priority-disclaimer{font-size:var(--fs-caption); color:var(--ink-sub); margin-top:10px; line-height:1.65;}
