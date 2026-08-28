@@ -104,3 +104,20 @@ jobs:
               sys.exit(1)
           print("✅ 지역 데이터 정합성 문제 없음")
           PYEOF
+
+  data-quality:
+    name: 데이터 품질 게이트 (결측·이상치·정합성)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 위의 세 검사는 "파일이 있는지 / JSON이 깨졌는지"만 봅니다.
+      # 이 검사는 그것만으로 안 잡히는 것들 — 좌표가 갑자기 사라지거나,
+      # 수급률 파생값이 어긋나거나, 행정구역이 개편됐는데 지역명이 그대로이거나 —
+      # 을 봅니다. 임계값은 "현재 수치"가 기준선이라, 악화될 때만 실패합니다.
+      - name: 데이터 품질 검사
+        run: python3 tools/check_data_quality.py
