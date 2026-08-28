@@ -1,0 +1,58 @@
+name: 좌표 채우기 (네이버 지오코딩)
+
+# 좌표가 비어 있는 시설(1만 3천여 건)의 주소로 좌표를 조회해 채웁니다.
+# Actions 탭에서 "Run workflow" 버튼을 누를 때만 실행됩니다 (자동 실행 없음).
+#
+# ■ 처음 한 번만 준비할 것 — 네이버 지오코딩 API 키 2개를 GitHub Secrets에 등록:
+#   저장소 Settings → Secrets and variables → Actions → New repository secret
+#     이름: NAVER_KEY_ID   값: 네이버클라우드 콘솔의 Client ID
+#     이름: NAVER_KEY      값: 네이버클라우드 콘솔의 Client Secret
+#   (키 발급: console.ncloud.com → AI·NAVER API 또는 Maps → Application에서
+#    Geocoding 사용 체크 → 인증 정보 확인)
+#
+# ■ 한 번 실행에 최대 15,000건, 약 50분 소요. 남으면 한 번 더 실행하면 이어서 합니다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_calls:
+        description: '이번 실행에서 조회할 최대 건수'
+        required: false
+        default: '15000'
+
+permissions:
+  contents: write
+
+jobs:
+  geocode:
+    name: 좌표 조회 후 자동 커밋
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 좌표 조회 실행
+        env:
+          NAVER_KEY_ID: ${{ secrets.NAVER_KEY_ID }}
+          NAVER_KEY: ${{ secrets.NAVER_KEY }}
+          MAX_CALLS: ${{ github.event.inputs.max_calls || '15000' }}
+        run: python3 tools/geocode_missing.py
+
+      - name: 품질 게이트로 결과 검증 (좌표 범위·정합성)
+        run: python3 tools/check_data_quality.py
+
+      - name: 바뀐 지역 파일 자동 커밋
+        run: |
+          git config user.name "spoo-geocode-bot"
+          git config user.email "actions@github.com"
+          git add "[0-9][0-9][0-9][0-9][0-9].json"
+          if git diff --cached --quiet; then
+            echo "채워진 좌표가 없어 커밋을 건너뜁니다."
+          else
+            git commit -m "지오코딩: 시설 좌표 보충 (자동)"
+            git push
+          fi
