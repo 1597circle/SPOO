@@ -282,5 +282,20 @@
   "share_desc_fallback": "在SPOO上查看{region}的体育课程券支持现况吧！",
   "share_kakao_btn_title": "查看支持现况",
   "share_copied": "链接已复制！粘贴到KakaoTalk等应用中分享吧 😊",
-  "share_unsupported": "当前环境不支持分享功能，请手动复制网址。"
+  "share_unsupported": "当前环境不支持分享功能，请手动复制网址。",
+  "label_style": "您喜欢哪种风格？",
+  "opt_style_all": "没有偏好",
+  "opt_style_team": "👥 我喜欢和大家一起做",
+  "opt_style_solo": "🧘 我喜欢独自专注",
+  "style_filter_hint": "💡 仅供娱乐参考 — MBTI外向型(E)通常适合团队运动，内向型(I)通常适合个人运动",
+  "tag_exam_help": "可计入2级生活体育指导员实操考试科目",
+  "tag_police_bonus": "警察招聘武道加分认定项目（2段以上）",
+  "tag_police_bonus_ext": "扩大认定组织的警察加分项目（因组织而异）",
+  "tag_police_grip_like": "与警察体能测试'救援拖拽'动作使用类似力量",
+  "tag_police_pull_like": "与警察体能测试'拉'动作使用类似力量",
+  "tag_fire_endur": "有助于消防体能测试耐力项目（往返跑等）",
+  "tag_fire_grip": "有助于消防体能测试握力·背力项目",
+  "tag_fire_flex": "有助于消防体能测试柔韧性项目",
+  "tag_military_endur": "有助于军队3公里跑体能测试",
+  "tag_military_core": "有助于军队俯卧撑·仰卧起坐体能测试"
 }
