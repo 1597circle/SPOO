@@ -2506,8 +2506,12 @@ async function onRegionClick(code, row){
     ${filterHtml}
     <div id="facilityListBox">${facilitiesHtml}</div>
     <a class="official-link" href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener">실시간 강좌 정보 보러가기 →</a>
-    <div class="action-row">
-      <button class="action-btn" onclick="shareRegion()">🔗 공유하기</button>
+    <div class="action-row" style="justify-content:center;">
+      <img src="kakaotalk_sharing_btn_medium.png" alt="카카오톡 공유하기" title="카카오톡 공유하기"
+           onclick="shareRegion()"
+           onmouseover="this.src='kakaotalk_sharing_btn_medium_ov.png'"
+           onmouseout="this.src='kakaotalk_sharing_btn_medium.png'"
+           style="cursor:pointer; display:block;">
     </div>
   `;
 
@@ -3081,17 +3085,14 @@ function s1Init(){
   if(age && household){
     renderPriorityNotice(household, localStorage.getItem('fairplay_prior_history') || 'unsure');
     runDiagnose();
-    // 이전에 골랐던 동네가 있으면 결과 화면에도 확인 문구를 같이 보여줌
+    // 이전에 골랐던 동네가 있으면 결과 화면에도 확인 문구·공유 버튼을 같이 보여줌
     const savedRegionCode = localStorage.getItem('fairplay_region_code');
     const savedRow = savedRegionCode ? voucherData[savedRegionCode] : null;
-    const confirmEl = document.getElementById('s1RegionConfirm');
-    if(confirmEl){
-      if(savedRow){
-        confirmEl.style.display = 'block';
-        confirmEl.innerHTML = `📍 <b>${savedRow.sido} ${savedRow.region}</b> 기준으로 안내해드릴게요`;
-      } else {
-        confirmEl.style.display = 'none';
-      }
+    if(savedRow){
+      s1RenderRegionConfirm(savedRow);
+    } else {
+      const confirmEl = document.getElementById('s1RegionConfirm');
+      if(confirmEl) confirmEl.style.display = 'none';
     }
     s1GoTo('resultIntro');
   } else {
@@ -3315,16 +3316,32 @@ document.getElementById('s1LocateBtn')?.addEventListener('click', ()=>{
   );
 });
 
+// 결과 화면의 "📍 OO시 OO구 기준" 확인 박스 — 지역을 고른 경우, 미수급 인원(구간형)과
+// 공유 버튼도 함께 보여줌. 문구 원칙은 shareRegion()과 동일(인과 단정 없이 관측 사실만).
+function s1RenderRegionConfirm(row){
+  const confirmEl = document.getElementById('s1RegionConfirm');
+  if(!confirmEl || !row) return;
+  const unmet = Math.max(0, (Number(row.s_target)||0) - (Number(row.s_recv)||0))
+              + Math.max(0, (Number(row.n_target)||0) - (Number(row.n_recv)||0));
+  const unmetText = bucketUnmetCount(unmet);
+  confirmEl.style.display = 'block';
+  confirmEl.innerHTML = `
+    📍 <b>${row.sido} ${row.region}</b> 기준으로 안내해드릴게요
+    ${unmetText ? `<br>우리 지역에 아직 신청 안 하신 분이 <b>${unmetText}</b> 있어요. 주변 사람들에게 공유해보아요!` : ''}
+    <img src="kakaotalk_sharing_btn_medium.png" alt="카카오톡 공유하기" title="카카오톡 공유하기"
+         onclick="shareRegion()"
+         onmouseover="this.src='kakaotalk_sharing_btn_medium_ov.png'"
+         onmouseout="this.src='kakaotalk_sharing_btn_medium.png'"
+         style="cursor:pointer; display:block; margin:10px auto 0;">
+  `;
+}
+
 function s1SelectRegion(code){
   const row = voucherData[code];
   if(!row) return;
   onRegionClick(code, row); // 2·3단계 화면을 이 지역 기준으로 미리 채움
   localStorage.setItem('fairplay_region_code', code);
-  const confirmEl = document.getElementById('s1RegionConfirm');
-  if(confirmEl){
-    confirmEl.style.display = 'block';
-    confirmEl.innerHTML = `📍 <b>${row.sido} ${row.region}</b> 기준으로 안내해드릴게요`;
-  }
+  s1RenderRegionConfirm(row);
   if(s1RegionInput) s1RegionInput.value = '';
   if(s1RegionSuggest) s1RegionSuggest.style.display = 'none';
   s1GoTo('household');
