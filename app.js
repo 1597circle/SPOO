@@ -2081,6 +2081,9 @@ function wpSubmitHousehold(val){
   // 서류 안내가 있는 경우(대상+범주 확실) "신청 서류 준비하기" 선택지도 보여줌
   const docBtn = document.getElementById('wpDocGoalBtn');
   if(docBtn) docBtn.style.display = (val !== 'unsure') ? 'flex' : 'none';
+  const regionCode = currentPanelCode || localStorage.getItem('fairplay_region_code');
+  const regionRow = regionCode ? voucherData[regionCode] : null;
+  if(regionRow) s1RenderRegionConfirm(regionRow, 'wpHouseholdRegionNote');
   wpGoTo(3);
 }
 
