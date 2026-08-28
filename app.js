@@ -37,6 +37,18 @@ const TOP10_PRIORITY = [
 // (원래 호출만 있고 정의가 없어서 온보딩 완료 시마다 JS 오류가 나던 것을 2026-08-27 수정)
 // 현재는 홈 화면 팁을 따로 띄우지 않지만, 나중에 첫 이용자 안내를 추가하려면
 // 여기에서 showCoachmark(...)를 호출하면 됩니다.
+// 온보딩 화면이 떠 있는 동안엔 (배너들이 화면 뒤에 가려져 안 보이면서도 자리는 차지해서)
+// 헤더 위에 불필요한 흰 여백이 생기던 문제를 해결합니다.
+// welcomeOverlay의 'show' 클래스가 붙고 떼어질 때마다 자동으로 감지해서
+// body에 'onboarding-active' 클래스를 미러링합니다 (호출 지점 7군데를 일일이 안 고쳐도 됨).
+(function watchOnboardingOverlay(){
+  const overlay = document.getElementById('welcomeOverlay');
+  if(!overlay) return;
+  const sync = () => document.body.classList.toggle('onboarding-active', overlay.classList.contains('show'));
+  sync();
+  new MutationObserver(sync).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+})();
+
 function maybeShowHomeTips(){
   /* 표시할 팁 없음 — 확장 지점으로 남겨둠 */
 }
