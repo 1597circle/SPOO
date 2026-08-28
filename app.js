@@ -26,12 +26,9 @@ let currentPanelNeighborCodes = []; // toggleNeighborFacilities에서 지연 fet
 let currentRvCode = null; // 「지역 현황 보기」에서 지금 보고 있는 지역 코드 (PDF·엑셀 다운로드용)
 
 // 분석에서 확인된 "양쪽 그룹 모두 저조" 최우선 지역 10곳 (정식 시도명 일부로 매칭 — 동명 지역 오매칭 방지)
-const TOP10_PRIORITY = [
-  {region:'보령', sidoHint:'충청남'}, {region:'음성', sidoHint:'충청북'}, {region:'진천', sidoHint:'충청북'},
-  {region:'영광', sidoHint:'전라남'}, {region:'장흥', sidoHint:'전라남'}, {region:'순창', sidoHint:'전북'},
-  {region:'곡성', sidoHint:'전라남'}, {region:'봉화', sidoHint:'경상북'}, {region:'양구', sidoHint:'강원'},
-  {region:'울릉', sidoHint:'경상북'}
-];
+// (삭제됨) TOP10_PRIORITY — 지역명을 코드에 고정해두면 데이터가 갱신돼도 목록이 따라가지 않아,
+// 화면의 "가장 도움이 필요한 지역"이라는 주장과 실제 수치가 어긋났습니다.
+// 이제 computeTop10Priority()가 voucher_data.csv에서 직접 계산합니다.
 
 // 온보딩을 마치고 메인 화면으로 들어올 때 호출됩니다.
 // (원래 호출만 있고 정의가 없어서 온보딩 완료 시마다 JS 오류가 나던 것을 2026-08-27 수정)
@@ -412,6 +409,7 @@ async function loadConfigAndApply(){
   try{
     const cfg = await fetch('config.json').then(r=>r.json());
     spooConfig = cfg; // 캘린더 등록(.ics) 기능에서 재사용
+    applyVoucherAmounts(cfg);  // 월 지원 한도 등 금액 기준값 반영 (계산에 직접 쓰이므로 문구보다 먼저)
     renderConfigNotices(); // 헤더 기준일·신청기간·결제마감 문구를 현재 언어로 렌더링
   }catch(e){
     console.log('config.json 로드 실패 — 화면에 있는 기본 안내 문구로 표시됩니다.', e);
@@ -440,7 +438,13 @@ function renderConfigNotices(){
       ? `${fmt(cfg.applyPeriod.start)}~${fmt(cfg.applyPeriod.end).replace(/^\d+월 /,'')}`
       : `${fmt(cfg.applyPeriod.start)} ~ ${fmt(cfg.applyPeriod.end)}`;
     const line = t('notice_apply_period_template', '신청 기간: {range}').replace('{range}', range);
-    applyEl.innerHTML = `<b>${line}</b> — ${t('notice_apply_period_sub','1년에 한 번뿐인 전국 동시 신청 기간이에요.')}`;
+    // 공식 공고 전이면(applyPeriodConfirmed:false) 확정 정보처럼 보이지 않게 "예상"을 붙입니다.
+    // 공고가 나오면 config.json에서 true로 바꾸기만 하면 됩니다.
+    const confirmed = spooConfig.applyPeriodConfirmed !== false;
+    const suffix = confirmed
+      ? t('notice_apply_period_sub','1년에 한 번뿐인 전국 동시 신청 기간이에요.')
+      : t('notice_apply_period_unconfirmed','아직 공식 공고 전이라 <b>예상 일정</b>이에요. 추가 모집이 열려 있을 수 있으니 <a href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener">공식 사이트</a>에서 꼭 확인해주세요.');
+    applyEl.innerHTML = `<b>${line}${confirmed ? '' : ' (예상)'}</b> — ${suffix}`;
   }
   const payEl = document.getElementById('noticePaymentDeadline');
   if(payEl){
@@ -646,12 +650,56 @@ function hideSpeakButtonsIfUnsupported(){
 }
 document.addEventListener('DOMContentLoaded', hideSpeakButtonsIfUnsupported);
 
+/* 지도만 못 불러온 경우, 지도 자리에만 안내를 띄웁니다.
+   나머지 기능(자가진단·지역 현황·시설 찾기)은 지도 없이도 동작하므로 전체 오류로 처리하지 않습니다. */
+function showMapUnavailable(){
+  if(window.__NAVER_AUTH_FAILED) return; // 인증 실패 안내가 이미 떠 있으면 덮어쓰지 않음
+  const box = document.getElementById('map');
+  if(!box) return;
+  box.innerHTML = `
+    <div style="height:100%;display:flex;align-items:center;justify-content:center;padding:24px;">
+      <div style="max-width:420px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:10px;">🗺️</div>
+        <h3 style="margin:0 0 8px;font-size:17px;">지도를 불러오지 못했어요</h3>
+        <p style="font-size:var(--fs-body);line-height:1.6;color:var(--ink-faint);margin:0;">
+          네트워크 상황 때문일 수 있어요.<br>
+          <b>지도만 안 보일 뿐, 자가진단·우리 동네 현황·시설 찾기는 그대로 쓸 수 있어요.</b>
+        </p>
+      </div>
+    </div>`;
+}
+
+/* 지도가 없어도 지역 경계 데이터를 준비해둡니다.
+   polygons 배열은 "📍 내 위치로 찾기"(좌표 → 시군구 판별)와 중심점 계산에도 쓰이므로,
+   네이버 지도 로딩 여부와 무관하게 항상 채워져 있어야 합니다.
+   ⚠ drawPolygons()와 반드시 같은 순서·같은 건너뛰기 규칙을 유지해야
+     drawnPolygons[i] ↔ polygons[i] 색인이 맞습니다(restorePolygonColors 참고). */
+function buildRegionGeometry(features){
+  polygons = [];
+  features.forEach(f=>{
+    const code = f.properties.sggcd;
+    const row = voucherData[code];
+    if(!row) return;
+    const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+    polys.forEach(polyCoords=>{
+      polygons.push({ ring: polyCoords[0], code, row });
+    });
+  });
+  computeCentroids();
+}
+
 async function init(){
+  let geo = null;
+
+  /* ══ 1단계: 지도와 무관한 필수 데이터 ══════════════════════════
+     지도 초기화를 여기에 섞으면, 지도가 안 뜰 때 사이트 전체가 빈 화면이 됩니다.
+     그래서 데이터 로딩을 먼저 끝내고, 지도는 2단계에서 따로 처리합니다. */
   try{
-    const [voucherRows, geo] = await Promise.all([
+    const [voucherRows, geoJson] = await Promise.all([
       loadCSV('voucher_data.csv'),
       fetch('sigungu_simplified.json').then(r=>r.json())
     ]);
+    geo = geoJson;
 
     // 옆동네 시설 표시 기능용 인접 시군구 매핑 (없어도 사이트는 정상 작동)
     try{
@@ -694,10 +742,7 @@ async function init(){
     computeThresholds();
     computeRanks();
     buildSearchIndex();
-    initMap();
-    drawPolygons(geo.features);
-    updateLegendBar();
-    computeCentroids();
+    buildRegionGeometry(geo.features); // 지도 없이도 위치 판별·중심점 계산이 되도록 먼저 준비
     populateAgeSelect();
     renderTop10();
     renderFavorites();
@@ -719,9 +764,23 @@ async function init(){
       `${voucherRows.length}개 지역, ${totalFacilities.toLocaleString()}개 시설 정보를 불러왔어요`;
   }catch(err){
     document.getElementById('loadStatus').innerHTML =
-      '<span style="color:var(--red);">데이터를 못 불러왔어요: ' + err.message +
-      '<br>voucher_data.csv, facility_counts.json, sigungu_simplified.json 등 필요한 파일이 같은 폴더에 있는지 확인해주세요.</span>';
-    console.error(err);
+      '<span style="color:var(--red);">지역·시설 데이터를 불러오지 못했어요: ' + err.message +
+      '<br>잠시 후 새로고침해주세요. 계속 같은 문제가 생기면 문의해주세요.</span>';
+    console.error('[SPOO] 필수 데이터 로딩 실패', err);
+    return; // 데이터가 없으면 지도를 그려도 의미가 없으므로 여기서 종료
+  }
+
+  /* ══ 2단계: 지도 (실패해도 위 기능들은 이미 전부 살아 있음) ══════ */
+  try{
+    if(typeof naver === 'undefined' || !naver.maps){
+      throw new Error('네이버 지도 스크립트를 불러오지 못했습니다');
+    }
+    initMap();
+    drawPolygons(geo.features);
+    updateLegendBar();
+  }catch(err){
+    showMapUnavailable();
+    console.warn('[SPOO] 지도 초기화 실패 — 지도 외 기능은 정상 동작합니다.', err);
   }
 }
 
@@ -756,10 +815,30 @@ function computeRanks(){
   medianNPct = nPctSorted[Math.floor(nPctSorted.length/2)];
 }
 
+/* ==================== 행정구역 개편 별칭 ====================
+   시군구가 통합·분리·개명되면, 통계 원본(voucher_data.csv)이 갱신되기 전까지
+   주민이 "새 구 이름"으로 검색했을 때 결과가 0건이 됩니다.
+   여기에 {옛 코드: [새 이름들]}을 적어두면 검색과 화면 표시에 함께 반영됩니다.
+
+   2026-07-01 인천형 행정체제 개편
+     중구 내륙 + 동구 → 제물포구 | 중구 섬(영종도) → 영종구
+     서구 → 서해구 + 검단구
+   ※ 통계·경계 데이터가 신설 코드 기준으로 재수집되면 이 표는 지우면 됩니다. */
+const REGION_ALIASES = {
+  '28110': ['제물포구', '영종구'], // 인천 중구
+  '28140': ['제물포구'],           // 인천 동구
+  '28260': ['서해구', '검단구'],   // 인천 서구
+};
+
 function buildSearchIndex(){
-  regionSearchList = Object.values(voucherData).map(r=>({
-    code:r.code, label: r.sido + ' ' + r.region, sido:r.sido, region:r.region
-  }));
+  regionSearchList = Object.values(voucherData).map(r=>{
+    const alias = REGION_ALIASES[r.code];
+    // 별칭을 label에 함께 넣어두면 검색(label.includes)과 화면 표시가 한 번에 해결됩니다.
+    const label = alias
+      ? `${r.sido} ${r.region} (現 ${alias.join('·')})`
+      : `${r.sido} ${r.region}`;
+    return { code:r.code, label, sido:r.sido, region:r.region, alias: alias || [] };
+  });
 }
 
 function computeCentroids(){
@@ -778,20 +857,55 @@ function computeCentroids(){
   });
 }
 
-/* ==================== TOP10 우선순위 지역 ==================== */
-function renderTop10(){
-  const rows = Object.values(voucherData);
-  const matched = TOP10_PRIORITY.map(item=>{
-    const found = rows.find(r => r.region.includes(item.region) && r.sido.includes(item.sidoHint));
-    return found ? { code: found.code, region: found.region, sido: found.sido } : null;
-  }).filter(Boolean);
+/* ==================== TOP10 우선순위 지역 ====================
+   화면 문구가 "두 가정 모두 지원을 유독 못 받고 있는 곳"이라는 사실을 주장하므로,
+   목록도 반드시 voucher_data.csv에서 계산해야 합니다.
+   (예전에는 지역명 10개가 코드에 고정돼 있어서, 데이터가 갱신돼도 목록이 그대로였고
+    실제 최하위 지역과 어긋났습니다. 2026-08-28 계산 방식으로 전환)
 
-  document.getElementById('top10List').innerHTML = matched.map((m,i)=>`
+   기준: 기초생활수급(s) 수급률 순위와 차상위·한부모(n) 수급률 순위의 평균이 낮은 곳.
+        한쪽만 낮은 지역이 아니라 "양쪽 다 낮은" 지역을 고르기 위해 두 순위를 함께 씁니다. */
+function computeTop10Priority(){
+  const rows = Object.values(voucherData);
+  if(!rows.length) return [];
+
+  const rankMap = (key) => {
+    const sorted = [...rows].sort((a,b)=> (parseFloat(a[key])||0) - (parseFloat(b[key])||0));
+    const m = {};
+    sorted.forEach((r,i)=>{ m[r.code] = i; }); // 0 = 가장 낮음(가장 시급)
+    return m;
+  };
+  const sRank = rankMap('s_pct');
+  const nRank = rankMap('n_pct');
+
+  return rows
+    .map(r=>{
+      const sTarget = Number(r.s_target)||0, nTarget = Number(r.n_target)||0;
+      const total = sTarget + nTarget;
+      const recv  = (Number(r.s_recv)||0) + (Number(r.n_recv)||0);
+      return {
+        code: r.code, region: r.region, sido: r.sido,
+        score: (sRank[r.code] + nRank[r.code]) / 2,
+        totalPct: total ? (recv / total * 100) : 0,
+        unmet: Math.max(0, total - recv)
+      };
+    })
+    .sort((a,b)=> a.score - b.score || a.totalPct - b.totalPct)
+    .slice(0, 10);
+}
+
+function renderTop10(){
+  const list = computeTop10Priority();
+  const el = document.getElementById('top10List');
+  if(!el) return;
+  if(!list.length){ el.innerHTML = ''; return; }
+
+  el.innerHTML = list.map((m,i)=>`
     <div class="top10-item" onclick="goToRegion('${m.code}')">
       <div class="t10-rank">${i+1}</div>
       <div>
-        <div class="t10-name">${m.region}</div>
-        <div class="t10-sido">${m.sido}</div>
+        <div class="t10-name">${escapeHtml(m.region)}</div>
+        <div class="t10-sido">${escapeHtml(m.sido)} · 수급률 ${m.totalPct.toFixed(1)}% · 미수급 ${Math.round(m.unmet).toLocaleString()}명</div>
       </div>
     </div>
   `).join('');
@@ -918,11 +1032,29 @@ function formatPrice(settlAmt){
    315,000원(=한도의 3배, 2025년 5월부터 도입된 3개월 결제 한도)에 몰려있는 강좌들은
    3개월치 금액을 월 요금으로 착각해 계산하면 정반대의 결과를 보여줄 위험이 있어,
    이 구간은 계산하지 않고 "금액 확인 필요"로 안내합니다. */
-const VOUCHER_LIMIT = 105000;
+/* 금액 기준값은 제도가 바뀔 때마다 달라지므로 config.json에서 읽어옵니다.
+   아래 값은 config.json을 못 불러왔을 때만 쓰이는 최후의 기본값입니다.
+   (예전에는 105000이 app.js와 index.html 두 곳에 하드코딩돼 있어,
+    한도가 바뀌면 두 파일을 모두 고쳐야 했습니다. 2026-08-28 config로 이전) */
+let VOUCHER_LIMIT = 105000;        // 월 지원 한도
+let MULTI_MONTH_LIMIT = 315000;    // 이 금액 이상은 결제 주기가 달라 계산을 보류
+
+function applyVoucherAmounts(cfg){
+  if(!cfg) return;
+  if(Number(cfg.voucherMonthlyLimit) > 0) VOUCHER_LIMIT = Number(cfg.voucherMonthlyLimit);
+  if(Number(cfg.multiMonthPaymentLimit) > 0) MULTI_MONTH_LIMIT = Number(cfg.multiMonthPaymentLimit);
+  // 안내 문구의 예시 금액도 같은 값에서 만들어, 코드와 화면이 어긋나지 않게 합니다.
+  const ex = document.getElementById('guideUseExample');
+  if(ex){
+    const course = VOUCHER_LIMIT + 40000;
+    ex.innerHTML = `📊 예: 강좌료 ${course.toLocaleString()}원, 지원금 ${VOUCHER_LIMIT.toLocaleString()}원 → <b>본인부담금 ${(course - VOUCHER_LIMIT).toLocaleString()}원</b>이 카드 연결계좌에 있어야 결제돼요`;
+  }
+}
+
 function getCostBreakdown(amt){
   const n = Number(amt);
   if(!amt || isNaN(n) || n <= 1000 || n >= 999000) return null; // 오입력값
-  if(n >= 315000) return { special: 'confirm' }; // 기간 단위가 다를 가능성이 큰 구간
+  if(n >= MULTI_MONTH_LIMIT) return { special: 'confirm' }; // 기간 단위가 다를 가능성이 큰 구간
   return {
     covered: Math.min(n, VOUCHER_LIMIT),
     myCost: Math.max(0, n - VOUCHER_LIMIT)
@@ -2326,7 +2458,8 @@ function drawPolygons(features){
 
       const polygon = new naver.maps.Polygon({ map: map, paths: [path], ...style });
       drawnPolygons.push(polygon);
-      polygons.push({ring: outerRing, code, row});
+      // polygons 배열은 buildRegionGeometry()에서 이미 채웠습니다(지도 없이도 필요한 데이터라서).
+      // 여기서는 화면에 그리는 일만 합니다. 두 함수의 순회 순서가 같아야 색인이 맞습니다.
     });
   });
 
@@ -2349,6 +2482,7 @@ function pointInRing(x, y, ring){
 }
 
 function redrawColors(){
+  if(!map || typeof naver === 'undefined' || !naver.maps) return; // 지도가 없으면 색칠할 대상도 없음
   drawnPolygons.forEach(p=>p.setMap(null));
   drawnPolygons = [];
   polygons.forEach(p=>{
@@ -3532,14 +3666,10 @@ window.addEventListener('load', ()=>{
   if(typeof Kakao !== 'undefined' && !Kakao.isInitialized()){
     Kakao.init('f0d5e3f67d1acc19d203a8f1a5d04035'); // developers.kakao.com > 앱 설정 > 플랫폼 키 > JavaScript 키
   }
-  setTimeout(()=>{
-    if(typeof naver === 'undefined' && !window.__NAVER_AUTH_FAILED){
-      document.getElementById('map').innerHTML =
-        `<div style="padding:24px;font-family:sans-serif;color:#F04452;">${t('map_error','네이버 지도가 안 열려요. Client ID를 넣었는지 확인해주세요.')}</div>`;
-      return;
-    }
-    if(typeof naver !== 'undefined'){ init(); }
-  }, 300);
+  // init()은 지도 로딩 여부와 무관하게 항상 실행합니다.
+  // (예전에는 naver가 없으면 init() 자체를 건너뛰어서, 지도가 안 뜨면
+  //  자가진단·지역 현황·시설 찾기까지 전부 빈 화면이 됐습니다. 2026-08-28 수정)
+  init();
 });
 
 /* ==================== PWA: 서비스워커 등록 + 홈 화면 추가 안내 ==================== */

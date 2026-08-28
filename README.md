@@ -58,8 +58,23 @@ python3 -m http.server 8000
 
 ## 데이터 갱신
 
-매년 바뀌는 값(신청 기간, 결제 마감일, 데이터 기준일)은 `config.json` 하나만 수정하면 됩니다.
-`index.html` 안의 텍스트를 직접 찾아 고칠 필요가 없습니다.
+매년 바뀌는 값은 **`config.json` 하나만** 수정하면 됩니다. `index.html`이나 `app.js` 안의
+숫자를 직접 찾아 고칠 필요가 없습니다.
+
+| 항목 | 설명 |
+|---|---|
+| `applyPeriod` | 전국 동시 신청 기간 |
+| `applyPeriodConfirmed` | 공식 공고 전이면 `false` — 화면에 "(예상)"이 붙습니다 |
+| `paymentDeadline` | 결제 마감일 |
+| `voucherMonthlyLimit` | 월 지원 한도 (본인부담금 계산에 직접 쓰입니다) |
+| `multiMonthPaymentLimit` | 이 금액 이상은 결제 주기가 달라 "금액 확인 필요"로 안내 |
+| `dataUpdatedAt` · `regionCount` | 헤더에 표시되는 데이터 기준일·지역 수 |
+
+데이터를 갱신한 뒤에는 품질 게이트를 한 번 돌려주세요. 커밋하면 CI에서도 자동으로 돕니다.
+
+```bash
+python3 tools/check_data_quality.py
+```
 
 ## 개인정보
 
