@@ -702,6 +702,12 @@ async function init(){
     renderTop10();
     renderFavorites();
 
+    // 자가진단에서 골랐던 동네가 있으면, 재방문 시에도 2·3단계 화면을 그 지역 기준으로 미리 채워둠
+    const savedRegionCode = localStorage.getItem('fairplay_region_code');
+    if(savedRegionCode && voucherData[savedRegionCode]){
+      onRegionClick(savedRegionCode, voucherData[savedRegionCode]);
+    }
+
     // 강좌 상세정보(courses.csv, 약 14MB)는 초기 로딩을 막지 않도록 백그라운드에서 나중에 불러옵니다.
     // 이전에는 Promise.all 안에서 다른 필수 데이터와 함께 기다렸기 때문에, 첫 화면이 뜨기까지
     // 사용자가 14MB짜리 파일 다운로드+파싱이 끝날 때까지 기다려야 했습니다.
@@ -2995,7 +3001,7 @@ async function placeFacilityPinsFor(facilities){
 
 // 진단 질문에 답하면 추천 카드를 부드럽게 펼침 (처음부터 다 보여주지 않고 한 단계씩)
 // 1단계 서브스텝 전환 (age → household → result → recommend), 온보딩과 같은 방식
-const S1_STEPS = ['age','household','priorhistory','resultIntro','docsChecklist','docsNotice','docsContact','resultAction','recommend'];
+const S1_STEPS = ['age','region','household','priorhistory','resultIntro','docsChecklist','docsNotice','docsContact','resultAction','recommend'];
 let s1Initialized = false;
 let s1CurrentStepName = null; // 현재 활성화된 s1 서브스텝 (2·3단계로 이동할 때 숨겼다가, 다시 돌아오면 복원하는 용도)
 
@@ -3015,6 +3021,18 @@ function s1Init(){
   if(age && household){
     renderPriorityNotice(household, localStorage.getItem('fairplay_prior_history') || 'unsure');
     runDiagnose();
+    // 이전에 골랐던 동네가 있으면 결과 화면에도 확인 문구를 같이 보여줌
+    const savedRegionCode = localStorage.getItem('fairplay_region_code');
+    const savedRow = savedRegionCode ? voucherData[savedRegionCode] : null;
+    const confirmEl = document.getElementById('s1RegionConfirm');
+    if(confirmEl){
+      if(savedRow){
+        confirmEl.style.display = 'block';
+        confirmEl.innerHTML = `📍 <b>${savedRow.sido} ${savedRow.region}</b> 기준으로 안내해드릴게요`;
+      } else {
+        confirmEl.style.display = 'none';
+      }
+    }
     s1GoTo('resultIntro');
   } else {
     s1GoTo('age');
@@ -3184,6 +3202,72 @@ function s1SubmitPriorHistory(val){
   const household = document.querySelector('input[name="household"]:checked')?.value;
   renderPriorityNotice(household, val);
   s1GoTo('resultIntro');
+}
+
+/* ---- 1단계 자가진단: 지역 선택 (검색 + 내 위치로 찾기) ----
+   여기서 고른 지역은 2단계(우리동네)·3단계(시설찾기) 화면도 그대로 미리 채워줘서,
+   결과 확인 후 다시 검색할 필요가 없게 합니다. */
+const s1RegionInput = document.getElementById('s1RegionInput');
+const s1RegionSuggest = document.getElementById('s1RegionSuggest');
+if(s1RegionInput){
+  s1RegionInput.addEventListener('input', ()=>{
+    const q = s1RegionInput.value.trim();
+    if(!q){ s1RegionSuggest.style.display='none'; return; }
+    const matches = regionSearchList.filter(r => r.label.includes(q)).slice(0,8);
+    s1RegionSuggest.innerHTML = matches.length === 0
+      ? `<div class="sugg-item" style="color:var(--ink-faint);">${t('no_search_result','검색 결과가 없어요')}</div>`
+      : matches.map(m=>`<div class="sugg-item" data-code="${m.code}">${m.label}</div>`).join('');
+    s1RegionSuggest.style.display = 'block';
+  });
+  s1RegionSuggest.addEventListener('click', (e)=>{
+    const item = e.target.closest('.sugg-item[data-code]');
+    if(!item) return;
+    s1SelectRegion(item.dataset.code);
+  });
+  document.addEventListener('click', (e)=>{
+    if(!e.target.closest('#s1-region .search-box')) s1RegionSuggest.style.display = 'none';
+  });
+  bindEnterToFirstSuggestion(s1RegionInput, s1RegionSuggest);
+}
+
+document.getElementById('s1LocateBtn')?.addEventListener('click', ()=>{
+  const btn = document.getElementById('s1LocateBtn');
+  if(!navigator.geolocation){
+    alert('이 브라우저는 위치 찾기를 지원하지 않아요.');
+    return;
+  }
+  btn.classList.add('loading');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      btn.classList.remove('loading');
+      const { latitude, longitude } = pos.coords;
+      const hit = polygons.find(p => pointInRing(longitude, latitude, p.ring));
+      if(hit){
+        s1SelectRegion(hit.code);
+      } else {
+        alert('현재 위치를 지도 범위 안에서 찾지 못했어요. 검색으로 동네를 찾아보세요.');
+      }
+    },
+    ()=>{
+      btn.classList.remove('loading');
+      alert(t('err_geo_denied','위치 정보를 가져올 수 없어요. 브라우저 위치 권한을 확인해주세요.'));
+    }
+  );
+});
+
+function s1SelectRegion(code){
+  const row = voucherData[code];
+  if(!row) return;
+  onRegionClick(code, row); // 2·3단계 화면을 이 지역 기준으로 미리 채움
+  localStorage.setItem('fairplay_region_code', code);
+  const confirmEl = document.getElementById('s1RegionConfirm');
+  if(confirmEl){
+    confirmEl.style.display = 'block';
+    confirmEl.innerHTML = `📍 <b>${row.sido} ${row.region}</b> 기준으로 안내해드릴게요`;
+  }
+  if(s1RegionInput) s1RegionInput.value = '';
+  if(s1RegionSuggest) s1RegionSuggest.style.display = 'none';
+  s1GoTo('household');
 }
 
 function renderPriorityNotice(household, priorHistory){
