@@ -16,10 +16,6 @@ let sLowThreshold, nLowThreshold;
 let sRankByCode = {}, nRankByCode = {};
 let sidoStats = {}, sidoTotalCount = 0, medianSPct = 0, medianNPct = 0;
 let regionSearchList = [];
-// 지역 검색 자동완성(regionSearchList)·위치찾기(polygons)에 필요한 데이터가
-// 다 준비됐는지 기억하는 깃발. init()이 데이터를 다 불러오기 전까지는 false라서,
-// 온보딩 통합 화면의 지역 검색창을 비활성화해 "검색결과 없음" 오작동을 막습니다.
-let regionDataReady = false;
 let facilityMarker = null;
 let geocodeCache = {};
 let currentPanelCode = null;
@@ -870,20 +866,22 @@ async function init(){
     computeRanks();
     buildSearchIndex();
     buildRegionGeometry(geo.features); // 지도 없이도 위치 판별·중심점 계산이 되도록 먼저 준비
-
-    // regionSearchList·polygons가 이제 다 채워졌으므로, 온보딩 통합 화면에서
-    // 잠겨 있던 지역 검색창을 열어줍니다. (온보딩이 먼저 떠 있어도 안전하게 나중에 열림)
-    regionDataReady = true;
-    wpApplyRegionFieldReadyState();
-
     populateAgeSelect();
     renderTop10();
     renderFavorites();
 
-    // 자가진단에서 골랐던 동네가 있으면, 재방문 시에도 2·3단계 화면을 그 지역 기준으로 미리 채워둠
+    // 자가진단에서 골랐던 동네가 있으면, 재방문 시에도 2·3단계 화면을 그 지역 기준으로 미리 채워둠.
+    // 카카오톡 등으로 공유받은 링크(?region=코드)가 있으면 그 동네를 최우선으로 사용합니다 —
+    // handleSharedRegionLink()가 이미 화면을 2단계로 옮겨뒀으니, 여기서는 그 화면에 실제
+    // 데이터를 채우고 이후 재방문에도 이어지도록 저장까지 해줍니다. (2026-08-29 추가)
+    const sharedRegionCode = new URLSearchParams(location.search).get('region');
     const savedRegionCode = localStorage.getItem('fairplay_region_code');
-    if(savedRegionCode && voucherData[savedRegionCode]){
-      onRegionClick(savedRegionCode, voucherData[savedRegionCode]);
+    const regionCodeToShow = (sharedRegionCode && voucherData[sharedRegionCode]) ? sharedRegionCode : savedRegionCode;
+    if(regionCodeToShow && voucherData[regionCodeToShow]){
+      onRegionClick(regionCodeToShow, voucherData[regionCodeToShow]);
+      if(sharedRegionCode && voucherData[sharedRegionCode]){
+        localStorage.setItem('fairplay_region_code', sharedRegionCode);
+      }
     }
 
     // 강좌 상세정보(courses.csv, 약 14MB)는 초기 로딩을 막지 않도록 백그라운드에서 나중에 불러옵니다.
@@ -1689,7 +1687,10 @@ function renderRegionView(code){
   // "10명 중 N명" 식 문구용 근사치
   const sOutOfTen = Math.max(0, Math.min(10, Math.round(sPct/10)));
   const nOutOfHundred = Math.max(0, Math.round(nPct));
-  const isUrgent = sRank <= totalRegions/2;
+  // sRankByCode는 수급률이 높을수록(잘 받고 있을수록) 순위가 낮은 숫자(1등)입니다.
+  // 그래서 "도움이 시급한 지역"은 순위 숫자가 큰(전국 하위권) 쪽이어야 하는데,
+  // 예전 코드는 부등호가 반대라 정반대로 표시되고 있었습니다. (QA 2026-08-29 지적, 수정)
+  const isUrgent = sRank > totalRegions/2;
   const rankPhrase = isUrgent
     ? '도움이 가장 시급한 지역 중 하나예요.'
     : '전국 평균보다 비교적 잘 받고 있는 지역이에요.';
@@ -2091,6 +2092,12 @@ function shareRegion(){
     ? t('share_desc', `{region}, 아직 신청 안 하신 분이 {n} 있어요. SPOO에서 확인해보세요.`).replace('{region}', `${row.sido} ${row.region}`).replace('{n}', unmetText)
     : t('share_desc_fallback', `{region}의 스포츠강좌이용권 지원 현황을 SPOO에서 확인해보세요!`).replace('{region}', `${row.sido} ${row.region}`);
 
+  // 공유 링크에 지역 코드를 담습니다(?region=코드). 예전엔 location.href(=그냥 홈 화면 주소)를 그대로
+  // 보내서, 받은 사람이 "이 동네 얘기예요"라는 문구만 보고 정작 자기 동네를 처음부터 다시 검색해야
+  // 했습니다. 이제 이 링크로 들어오면 handleSharedRegionLink()가 바로 그 동네 화면을 열어줍니다.
+  // (2026-08-29 수정)
+  const shareUrl = `${location.origin}${location.pathname}?region=${encodeURIComponent(currentPanelCode)}`;
+
   // 1순위: 카카오톡 공유 (JS 키·도메인 등록 완료 시)
   if(typeof Kakao !== 'undefined' && Kakao.isInitialized && Kakao.isInitialized() && Kakao.Share){
     Kakao.Share.sendDefault({
@@ -2098,12 +2105,14 @@ function shareRegion(){
       content: {
         title: title,
         description: desc,
-        imageUrl: location.origin + '/icon-512.png',
-        link: { webUrl: location.href, mobileWebUrl: location.href }
+        // location.origin + '/icon-512.png'는 GitHub Pages 프로젝트 사이트(.../SPOO/ 경로)에서
+        // 도메인 루트를 가리켜 404가 났습니다 — 지금 문서 기준 상대경로로 교정합니다. (QA 지적)
+        imageUrl: new URL('icon-512.png', location.href).href,
+        link: { webUrl: shareUrl, mobileWebUrl: shareUrl }
       },
       buttons: [{
         title: t('share_kakao_btn_title', '지원 현황 보러가기'),
-        link: { webUrl: location.href, mobileWebUrl: location.href }
+        link: { webUrl: shareUrl, mobileWebUrl: shareUrl }
       }]
     });
     return;
@@ -2111,9 +2120,9 @@ function shareRegion(){
 
   // 2순위: 네이티브 공유(navigator.share) — 카카오 SDK를 못 불러온 경우 대비
   if(navigator.share){
-    navigator.share({ title:'SPOO', text: desc, url: location.href }).catch(()=>{});
+    navigator.share({ title:'SPOO', text: desc, url: shareUrl }).catch(()=>{});
   } else {
-    navigator.clipboard.writeText(`${desc}\n${location.href}`).then(()=>{
+    navigator.clipboard.writeText(`${desc}\n${shareUrl}`).then(()=>{
       alert(t('share_copied', '링크를 복사했어요! 카카오톡 등에 붙여넣어 공유해보세요 😊'));
     }).catch(()=>{
       alert(t('share_unsupported', '공유하기를 지원하지 않는 환경이에요. 주소를 직접 복사해주세요.'));
@@ -2152,10 +2161,8 @@ function saveRegionResult(){
 /* ==================== 온보딩 (대화형, 페이지별 애니메이션) ==================== */
 let wpCurrentPage = 0;
 let wpHistory = [];
-// 진행 점(dot) 표시용 — 메인 흐름상의 페이지 순서.
-// 예전엔 이름→생년월일→지역→가정형태→결과 5단계였지만, 이제 정보 입력이
-// 통합 화면(All) 하나로 합쳐져서 "입력 → 결과" 2단계만 남았습니다.
-const WP_DOT_MAIN_PAGES = ['All','3'];
+// 진행 점(dot) 표시용 — 메인 흐름상의 페이지 순서 (분기 페이지 2b/2c는 점에 포함 안 함)
+const WP_DOT_MAIN_PAGES = ['1','2','5','4','3'];
 
 // 어떤 상황에서도 온보딩 페이지가 두 개 이상 겹쳐 보이지 않도록,
 // 보여줄 페이지를 정하기 전에 나머지는 전부 강제로 숨김
@@ -2170,12 +2177,8 @@ function wpShowOnly(id){
   target.style.display = 'flex';
   target.classList.add('wp-enter');
   setTimeout(()=>target.classList.remove('wp-enter'), 350);
-  // 통합 화면(All)은 필드가 4개나 있어서, 들어가자마자 자동으로 키보드가 뜨면
-  // (특히 iOS에서) 화면이 튀어 보일 수 있어 자동 포커스를 하지 않습니다.
-  if(String(id) !== 'All'){
-    const firstInput = target.querySelector('input');
-    if(firstInput) setTimeout(()=>firstInput.focus(), 200);
-  }
+  const firstInput = target.querySelector('input');
+  if(firstInput) setTimeout(()=>firstInput.focus(), 200);
   return target;
 }
 
@@ -2212,16 +2215,17 @@ function wpSplashNext(){
     wpCurrentPage = 'Return';
     wpShowOnly('Return');
   } else {
-    wpGoTo('All', true);
+    wpGoTo(1, true);
   }
 }
 
-// 재방문자가 "이름·생일 설정하기"를 누르면 처음 방문자와 똑같이
-// 이름·생년월일·지역·가정형태를 한 번에 입력하는 통합 화면(wpAll)으로 들어감
+// 재방문자가 "내 나이·이름 설정하기"를 누르면 처음 방문자와 완전히 동일한
+// 이름 → 생년월일 입력 흐름으로 들어감 (wp1부터 그대로 재사용, 뒤로가기도 자연스럽게 연결됨)
 function wpEditProfile(){
   wpHistory.push('Return');
-  wpShowOnly('All');
-  wpCurrentPage = 'All';
+  wpShowOnly(1);
+  wpCurrentPage = 1;
+  wpUpdateDots(1);
 }
 
 function wpReturnFinish(goal){
@@ -2273,6 +2277,57 @@ function wpSkip(){
   maybeShowHomeTips();
 }
 
+function wpSubmitName(){
+  const val = document.getElementById('wpName').value.trim();
+  if(!val){
+    document.getElementById('wpName').style.borderColor = 'var(--coral)';
+    document.getElementById('wpName').placeholder = t('err_enter_name','이름을 입력해주세요');
+    return;
+  }
+  localStorage.setItem('fairplay_name', val);
+  document.getElementById('wpGreeting').textContent = t('wp_greeting_named', `반갑습니다, ${val}님!`).replace('{name}', val);
+  wpGoTo(2);
+}
+
+function wpSubmitBirth(){
+  const val = document.getElementById('wpBirth').value;
+  if(!val){
+    document.getElementById('wpBirth').style.borderColor = 'var(--coral)';
+    return;
+  }
+  const age = wpCalcAge(val);
+  localStorage.setItem('fairplay_birth', val);
+
+  if(age > 18){
+    // 성인 나이 — 아이가 이용하는지 물어보는 갈림길로
+    wpGoTo('2b');
+    return;
+  }
+  // 본인 흐름은 나이 상한(18세)만 확인하고 하한을 확인하지 않아, 5세 미만 생년월일을 입력해도
+  // 그대로 "대상자"로 안내되는 문제가 있었습니다. 아이 흐름(wpSubmitChildBirth)엔 이미 있는
+  // 5세 미만 분기를 여기에도 똑같이 추가합니다. (QA 2026-08-29 지적, 수정)
+  if(age < 5){
+    const name = localStorage.getItem('fairplay_name') || '';
+    document.getElementById('wpChildResultEmoji').textContent = '😅';
+    document.getElementById('wpChildResultText').innerHTML = name
+      ? t('wp_self_result_too_young_named', `${escapeHtml(name)}님은<br>아직 조금 더 커야 해요`).replace('{name}', escapeHtml(name))
+      : t('wp_self_result_too_young', '아직 조금 더 커야 해요');
+    const btnEl = document.getElementById('wpChildResultBtn');
+    btnEl.textContent = t('wp_child_result_btn_facility', '그래도 시설은 찾아볼게요');
+    btnEl.onclick = () => wpFinish('facility');
+    wpGoTo('2e');
+    return;
+  }
+  localStorage.setItem('fairplay_age', age);
+  // 본인이 직접 이용 대상인 경우 — 표시용 이름은 본인 이름으로 확정.
+  // (다른 세션에서 "아이가 이용해요" 흐름을 탄 적이 있다면 남아있을 수 있는
+  //  이전 아이 이름 데이터가 이후 화면에 잘못 노출되지 않도록 함께 정리합니다.)
+  localStorage.setItem('fairplay_display_name', localStorage.getItem('fairplay_name') || '');
+  localStorage.removeItem('fairplay_child_name');
+  wpShowAgeNote(age);
+  wpGoTo(5);
+}
+
 function wpCalcAge(dateStr){
   const birthDate = new Date(dateStr);
   const today = new Date();
@@ -2280,6 +2335,50 @@ function wpCalcAge(dateStr){
   const m = today.getMonth() - birthDate.getMonth();
   if(m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
   return age;
+}
+
+function wpSubmitChildName(){
+  const val = document.getElementById('wpChildName').value.trim();
+  if(!val){
+    document.getElementById('wpChildName').style.borderColor = 'var(--coral)';
+    document.getElementById('wpChildName').placeholder = t('err_enter_child_name','아이 이름을 입력해주세요');
+    return;
+  }
+  localStorage.setItem('fairplay_child_name', val);
+  document.getElementById('wpChildBirthQ').innerHTML = t('wp_child_birth_q', `${escapeHtml(val)} 어린이의<br>생년월일을 알려주세요`).replace('{name}', escapeHtml(val));
+  wpGoTo('2d');
+}
+
+function wpSubmitChildBirth(){
+  const val = document.getElementById('wpChildBirth').value;
+  if(!val){
+    document.getElementById('wpChildBirth').style.borderColor = 'var(--coral)';
+    return;
+  }
+  const age = wpCalcAge(val);
+  const childName = localStorage.getItem('fairplay_child_name') || '아이';
+
+  const emojiEl = document.getElementById('wpChildResultEmoji');
+  const textEl = document.getElementById('wpChildResultText');
+  const btnEl = document.getElementById('wpChildResultBtn');
+
+  if(age >= 5 && age <= 18){
+    localStorage.setItem('fairplay_age', age);
+    localStorage.setItem('fairplay_display_name', childName); // 이후 화면(가정유형 결과, 서류 체크리스트 등)에 아이 이름이 뜨도록
+    wpShowAgeNote(age);
+    emojiEl.textContent = '🎉';
+    textEl.innerHTML = t('wp_child_result_ok', `${escapeHtml(childName)} 어린이는<br>이용 가능해요!`).replace('{name}', escapeHtml(childName));
+    btnEl.textContent = t('wp_child_result_btn_ok', '이용할 시설 알아볼까요?');
+    btnEl.onclick = () => wpGoTo(5);
+  } else {
+    emojiEl.textContent = '😅';
+    textEl.innerHTML = age < 5
+      ? t('wp_child_result_too_young', `${escapeHtml(childName)} 어린이는<br>아직 조금 더 커야 해요`).replace('{name}', escapeHtml(childName))
+      : t('wp_child_result_too_old', `${escapeHtml(childName)} 어린이는<br>이미 나이가 지났어요`).replace('{name}', escapeHtml(childName));
+    btnEl.textContent = t('wp_child_result_btn_facility', '그래도 시설은 찾아볼게요');
+    btnEl.onclick = () => wpFinish('facility');
+  }
+  wpGoTo('2e');
 }
 
 // 경계값(5세·18세) 케이스 안내 문구
@@ -2291,28 +2390,10 @@ function wpShowAgeNote(age){
   else el.textContent = '';
 }
 
-/* ---- 온보딩 통합 화면: 지역 선택 (자가진단의 지역선택과 동일한 방식) ---- */
-// 지역 데이터(regionSearchList·polygons)가 아직 안 준비됐으면 입력창을 잠가서
-// "검색결과 없음"처럼 잘못 보이는 걸 막고, init()에서 준비가 끝나면 다시 열어줍니다.
-function wpApplyRegionFieldReadyState(){
-  const inp = document.getElementById('wpRegionInput');
-  const btn = document.getElementById('wpLocateBtn');
-  if(!inp) return;
-  if(regionDataReady){
-    inp.disabled = false;
-    inp.placeholder = t('ph_region_search','동네 이름으로 찾기 (예: 강남구)');
-    if(btn) btn.disabled = false;
-  } else {
-    inp.disabled = true;
-    inp.placeholder = t('region_loading','동네 목록 불러오는 중...');
-    if(btn) btn.disabled = true;
-  }
-}
-
+/* ---- 온보딩 5페이지: 지역 선택 (자가진단의 지역선택과 동일한 방식) ---- */
 const wpRegionInput = document.getElementById('wpRegionInput');
 const wpRegionSuggest = document.getElementById('wpRegionSuggest');
 if(wpRegionInput){
-  wpApplyRegionFieldReadyState(); // 페이지가 막 열렸을 때 기준으로 우선 한 번 적용
   wpRegionInput.addEventListener('input', ()=>{
     const q = wpRegionInput.value.trim();
     if(!q){ wpRegionSuggest.style.display='none'; return; }
@@ -2328,7 +2409,7 @@ if(wpRegionInput){
     wpSelectRegion(item.dataset.code);
   });
   document.addEventListener('click', (e)=>{
-    if(!e.target.closest('#wpAll .search-box')) wpRegionSuggest.style.display = 'none';
+    if(!e.target.closest('#wp5 .search-box')) wpRegionSuggest.style.display = 'none';
   });
   bindEnterToFirstSuggestion(wpRegionInput, wpRegionSuggest);
 }
@@ -2358,101 +2439,31 @@ document.getElementById('wpLocateBtn')?.addEventListener('click', ()=>{
   );
 });
 
-// 통합 화면에서 지역을 하나 고르면, 예전처럼 다음 화면으로 넘어가지 않고
-// 같은 화면에 "✅ OO구 선택됨"만 표시합니다. 실제 선택 여부는 wpAllRegionCode에 기억해뒀다가
-// wpSubmitAll()에서 최종 제출할 때 사용합니다.
-let wpAllRegionCode = null;
 function wpSelectRegion(code){
   const row = voucherData[code];
   if(!row) return;
   onRegionClick(code, row);
   localStorage.setItem('fairplay_region_code', code);
-  wpAllRegionCode = code;
-
-  const inputEl = document.getElementById('wpRegionInput');
-  if(inputEl) inputEl.style.borderColor = '';
-  const pickedEl = document.getElementById('wpRegionPicked');
-  if(pickedEl){
-    pickedEl.style.display = 'block';
-    pickedEl.innerHTML = `✅ <b>${escapeHtml(row.sido || '')} ${escapeHtml(row.region || '')}</b> 선택됨`;
-  }
+  wpGoTo(4);
+}
+function wpSkipRegion(){
+  wpGoTo(4);
 }
 
-// 통합 화면의 "확인하고 결과 보기" 버튼 — 이름·생년월일·지역·가정형태를 한 번에 검증하고 저장합니다.
-function wpSubmitAll(){
-  let firstInvalid = null;
-
-  // 1) 이름 (필수)
-  const nameEl = document.getElementById('wpName');
-  const name = nameEl.value.trim();
-  if(!name){
-    nameEl.style.borderColor = 'var(--coral)';
-    firstInvalid = firstInvalid || nameEl;
-  } else {
-    nameEl.style.borderColor = '';
-  }
-
-  // 2) 생년월일 (필수)
-  const birthEl = document.getElementById('wpBirth');
-  const birth = birthEl.value;
-  if(!birth){
-    birthEl.style.borderColor = 'var(--coral)';
-    firstInvalid = firstInvalid || birthEl;
-  } else {
-    birthEl.style.borderColor = '';
-  }
-
-  // 3) 가정형태 (필수) — 라디오 그룹 이름은 기존 자가진단 화면의 "household"와
-  // 겹치지 않도록 일부러 "wpAllHousehold"라는 다른 이름을 씁니다.
-  // (이름이 같으면 브라우저가 화면이 달라도 하나의 라디오 그룹으로 묶어버려서,
-  //  온보딩에서 고른 선택이 자가진단 화면 선택을 지워버리는 오류가 생길 수 있습니다.)
-  const hhChecked = document.querySelector('input[name="wpAllHousehold"]:checked');
-  const hhGroupEl = document.getElementById('wpAllHouseholdGroup');
-  if(!hhChecked){
-    if(hhGroupEl) hhGroupEl.classList.add('wp-all-error');
-    firstInvalid = firstInvalid || hhGroupEl;
-  } else if(hhGroupEl){
-    hhGroupEl.classList.remove('wp-all-error');
-  }
-
-  // 4) 지역 (선택 항목) — 검색창에 글자만 입력하고 목록에서 실제로 고르지 않았다면
-  // "선택된 것처럼" 착각하고 넘어가지 않도록 별도로 감지합니다.
-  const regionInputEl = document.getElementById('wpRegionInput');
-  const regionTypedButNotPicked = !!(regionInputEl && regionInputEl.value.trim() && !wpAllRegionCode);
-
-  if(firstInvalid){
-    firstInvalid.scrollIntoView({ behavior:'smooth', block:'center' });
-    return;
-  }
-
-  // ---- 여기까지 통과했으면 실제로 저장 ----
-  localStorage.setItem('fairplay_name', name);
-  localStorage.setItem('fairplay_display_name', name);
-  // 예전 버전에서 "아이가 이용해요" 흐름을 탄 적이 있는 기기라면 남아있을 수 있는
-  // 이전 자녀 이름 데이터를 정리해서, 새 화면에 엉뚱하게 노출되는 걸 막습니다.
-  localStorage.removeItem('fairplay_child_name');
-
-  const age = wpCalcAge(birth);
-  localStorage.setItem('fairplay_birth', birth);
-  localStorage.setItem('fairplay_age', age);
-  wpShowAgeNote(age);
-
-  const household = hhChecked.value;
-  localStorage.setItem('fairplay_household', household);
-
-  wpRenderEligibility(age, household, name);
+function wpSubmitHousehold(val){
+  localStorage.setItem('fairplay_household', val);
+  // 실제 이용 대상 이름: "아이가 이용해요" 흐름이면 아이 이름, 본인 이용이면 본인 이름.
+  // (예전 방식으로 fairplay_name만 쓰면 아이 흐름을 타도 계속 부모님 본인 이름이 떠서 수정함)
+  const name = localStorage.getItem('fairplay_display_name') || localStorage.getItem('fairplay_name') || '';
+  const age = Number(localStorage.getItem('fairplay_age'));
+  wpRenderEligibility(age, val, name);
   document.getElementById('wpGoalTitle').innerHTML = t('wp_goal_title', `${escapeHtml(name)}님,<br>무엇을 먼저 해볼까요?`).replace('{name}', escapeHtml(name));
+  // 서류 안내가 있는 경우(대상+범주 확실) "신청 서류 준비하기" 선택지도 보여줌
   const docBtn = document.getElementById('wpDocGoalBtn');
-  if(docBtn) docBtn.style.display = (household !== 'unsure') ? 'flex' : 'none';
-
-  const regionCode = wpAllRegionCode || currentPanelCode || localStorage.getItem('fairplay_region_code');
+  if(docBtn) docBtn.style.display = (val !== 'unsure') ? 'flex' : 'none';
+  const regionCode = currentPanelCode || localStorage.getItem('fairplay_region_code');
   const regionRow = regionCode ? voucherData[regionCode] : null;
   if(regionRow) s1RenderRegionConfirm(regionRow, 'wpHouseholdRegionNote');
-
-  if(regionTypedButNotPicked){
-    alert(t('region_not_picked_notice','입력하신 동네가 목록에서 선택되지 않아 지역 정보 없이 진행할게요. 2단계에서 다시 찾을 수 있어요.'));
-  }
-
   wpGoTo(3);
 }
 
@@ -2928,8 +2939,9 @@ async function onRegionClick(code, row){
   // 군 지역은 이용률이 시·구보다 낮다는 데이터가 있어(13.5% vs 17.3%, 2026-08 분석),
   // 더 꼼꼼히 확인하시라는 맞춤 안내를 한 줄 얹습니다. STP 1순위 타겟 대응.
   const isRuralGun = /군$/.test(row.region || '');
+  // 하드코딩된 한국어 문장이라 영어·베트남어·중국어 모드에서도 한국어로만 보였습니다 — t()로 교체. (QA 지적)
   const ruralBannerHtml = isRuralGun
-    ? `<div class="rural-hint">🌾 ${row.region}은 이용률이 상대적으로 낮은 지역이에요 — 그래서 더 꼼꼼히 확인해 드릴게요</div>`
+    ? `<div class="rural-hint">${t('rural_hint_low_usage', `🌾 {region}은 이용률이 상대적으로 낮은 지역이에요 — 그래서 더 꼼꼼히 확인해 드릴게요`).replace('{region}', escapeHtml(row.region))}</div>`
     : '';
 
   document.getElementById('regionStatsCard').innerHTML = `
@@ -3247,9 +3259,15 @@ function finishRecommend(list, resultEl, sport, nearestRow){
 /* ---- 검색으로 동네 찾기 ---- */
 function goToRegion(code){
   const row = voucherData[code];
-  if(!row || !row._centroid) return;
-  map.setCenter(new naver.maps.LatLng(row._centroid.lat, row._centroid.lng));
-  map.setZoom(11);
+  if(!row) return;
+  // 카카오톡/인스타그램 인앱 브라우저 등 네이버 지도 스크립트가 차단되는 환경에서는
+  // map이 끝내 생기지 않습니다. 예전엔 이 상태에서 map.setCenter(...)가 그대로 터져서
+  // 검색 자체가 먹통이 됐습니다 — 지도 이동은 가능할 때만 하고, 동네 정보 화면은
+  // 지도 여부와 무관하게 항상 열리도록 분리했습니다. (QA 2026-08-29 지적, 수정)
+  if(typeof naver !== 'undefined' && map && row._centroid){
+    map.setCenter(new naver.maps.LatLng(row._centroid.lat, row._centroid.lng));
+    map.setZoom(11);
+  }
   onRegionClick(code, row);
 }
 
@@ -3290,20 +3308,20 @@ function bindEnterToFirstSuggestion(inputEl, suggestEl){
 }
 bindEnterToFirstSuggestion(searchInput, searchSuggest);
 
-// 통합 화면(이름·생년월일·지역·가정형태)에서 엔터를 누르면 전체 제출이 아니라
-// "다음 칸으로 이동"만 하도록 합니다. (필드가 여러 개라 아직 안 채운 칸이 있는데
-// 엔터 한 번에 제출부터 시도되면 에러 표시가 한꺼번에 우르르 뜨는 문제를 막기 위함)
-function focusNextField(currentId, nextId){
-  const el = document.getElementById(currentId);
+// 이름·생년월일 입력 화면에서 엔터를 누르면 "다음" 버튼을 누른 것과 똑같이 진행됨
+function bindEnterToSubmit(inputId, submitFn){
+  const el = document.getElementById(inputId);
   if(!el) return;
   el.addEventListener('keydown', (e)=>{
     if(e.key !== 'Enter') return;
     e.preventDefault();
-    document.getElementById(nextId)?.focus();
+    submitFn();
   });
 }
-focusNextField('wpName', 'wpBirth');
-focusNextField('wpBirth', 'wpRegionInput');
+bindEnterToSubmit('wpName', wpSubmitName);
+bindEnterToSubmit('wpBirth', wpSubmitBirth);
+bindEnterToSubmit('wpChildName', wpSubmitChildName);
+bindEnterToSubmit('wpChildBirth', wpSubmitChildBirth);
 
 document.addEventListener('click', (e)=>{
   if(!e.target.closest('.search-box')) searchSuggest.style.display = 'none';
@@ -3751,8 +3769,14 @@ async function placeFacilityPinsFor(facilities){
   if(facilityMarker){ facilityMarker.setMap(null); facilityMarker = null; }
   dimPolygonColors(); // 시설 핀이 잘 보이도록 지역 색은 옅게
 
-  map.setCenter(new naver.maps.LatLng(row._centroid.lat, row._centroid.lng));
-  map.setZoom(13);
+  // 지도 스크립트가 차단된 환경(naver 자체가 없음)에서는 예전엔 바로 아래 map.setCenter(...)에서
+  // 멈춰버려서, 저장된 좌표만으로도 가능했던 "거리순 목록 표시"까지 전부 잃었습니다.
+  // 지도 관련 호출을 naver·map이 실제로 있을 때만 하도록 가드를 앞으로 옮겼습니다. (QA 2026-08-29)
+  const hasMap = typeof naver !== 'undefined' && map;
+  if(hasMap){
+    map.setCenter(new naver.maps.LatLng(row._centroid.lat, row._centroid.lng));
+    map.setZoom(13);
+  }
 
   if(typeof naver === 'undefined' || !naver.maps.Service) return;
 
@@ -4155,6 +4179,16 @@ function renderPriorityNotice(household, priorHistory){
 // 홈 화면 아이콘을 길게 눌러 나오는 단축 메뉴에서 진입한 경우, 온보딩(이름 입력 등)을
 // 거치지 않고 바로 원하는 화면으로 이동시킵니다. (Android Chrome 계열에서만 지원되는 기능이며,
 // manifest.json의 "shortcuts" 항목과 짝을 이룹니다.) 처리했으면 true를 반환해서 온보딩 화면을 건너뜁니다.
+// 카카오톡 등으로 지역 통계를 공유받아 들어온 경우(예: ?region=11680), 온보딩 튜토리얼을
+// 거치지 않고 바로 그 동네의 '우리 동네' 화면으로 이동시킵니다. 실제 데이터는 아직 안 불러왔을 수
+// 있으니, 화면 전환만 먼저 하고 데이터 채우기는 init() 안에서 voucherData가 준비된 뒤에 이어집니다.
+// (2026-08-29 추가 — shareRegion()이 이제 이 파라미터를 붙여서 공유하도록 함께 수정했습니다.)
+function handleSharedRegionLink(){
+  if(!new URLSearchParams(location.search).get('region')) return false;
+  goToStep(2);
+  return true;
+}
+
 function handlePwaShortcut(){
   const shortcut = new URLSearchParams(location.search).get('shortcut');
   if(!shortcut) return false;
@@ -4181,7 +4215,7 @@ window.addEventListener('load', ()=>{
     }
   }, 3400);
 
-  if(!handlePwaShortcut()) initOnboarding();
+  if(!handlePwaShortcut() && !handleSharedRegionLink()) initOnboarding();
   registerServiceWorker();
   setupInstallPrompt();
 
