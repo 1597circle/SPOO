@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v5'; // v4→v5: 데이터 정리 릴리스(엔티티 디코딩·전화번호 검증·defer) 반영
+const CACHE_NAME = 'spoo-v7'; // v6→v7: 지도에 내 위치 표시 추가
 const CORE_FILES = [
   './index.html',
   './style.css',

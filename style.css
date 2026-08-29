@@ -1036,3 +1036,72 @@
 @media (max-width:480px){
   .coachmark-bubble{ max-width:calc(100vw - 40px); }
 }
+
+/* ==================== 예산 요약 카드 · 현재 위치 버튼 (전문가 피드백 반영, 2026-08-29) ==================== */
+.s2c-budget-hero{ text-align:center; margin:18px 0 6px; }
+.s2c-budget-label{ font-size:var(--fs-body, 15px); color:var(--ink-faint, #6B7684); }
+.s2c-budget-label b{ color:var(--blue, #3182F6); }
+.s2c-budget-num{ font-size:52px; font-weight:800; letter-spacing:-0.03em; color:var(--ink, #191F28); line-height:1.15; }
+.s2c-budget-num span{ font-size:22px; font-weight:700; margin-left:2px; color:var(--ink-faint, #6B7684); }
+.s2c-budget-sub{ font-size:13px; color:var(--ink-faint, #8B95A1); margin-top:2px; }
+.budget-chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:14px 0 4px; }
+.bchip{
+  border:1px solid var(--line, #E5E8EB); background:var(--bg-soft, #F9FAFB);
+  border-radius:999px; padding:8px 14px; font-size:14px; color:var(--ink, #191F28);
+  cursor:pointer; font-family:inherit;
+}
+.bchip b{ color:var(--blue, #3182F6); margin-left:2px; }
+.bchip:active{ transform:scale(0.97); }
+.s2c-minor-link{
+  margin-top:14px; text-align:center; font-size:12.5px; color:var(--ink-faint, #8B95A1);
+  cursor:pointer; text-decoration:underline; text-underline-offset:3px;
+}
+.near-me-btn{
+  display:block; width:100%; margin:10px 0 12px; padding:12px;
+  border:1.5px solid var(--blue, #3182F6); background:var(--blue-soft, #EBF3FF);
+  color:var(--blue-deep, #1B64DA); border-radius:12px; font-size:15px; font-weight:700;
+  cursor:pointer; font-family:inherit;
+}
+.near-me-btn:disabled{ opacity:0.6; cursor:wait; }
+
+/* ==================== 📍 지도 위 「내 위치」 (2026-08-29 추가) ==================== */
+/* 지도를 감싸서, 버튼을 지도 위에 띄웁니다 (#map 자체의 크기·모서리 설정은 그대로 둠) */
+#mapWrap{ position:relative; height:100%; }
+@media (max-width: 900px){ #mapWrap{ height:auto; } }
+#app.no-map #mapWrap{ display:none; }
+
+#myLocBtn{
+  position:absolute; right:14px; bottom:14px; z-index:20;
+  width:44px; height:44px; border-radius:50%;
+  background:#fff; border:1px solid rgba(0,0,0,.12);
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+  font-size:20px; line-height:1; color:#3182F6; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-family:inherit; padding:0;
+}
+#myLocBtn:hover{ background:#F5F7FA; }
+#myLocBtn:active{ transform:scale(0.94); }
+#myLocBtn:disabled{ cursor:wait; color:#8B95A1; }
+#myLocBtn.active{ color:#1B64DA; border-color:#3182F6; }
+
+/* 현재 위치를 나타내는 파란 점 (네이버 지도 스타일) */
+.my-loc-dot{
+  width:22px; height:22px; border-radius:50%;
+  background:#3182F6; border:3px solid #fff;
+  box-shadow:0 0 0 1px rgba(49,130,246,.5), 0 2px 6px rgba(0,0,0,.3);
+  position:relative;
+}
+/* 점 주변에 은은하게 퍼지는 물결 — 위치가 살아있다는 느낌을 줍니다 */
+.my-loc-pulse{
+  position:absolute; inset:-3px; border-radius:50%;
+  background:rgba(49,130,246,.35);
+  animation:myLocPulse 2s ease-out infinite;
+}
+@keyframes myLocPulse{
+  0%   { transform:scale(1);   opacity:.7; }
+  70%  { transform:scale(2.6); opacity:0; }
+  100% { transform:scale(2.6); opacity:0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .my-loc-pulse{ animation:none; opacity:.35; }
+}

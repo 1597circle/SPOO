@@ -1339,7 +1339,7 @@ function renderFacilityList(facilities, filterType, timeFilter, costFilter, styl
     const sportIcon = getSportEmoji(f.type);
     const fkey = escapeAttr(f.sgg ? `${f.name}|${f.sgg}` : f.name);
     return `<div class="facility-item" data-fkey="${fkey}" onclick="showFacilityOnMap('${escapeAttr(f.name)}','${escapeAttr(f.addr)}','${escapeAttr(f.sgg||'')}','${escapeAttr(f.naver_lat||'')}','${escapeAttr(f.naver_lng||'')}')">
-      <div class="fname"><span class="sport-icon">${sportIcon}</span><span onclick="event.stopPropagation(); openNaverSearch('${escapeAttr(f.name)}','${escapeAttr(f.addr)}','${escapeAttr(f.sgg||'')}','${escapeAttr(phone||'')}','${escapeAttr(f.naver_title||'')}')">${escapeHtml(f.name)}</span></div>
+      <div class="fname"><span class="sport-icon">${sportIcon}</span><span>${escapeHtml(f.name)}</span></div>
       <div class="faddr">📍 ${escapeHtml(f.addr)}<span class="fdist" style="display:none;"></span></div>
       ${phoneHtml}
       <div class="fhint-row">
@@ -2673,6 +2673,78 @@ function goToStepFromPicks(){
   goToStep(3);
 }
 
+
+/* ==================== 예산 중심 지역 요약 (전문가 피드백 반영, 2026-08-29) ====================
+   "우리 동네 수급률 27.94%, 전국 100위" 같은 통계는 정책 담당자에게는 의미 있지만
+   일반 이용자에게는 도움이 안 된다는 피드백을 반영해, 이용자 화면(2단계)에는
+   "내 돈 얼마로 뭘 들을 수 있는지"를 보여줍니다. 통계·순위는 담당자용 화면(지역 현황 보기)에 그대로 있습니다. */
+function computeBudgetSummary(facilities){
+  if(!Object.keys(coursesByFacility).length) return null; // 강좌 데이터가 아직 로딩 전
+  let free=0, u3=0, u5=0, total=0, freeFac=0;
+  facilities.forEach(f=>{
+    const courses = coursesByFacility[f.sgg ? `${f.name}|${f.sgg}` : f.name] || [];
+    let hasFree = false;
+    courses.forEach(c=>{
+      const b = getCostBreakdown(c.settl_amt);
+      if(!b || b.special) return; // 오입력·기간 미상 금액은 계산에서 제외
+      total++;
+      if(b.myCost === 0){ free++; hasFree = true; }
+      if(b.myCost <= 30000) u3++;
+      if(b.myCost <= 50000) u5++;
+    });
+    if(hasFree) freeFac++;
+  });
+  return { free, u3, u5, total, freeFac };
+}
+
+function budgetSummaryHtml(sum, facCount){
+  return `
+    <div class="s2c-budget-hero">
+      <div class="s2c-budget-label">내 돈 <b>0원</b>으로 들을 수 있는 강좌</div>
+      <div class="s2c-budget-num">${sum.free.toLocaleString()}<span>개</span></div>
+      <div class="s2c-budget-sub">${sum.freeFac.toLocaleString()}개 시설 · 이용권 지원(월 ${(VOUCHER_LIMIT/10000).toLocaleString()}만원)으로 전액 해결</div>
+    </div>
+    <div class="budget-chips">
+      <button class="bchip" onclick="applyBudgetChip('free')">0원 <b>${sum.free.toLocaleString()}</b></button>
+      <button class="bchip" onclick="applyBudgetChip('under3')">3만원까지 <b>${sum.u3.toLocaleString()}</b></button>
+      <button class="bchip" onclick="applyBudgetChip('under5')">5만원까지 <b>${sum.u5.toLocaleString()}</b></button>
+      <button class="bchip" onclick="applyBudgetChip('__all__')">전체 <b>${sum.total.toLocaleString()}</b></button>
+    </div>
+    <div class="s2c-caption">예산을 누르면 그 가격대 강좌만 골라서 보여드려요</div>`;
+}
+
+let __budgetTimer = null;
+function renderRegionBudget(facilities){
+  const box = document.getElementById('regionBudgetBox');
+  if(!box) return;
+  if(__budgetTimer){ clearInterval(__budgetTimer); __budgetTimer = null; }
+  const paint = (sum)=>{ box.innerHTML = budgetSummaryHtml(sum, facilities.length); };
+  const sum = computeBudgetSummary(facilities);
+  if(sum){ paint(sum); return; }
+  // 강좌 데이터(14MB)는 백그라운드에서 늦게 도착하므로, 올 때까지 잠깐 기다렸다가 채웁니다
+  box.innerHTML = '<div class="s2c-caption" style="padding:18px 0;">강좌·가격 정보를 불러오는 중...</div>';
+  let tries = 0;
+  __budgetTimer = setInterval(()=>{
+    const s2 = computeBudgetSummary(facilities);
+    if(s2 || ++tries > 20){
+      clearInterval(__budgetTimer); __budgetTimer = null;
+      if(s2) paint(s2);
+      else box.innerHTML = '<div class="s2c-caption">강좌 정보를 불러오지 못했어요. 새로고침해주세요.</div>';
+    }
+  }, 1500);
+}
+
+function applyBudgetChip(band){
+  if(typeof goToStep === 'function') goToStep(3);
+  setTimeout(()=>{
+    const sel = document.getElementById('costFilter');
+    if(sel){ sel.value = band; }
+    facilityListLimit = 5;
+    onFilterChange();
+    document.querySelectorAll('.bchip').forEach(el=>el.classList.remove('active'));
+  }, 150);
+}
+
 async function onRegionClick(code, row){
   restorePolygonColors(); // 시설 핀 보느라 지워졌던 지역 색을 다시 보여줍니다
   if(facilityMarker){ facilityMarker.setMap(null); facilityMarker = null; }
@@ -2773,30 +2845,20 @@ async function onRegionClick(code, row){
   const sRankPct = Math.max(2, Math.min(98, (sRank / totalRegions) * 100));
   const nRankPct = Math.max(2, Math.min(98, (nRank / totalRegions) * 100));
 
-  // ---- 2단계: 우리동네 현황 카드 (숫자 먼저 미니멀 스타일, 각 숫자에 라벨·순위 명시) ----
+  // ---- 2단계: 우리동네 카드 ----
+  // (수급률 %·전국 순위는 이용자에게 도움이 안 된다는 전문가 피드백에 따라
+  //  "내 예산으로 들을 수 있는 강좌" 요약으로 교체. 통계는 담당자용 화면에 그대로 있음. 2026-08-29)
   document.getElementById('regionStatsCard').innerHTML = `
     <div style="display:flex; justify-content:flex-end; margin-bottom:4px;">
       <button class="fav-star ${favActive?'active':''}" onclick="toggleFavorite('${code}')" title="${t('favorite','즐겨찾기')}">⭐</button>
     </div>
-    <div class="s2c-tag"><span class="dot"></span>${row.sido} ${row.region} · 스포츠강좌이용권 현황</div>
-    <div style="text-align:center; margin-top:16px;"><span class="type-badge" style="background:var(--coral-soft); color:var(--coral-deep);">${type.label}</span></div>
-    <div class="s2c-numbers">
-      <div class="s2c-num-col">
-        <div class="s2c-num-label">${t('group_basic','기초생활수급 가정')}</div>
-        <span class="s2c-num" data-target="${sPct}">0<span class="s2c-pct">%</span></span>
-        <div class="s2c-rank">전국 ${totalRegions}곳 중 <b>${sRank}위</b></div>
-      </div>
-      <div class="s2c-num-col">
-        <div class="s2c-num-label">${t('group_near','차상위 · 한부모 가정')}</div>
-        <span class="s2c-num coral" data-target="${nPct}">0<span class="s2c-pct">%</span></span>
-        <div class="s2c-rank">전국 ${totalRegions}곳 중 <b>${nRank}위</b></div>
-      </div>
-    </div>
-    <div class="s2c-caption">대상자 중 실제로 지원받은 비율이에요</div>
+    <div class="s2c-tag"><span class="dot"></span>${row.sido} ${row.region} · 우리 동네에서 할 수 있는 것</div>
+    <div id="regionBudgetBox"></div>
     <div class="s2c-cheer">${t('s2c_cheer','신청해도 손해볼 건 없어요 📝')}</div>
     <div class="s2c-cheer-sub">${t('s2c_cheer_sub','선정은 지자체 예산·순위에 따라 달라질 수 있어요')}</div>
+    <div class="s2c-minor-link" onclick="openRegionView()">📊 지역별 수급 통계·순위가 필요하신 담당자는 이곳에서 →</div>
   `;
-  animateRegionStats();
+  renderRegionBudget(facilities);
   renderTopPicksScreen(facilities);
   const toStep3Btn = document.getElementById('toStep3Btn');
   if(toStep3Btn) toStep3Btn.style.display = 'block';
@@ -2804,6 +2866,7 @@ async function onRegionClick(code, row){
   // ---- 3단계: 시설 찾기 카드 ----
   document.getElementById('regionFacilityCard').innerHTML = `
     <h2>${row.sido} ${row.region} · 가까운 시설</h2>
+    <button class="near-me-btn" id="nearMeBtn" onclick="sortFacilitiesByMyLocation()">📍 내 위치에서 가까운 순으로 보기</button>
     ${neighborSectionHtml}
     ${filterHtml}
     <div id="facilityListBox">${facilitiesHtml}</div>
@@ -2885,6 +2948,51 @@ function populateSportSelect(){
 }
 
 /* ==================== 🎯 맞춤 시설 추천 (나이·종목·실시간 위치 기반) ==================== */
+/* 📍 현재 위치 기준 거리순 정렬 (전문가 피드백 "현재 위치 버튼 추가" 반영, 2026-08-29)
+   좌표가 있는 시설(현재 약 77%, 보충 작업 진행 중)을 가까운 순으로 앞에 두고,
+   좌표가 아직 없는 시설은 순서를 유지한 채 뒤에 둡니다. */
+function sortFacilitiesByMyLocation(){
+  const btn = document.getElementById('nearMeBtn');
+  if(!('geolocation' in navigator)){
+    showToast('이 브라우저에서는 위치 기능을 쓸 수 없어요');
+    return;
+  }
+  if(btn){ btn.disabled = true; btn.textContent = '📍 내 위치 확인 중...'; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const my = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    userLocation = my; userLocationAsked = true; // 다른 기능에서도 재사용
+    // 정렬만 하지 않고 지도에도 내 위치를 함께 표시합니다 (어디를 기준으로 정렬됐는지 눈으로 보이게)
+    showMyLocationOnMap(my.lat, my.lng, { accuracy: pos.coords.accuracy });
+    const withD = [], withoutD = [];
+    (currentPanelFacilities || []).forEach(f=>{
+      const la = parseFloat(f.naver_lat), lo = parseFloat(f.naver_lng);
+      if(!isNaN(la) && !isNaN(lo)){
+        withD.push({ f, d: haversineKm(my.lat, my.lng, la, lo) });
+      } else withoutD.push(f);
+    });
+    withD.sort((a,b)=> a.d - b.d);
+    const distByKey = {};
+    withD.forEach(x=>{ distByKey[x.f.sgg ? `${x.f.name}|${x.f.sgg}` : x.f.name] = x.d; });
+    currentPanelFacilities = withD.map(x=>x.f).concat(withoutD);
+    facilityListLimit = 5;
+    onFilterChange();
+    // 목록 항목마다 거리 표시
+    document.querySelectorAll('#facilityListBox .facility-item').forEach(el=>{
+      const d = distByKey[el.dataset.fkey];
+      const distEl = el.querySelector('.fdist');
+      if(distEl && d !== undefined){
+        distEl.textContent = ` · ${d < 1 ? Math.round(d*1000)+'m' : d.toFixed(1)+'km'}`;
+        distEl.style.display = 'inline';
+      }
+    });
+    if(btn){ btn.disabled = false; btn.textContent = '📍 가까운 순으로 정렬했어요 ✓'; }
+    showToast('가까운 시설부터 보여드릴게요');
+  }, err=>{
+    if(btn){ btn.disabled = false; btn.textContent = '📍 내 위치에서 가까운 순으로 보기'; }
+    showToast(err.code === 1 ? '위치 권한을 허용해주시면 가까운 순으로 보여드려요' : '위치를 가져오지 못했어요. 잠시 후 다시 시도해주세요');
+  }, { enableHighAccuracy:false, timeout:8000, maximumAge:60000 });
+}
+
 function haversineKm(lat1,lng1,lat2,lng2){
   const R = 6371;
   const dLat = (lat2-lat1) * Math.PI/180;
@@ -3049,7 +3157,7 @@ function finishRecommend(list, resultEl, sport, nearestRow){
     <div class="recommend-title">🤖 ${sport ? sport+' · ' : ''}가까운 순 추천 ${top.length}곳 (${nearestRow.sido} ${nearestRow.region} 기준)</div>
     ${top.map(f=>{ const phone = formatPhone(f.tel); return `
       <div class="facility-item" onclick="showFacilityOnMap('${escapeAttr(f.name)}','${escapeAttr(f.addr)}','${escapeAttr(f.sgg||'')}','${escapeAttr(f.naver_lat||'')}','${escapeAttr(f.naver_lng||'')}')">
-        <div class="fname" onclick="event.stopPropagation(); openNaverSearch('${escapeAttr(f.name)}','${escapeAttr(f.addr)}','${escapeAttr(f.sgg||'')}','${escapeAttr(phone||'')}','${escapeAttr(f.naver_title||'')}')">${escapeHtml(f.name)}</div>
+        <div class="fname">${escapeHtml(f.name)}</div>
         <div class="faddr">📍 ${f.addr} · <b>${f.dist.toFixed(1)}km</b></div>
         <div class="fhint-row">
           <span class="fhint-tap">👆 눌러서 정확한 위치 확인</span>
@@ -3269,6 +3377,85 @@ function clearFacilityPins(){
 }
 function placeFacilityPinsForCurrentRegion(){
   placeFacilityPinsFor(currentPanelFacilities);
+}
+
+/* ==================== 📍 지도에 내 위치 표시 (2026-08-29 추가) ====================
+   네이버 지도 앱처럼 "내가 지금 어디 있는지"를 파란 점으로 보여줍니다.
+   - 파란 점: 현재 위치 (흰 테두리 + 그림자로 지도 위에서 잘 보이게)
+   - 옅은 파란 원: GPS 정확도 반경 (오차가 클수록 원이 커짐)
+   - 지도를 움직여도 마커는 그 자리에 남습니다 (지울 땐 clearMyLocationMarker) */
+let myLocationMarker = null;
+let myAccuracyCircle = null;
+
+function clearMyLocationMarker(){
+  if(myLocationMarker){ myLocationMarker.setMap(null); myLocationMarker = null; }
+  if(myAccuracyCircle){ myAccuracyCircle.setMap(null); myAccuracyCircle = null; }
+}
+
+/* 지도에 내 위치를 찍습니다.
+   moveMap: true면 지도를 내 위치로 이동 (버튼을 눌렀을 때)
+   accuracy: GPS 오차 반경(m). 있으면 정확도 원도 함께 그림 */
+function showMyLocationOnMap(lat, lng, opts){
+  const o = opts || {};
+  if(typeof naver === 'undefined' || !naver.maps || !map) return false; // 지도가 없으면 조용히 넘어감
+  clearMyLocationMarker();
+
+  const pos = new naver.maps.LatLng(lat, lng);
+
+  // ① 정확도 원 (오차가 30m보다 클 때만 — 너무 작으면 점에 가려 안 보임)
+  if(o.accuracy && o.accuracy > 30 && naver.maps.Circle){
+    try{
+      myAccuracyCircle = new naver.maps.Circle({
+        map: map, center: pos, radius: Math.min(o.accuracy, 2000),
+        fillColor: '#3182F6', fillOpacity: 0.12,
+        strokeColor: '#3182F6', strokeOpacity: 0.35, strokeWeight: 1
+      });
+    }catch(e){ /* 원을 못 그려도 점은 찍습니다 */ }
+  }
+
+  // ② 파란 점 마커 — 네이버 지도의 현재 위치 표시와 같은 형태
+  myLocationMarker = new naver.maps.Marker({
+    position: pos, map: map, zIndex: 1000,
+    icon: {
+      content: '<div class="my-loc-dot" title="내 위치"><span class="my-loc-pulse"></span></div>',
+      anchor: new naver.maps.Point(11, 11) // 점의 정중앙이 실제 좌표에 오도록
+    }
+  });
+
+  if(o.moveMap){
+    map.setCenter(pos);
+    if(map.getZoom && map.getZoom() < 14 && map.setZoom) map.setZoom(15);
+  }
+  return true;
+}
+
+/* 「내 위치 보기」 버튼 — 위치를 받아 지도에 표시하고 그쪽으로 이동합니다. */
+function locateMeOnMap(){
+  const btn = document.getElementById('myLocBtn');
+  if(!('geolocation' in navigator)){
+    showToast('이 브라우저에서는 위치 기능을 쓸 수 없어요');
+    return;
+  }
+  if(typeof naver === 'undefined' || !naver.maps || !map){
+    showToast('지도를 불러오는 중이에요. 잠시 후 다시 눌러주세요');
+    return;
+  }
+  const original = btn ? btn.innerHTML : '';
+  if(btn){ btn.disabled = true; btn.innerHTML = '⏳'; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude }; // 거리 계산에도 재사용
+    userLocationAsked = true;
+    showMyLocationOnMap(pos.coords.latitude, pos.coords.longitude, {
+      moveMap: true, accuracy: pos.coords.accuracy
+    });
+    if(btn){ btn.disabled = false; btn.innerHTML = original; btn.classList.add('active'); }
+    showToast('현재 위치를 지도에 표시했어요');
+  }, err=>{
+    if(btn){ btn.disabled = false; btn.innerHTML = original; }
+    showToast(err.code === 1
+      ? '위치 권한을 허용해주시면 내 위치를 보여드려요'
+      : '위치를 가져오지 못했어요. 잠시 후 다시 시도해주세요');
+  }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
 }
 
 // 세션당 한 번만 물어보는 내 위치 (거리 표시용)
