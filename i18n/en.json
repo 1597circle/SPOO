@@ -297,5 +297,11 @@
   "tag_fire_grip": "Helps with firefighter fitness test grip/back strength events",
   "tag_fire_flex": "Helps with firefighter fitness test flexibility event",
   "tag_military_endur": "Helps with the military's 3km run fitness test",
-  "tag_military_core": "Helps with military push-up/sit-up fitness test"
+  "tag_military_core": "Helps with military push-up/sit-up fitness test",
+  "notice_apply_period_unconfirmed": "The official announcement hasn't been made yet, so this is an <b>estimated schedule</b>. There may be extra recruitment periods, so please double-check on the <a href=\"https://svoucher.kspo.or.kr\" target=\"_blank\" rel=\"noopener\">official site</a>.",
+  "countdown_unconfirmed_suffix": " (estimated schedule)",
+  "countdown_last_day": "🔥 Today is the last day to apply for the Sports Voucher!",
+  "countdown_in_period": "🔥 Applications are open now! D-{n} until the deadline",
+  "countdown_before_period": "⏰ D-{n} until Sports Voucher applications open",
+  "rural_hint_low_usage": "🌾 {region} has a relatively low usage rate — so we'll help you check more carefully"
 }
