@@ -2539,6 +2539,11 @@ function drawPolygons(features){
 
   naver.maps.Event.addListener(map, 'click', function(e){
     const lat = e.coord.y, lng = e.coord.x;
+    // 「위치 직접 지정」 모드면 지역 선택 대신 이 지점을 내 위치로 잡습니다
+    if(pickingMyLocation){
+      setMyLocationManually(lat, lng);
+      return;
+    }
     const hit = polygons.find(p => pointInRing(lng, lat, p.ring));
     if(hit) onRegionClick(hit.code, hit.row);
   });
@@ -2953,6 +2958,12 @@ function populateSportSelect(){
    좌표가 아직 없는 시설은 순서를 유지한 채 뒤에 둡니다. */
 function sortFacilitiesByMyLocation(){
   const btn = document.getElementById('nearMeBtn');
+  // 직접 지정한 위치가 있으면 그것이 항상 우선 — GPS도, 권한 팝업도 필요 없습니다
+  if(manualLocation){
+    showMyLocationOnMap(manualLocation.lat, manualLocation.lng, { moveMap: false });
+    applyMyLocationSort(manualLocation, '직접 지정한 위치 기준으로 가까운 순이에요');
+    return;
+  }
   if(!('geolocation' in navigator)){
     showToast('이 브라우저에서는 위치 기능을 쓸 수 없어요');
     return;
@@ -2963,34 +2974,19 @@ function sortFacilitiesByMyLocation(){
     userLocation = my; userLocationAsked = true; // 다른 기능에서도 재사용
     // 정렬만 하지 않고 지도에도 내 위치를 함께 표시합니다 (어디를 기준으로 정렬됐는지 눈으로 보이게)
     showMyLocationOnMap(my.lat, my.lng, { accuracy: pos.coords.accuracy });
-    const withD = [], withoutD = [];
-    (currentPanelFacilities || []).forEach(f=>{
-      const la = parseFloat(f.naver_lat), lo = parseFloat(f.naver_lng);
-      if(!isNaN(la) && !isNaN(lo)){
-        withD.push({ f, d: haversineKm(my.lat, my.lng, la, lo) });
-      } else withoutD.push(f);
-    });
-    withD.sort((a,b)=> a.d - b.d);
-    const distByKey = {};
-    withD.forEach(x=>{ distByKey[x.f.sgg ? `${x.f.name}|${x.f.sgg}` : x.f.name] = x.d; });
-    currentPanelFacilities = withD.map(x=>x.f).concat(withoutD);
-    facilityListLimit = 5;
-    onFilterChange();
-    // 목록 항목마다 거리 표시
-    document.querySelectorAll('#facilityListBox .facility-item').forEach(el=>{
-      const d = distByKey[el.dataset.fkey];
-      const distEl = el.querySelector('.fdist');
-      if(distEl && d !== undefined){
-        distEl.textContent = ` · ${d < 1 ? Math.round(d*1000)+'m' : d.toFixed(1)+'km'}`;
-        distEl.style.display = 'inline';
-      }
-    });
-    if(btn){ btn.disabled = false; btn.textContent = '📍 가까운 순으로 정렬했어요 ✓'; }
-    showToast('가까운 시설부터 보여드릴게요');
+    applyMyLocationSort(my, null);
+    // 위치가 부정확하면 거리 순서 자체가 틀어지므로 반드시 알리고, 해결책(직접 지정)도 함께 안내합니다.
+    const warn = describeAccuracy(pos.coords.accuracy);
+    if(warn){
+      showToast(warn + '. 지도 오른쪽 아래 🎯 버튼으로 정확한 위치를 직접 지정할 수 있어요');
+      highlightPickButton();
+    } else {
+      showToast('가까운 시설부터 보여드릴게요');
+    }
   }, err=>{
     if(btn){ btn.disabled = false; btn.textContent = '📍 내 위치에서 가까운 순으로 보기'; }
     showToast(err.code === 1 ? '위치 권한을 허용해주시면 가까운 순으로 보여드려요' : '위치를 가져오지 못했어요. 잠시 후 다시 시도해주세요');
-  }, { enableHighAccuracy:false, timeout:8000, maximumAge:60000 });
+  }, { enableHighAccuracy:true, timeout:8000, maximumAge:0 });
 }
 
 function haversineKm(lat1,lng1,lat2,lng2){
@@ -3387,6 +3383,101 @@ function placeFacilityPinsForCurrentRegion(){
 let myLocationMarker = null;
 let myAccuracyCircle = null;
 
+/* ==================== 🎯 내 위치 직접 지정 (PC 대응, 2026-08-29) ====================
+   PC는 GPS가 없어 위치가 수 km 어긋나는 일이 흔합니다.
+   그래서 사용자가 지도를 한 번 눌러 "여기가 내 위치"라고 직접 알려줄 수 있게 합니다.
+   - 한 번 지정하면 브라우저에 저장해뒀다가(7일) 다음 방문에도 그 위치를 씁니다.
+   - 거리순 정렬은 수동 지정 위치를 GPS보다 우선합니다 (사용자가 직접 고른 값이 항상 더 정확하므로).
+   - 위치는 이 브라우저에만 저장되며 서버로 전송되지 않습니다. */
+let manualLocation = null;   // {lat, lng} — 사용자가 직접 지정한 위치
+let pickingMyLocation = false;
+
+// 저장된 수동 위치 복원 (7일 지나면 무시)
+try{
+  const saved = JSON.parse(localStorage.getItem('spoo_manual_loc') || 'null');
+  if(saved && saved.lat && saved.lng && (Date.now() - (saved.ts || 0)) < 7*24*60*60*1000){
+    manualLocation = { lat: saved.lat, lng: saved.lng };
+  }
+}catch(e){ /* 저장소를 못 읽어도 기능은 정상 동작 */ }
+
+// 오차가 클 때 🎯 버튼을 잠깐 반짝여 "여기를 눌러보세요"를 시각적으로 알려줍니다
+function highlightPickButton(){
+  const btn = document.getElementById('pickLocBtn');
+  if(!btn) return;
+  btn.classList.add('pulse');
+  setTimeout(()=> btn.classList.remove('pulse'), 6000);
+}
+
+function toggleLocationPickMode(){
+  pickingMyLocation = !pickingMyLocation;
+  const btn = document.getElementById('pickLocBtn');
+  if(btn) btn.classList.toggle('active', pickingMyLocation);
+  const mapEl = document.getElementById('map');
+  if(mapEl) mapEl.classList.toggle('picking', pickingMyLocation);
+  if(pickingMyLocation){
+    showToast('지도에서 내 위치를 눌러주세요 (집이나 학교 근처 아무 곳이나)');
+  }
+}
+
+function setMyLocationManually(lat, lng){
+  if(typeof stopLocationTracking === 'function') stopLocationTracking(true); // 직접 지정이 추적보다 우선
+  manualLocation = { lat, lng };
+  userLocation = manualLocation; // 다른 거리 계산 기능도 이 위치를 쓰도록
+  try{ localStorage.setItem('spoo_manual_loc', JSON.stringify({ lat, lng, ts: Date.now() })); }catch(e){}
+  pickingMyLocation = false;
+  const btn = document.getElementById('pickLocBtn');
+  if(btn) btn.classList.remove('active');
+  const mapEl = document.getElementById('map');
+  if(mapEl) mapEl.classList.remove('picking');
+
+  showMyLocationOnMap(lat, lng, { moveMap: false }); // 직접 찍은 위치니 오차 원 없이 점만
+  applyMyLocationSort(manualLocation, '직접 지정한 위치 기준으로 가까운 순이에요');
+  showToast('여기를 내 위치로 기억할게요. 거리도 이 기준으로 보여드려요');
+}
+
+/* 주어진 좌표 기준으로 시설 목록을 가까운 순으로 정렬하고 거리를 표시합니다.
+   (GPS로 잡은 위치든, 직접 지정한 위치든 같은 로직을 씁니다) */
+function applyMyLocationSort(my, toastMsg){
+  if(!currentPanelFacilities || !currentPanelFacilities.length) return false;
+  const withD = [], withoutD = [];
+  currentPanelFacilities.forEach(f=>{
+    const la = parseFloat(f.naver_lat), lo = parseFloat(f.naver_lng);
+    if(!isNaN(la) && !isNaN(lo)){
+      withD.push({ f, d: haversineKm(my.lat, my.lng, la, lo) });
+    } else withoutD.push(f);
+  });
+  withD.sort((a,b)=> a.d - b.d);
+  const distByKey = {};
+  withD.forEach(x=>{ distByKey[x.f.sgg ? `${x.f.name}|${x.f.sgg}` : x.f.name] = x.d; });
+  currentPanelFacilities = withD.map(x=>x.f).concat(withoutD);
+  facilityListLimit = 5;
+  onFilterChange();
+  document.querySelectorAll('#facilityListBox .facility-item').forEach(el=>{
+    const d = distByKey[el.dataset.fkey];
+    const distEl = el.querySelector('.fdist');
+    if(distEl && d !== undefined){
+      distEl.textContent = ` · ${d < 1 ? Math.round(d*1000)+'m' : d.toFixed(1)+'km'}`;
+      distEl.style.display = 'inline';
+    }
+  });
+  const nearBtn = document.getElementById('nearMeBtn');
+  if(nearBtn){ nearBtn.disabled = false; nearBtn.textContent = '📍 가까운 순으로 정렬했어요 ✓'; }
+  if(toastMsg) showToast(toastMsg);
+  return true;
+}
+
+/* 위치 정확도를 사람이 읽을 수 있는 안내로 바꿉니다.
+   PC는 GPS가 없어 인터넷 주소(IP)나 와이파이로 위치를 추정하기 때문에
+   실제 위치와 수 km 떨어진 곳(주로 도심 한복판)에 찍히는 일이 흔합니다.
+   이 사실을 알려주지 않으면 사용자는 "서비스가 고장났다"고 오해하게 됩니다. */
+function describeAccuracy(accuracy){
+  if(!accuracy) return null;
+  if(accuracy <= 100) return null; // 충분히 정확 — 굳이 알릴 필요 없음
+  const km = accuracy / 1000;
+  const label = km >= 1 ? `약 ${km.toFixed(km >= 10 ? 0 : 1)}km` : `약 ${Math.round(accuracy)}m`;
+  return `위치 오차가 ${label}예요. PC는 GPS가 없어 대략적인 위치만 잡혀요 — 휴대폰에서 열면 훨씬 정확해요`;
+}
+
 function clearMyLocationMarker(){
   if(myLocationMarker){ myLocationMarker.setMap(null); myLocationMarker = null; }
   if(myAccuracyCircle){ myAccuracyCircle.setMap(null); myAccuracyCircle = null; }
@@ -3403,11 +3494,12 @@ function showMyLocationOnMap(lat, lng, opts){
   const pos = new naver.maps.LatLng(lat, lng);
 
   // ① 정확도 원 (오차가 30m보다 클 때만 — 너무 작으면 점에 가려 안 보임)
+  //    오차를 축소해서 그리면 "정확한 위치"라고 오해하게 되므로 실제 값 그대로 그립니다.
   if(o.accuracy && o.accuracy > 30 && naver.maps.Circle){
     try{
       myAccuracyCircle = new naver.maps.Circle({
-        map: map, center: pos, radius: Math.min(o.accuracy, 2000),
-        fillColor: '#3182F6', fillOpacity: 0.12,
+        map: map, center: pos, radius: Math.min(o.accuracy, 30000),
+        fillColor: '#3182F6', fillOpacity: 0.10,
         strokeColor: '#3182F6', strokeOpacity: 0.35, strokeWeight: 1
       });
     }catch(e){ /* 원을 못 그려도 점은 찍습니다 */ }
@@ -3424,13 +3516,97 @@ function showMyLocationOnMap(lat, lng, opts){
 
   if(o.moveMap){
     map.setCenter(pos);
-    if(map.getZoom && map.getZoom() < 14 && map.setZoom) map.setZoom(15);
+    // 오차가 크면 확대하지 않습니다 — 크게 확대하면 그 지점이 정확한 것처럼 보입니다.
+    if(map.setZoom){
+      const acc = o.accuracy || 0;
+      if(acc > 5000) map.setZoom(11);
+      else if(acc > 1000) map.setZoom(13);
+      else if(map.getZoom && map.getZoom() < 14) map.setZoom(15);
+    }
   }
   return true;
 }
 
-/* 「내 위치 보기」 버튼 — 위치를 받아 지도에 표시하고 그쪽으로 이동합니다. */
+/* ==================== ◎ 실시간 위치 추적 (2026-08-29) ====================
+   버튼을 누르면 위치를 한 번 보여주고 끝나는 게 아니라, GPS가 새 위치를 보낼 때마다
+   파란 점이 따라 움직입니다 (네이버 지도 앱과 같은 동작). 다시 누르면 멈춥니다.
+   - 지도 이동은 처음 한 번만: 추적 중에 지도를 계속 끌어당기면 사용자가 지도를
+     구경할 수 없게 되므로, 이후에는 점만 움직입니다.
+   - 다른 탭으로 가면 추적을 잠시 멈추고(배터리 절약), 돌아오면 자동으로 이어갑니다.
+   - PC는 GPS가 없어 추적해도 같은 부정확한 위치만 반복되므로 🎯 직접 지정을 안내합니다. */
+let locationWatchId = null;    // watchPosition 핸들 (null이면 감시 안 하는 중)
+let locationTracking = false;  // 사용자가 추적을 켜둔 상태인지 (탭 복귀 시 재개 판단용)
+let trackingFirstFix = false;  // 첫 위치 수신 전인지 (첫 수신 때만 지도 이동·안내)
+
+/* 추적 중 위치 갱신 — 마커를 부수고 새로 만드는 대신 위치만 옮깁니다 (깜빡임 방지) */
+function updateMyLocationDot(lat, lng, accuracy){
+  if(typeof naver === 'undefined' || !naver.maps || !map) return;
+  const pos = new naver.maps.LatLng(lat, lng);
+  if(myLocationMarker && myLocationMarker.setPosition){
+    myLocationMarker.setPosition(pos);
+    if(myAccuracyCircle && myAccuracyCircle.setCenter) myAccuracyCircle.setCenter(pos);
+    return;
+  }
+  showMyLocationOnMap(lat, lng, { moveMap: false, accuracy });
+}
+
+function startLocationWatch(){
+  if(locationWatchId !== null) return; // 이미 감시 중이면 중복 시작 금지
+  locationWatchId = navigator.geolocation.watchPosition(pos=>{
+    const lat = pos.coords.latitude, lng = pos.coords.longitude, accuracy = pos.coords.accuracy;
+    userLocation = { lat, lng }; // 거리 계산에도 재사용
+    userLocationAsked = true;
+    const btn = document.getElementById('myLocBtn');
+    if(trackingFirstFix){
+      trackingFirstFix = false;
+      showMyLocationOnMap(lat, lng, { moveMap: true, accuracy });
+      if(btn){
+        btn.disabled = false; btn.innerHTML = '◉'; btn.classList.add('active');
+        btn.title = '위치 추적 중 — 누르면 중지';
+        btn.setAttribute('aria-label', '위치 추적 중 — 누르면 중지');
+      }
+      const warn = describeAccuracy(accuracy);
+      if(warn){
+        showToast(warn + '. 🎯 버튼으로 직접 지정할 수 있어요');
+        highlightPickButton();
+      } else {
+        showToast('실시간으로 내 위치를 따라가요. 다시 누르면 멈춰요');
+      }
+    } else {
+      updateMyLocationDot(lat, lng, accuracy);
+    }
+  }, err=>{
+    if(err.code === 1){ // 권한 거부 — 추적 자체가 불가능하니 완전히 중지
+      stopLocationTracking(true);
+      showToast('위치 권한을 허용해주시면 내 위치를 보여드려요');
+    } else if(trackingFirstFix){ // 첫 위치조차 못 받음 — 중지하고 알림
+      stopLocationTracking(true);
+      showToast('위치를 가져오지 못했어요. 잠시 후 다시 시도해주세요');
+    }
+    // 추적 도중의 일시적 오류(터널·지하 등)는 무시하고 계속 기다립니다
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 });
+}
+
+function stopLocationTracking(silent){
+  const wasTracking = locationTracking;
+  locationTracking = false;
+  trackingFirstFix = false;
+  if(locationWatchId !== null){
+    try{ navigator.geolocation.clearWatch(locationWatchId); }catch(e){}
+    locationWatchId = null;
+  }
+  const btn = document.getElementById('myLocBtn');
+  if(btn){
+    btn.disabled = false; btn.innerHTML = '◎'; btn.classList.remove('active');
+    btn.title = '내 위치 보기';
+    btn.setAttribute('aria-label', '내 위치 보기');
+  }
+  if(!silent && wasTracking) showToast('위치 추적을 멈췄어요. 파란 점은 마지막 위치예요');
+}
+
+/* 「내 위치」 버튼 — 누르면 실시간 추적 시작, 다시 누르면 중지 */
 function locateMeOnMap(){
+  if(locationTracking){ stopLocationTracking(); return; }
   const btn = document.getElementById('myLocBtn');
   if(!('geolocation' in navigator)){
     showToast('이 브라우저에서는 위치 기능을 쓸 수 없어요');
@@ -3440,23 +3616,24 @@ function locateMeOnMap(){
     showToast('지도를 불러오는 중이에요. 잠시 후 다시 눌러주세요');
     return;
   }
-  const original = btn ? btn.innerHTML : '';
+  locationTracking = true;
+  trackingFirstFix = true;
   if(btn){ btn.disabled = true; btn.innerHTML = '⏳'; }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude }; // 거리 계산에도 재사용
-    userLocationAsked = true;
-    showMyLocationOnMap(pos.coords.latitude, pos.coords.longitude, {
-      moveMap: true, accuracy: pos.coords.accuracy
-    });
-    if(btn){ btn.disabled = false; btn.innerHTML = original; btn.classList.add('active'); }
-    showToast('현재 위치를 지도에 표시했어요');
-  }, err=>{
-    if(btn){ btn.disabled = false; btn.innerHTML = original; }
-    showToast(err.code === 1
-      ? '위치 권한을 허용해주시면 내 위치를 보여드려요'
-      : '위치를 가져오지 못했어요. 잠시 후 다시 시도해주세요');
-  }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+  startLocationWatch();
 }
+
+/* 다른 탭·앱으로 가면 추적을 잠시 멈추고, 돌아오면 자동으로 이어갑니다 (배터리 절약) */
+document.addEventListener('visibilitychange', ()=>{
+  if(!locationTracking) return;
+  if(document.hidden){
+    if(locationWatchId !== null){
+      try{ navigator.geolocation.clearWatch(locationWatchId); }catch(e){}
+      locationWatchId = null;
+    }
+  } else {
+    startLocationWatch();
+  }
+});
 
 // 세션당 한 번만 물어보는 내 위치 (거리 표시용)
 let userLocation = null;
