@@ -977,6 +977,28 @@
   .wp-dots .dot.done{background:var(--coral); opacity:.5;}
   .wp-dots .dot.active{background:var(--coral); width:20px; border-radius:5px;}
 
+  /* ---- 소개 슬라이드(Intro1~3) ---- */
+  .wp-intro-dots{display:flex; gap:6px; margin-bottom:22px;}
+  .wp-intro-dots .dot{width:7px; height:7px; border-radius:50%; background:var(--line); transition:.25s;}
+  .wp-intro-dots .dot.done{background:var(--coral); opacity:.5;}
+  .wp-intro-dots .dot.active{background:var(--coral); width:20px; border-radius:5px;}
+
+  .wp-intro-eyebrow{
+    display:block; color:var(--blue-deep); font-weight:700; font-size:13.5px;
+    text-decoration:underline; text-underline-offset:3px; margin-bottom:14px;
+  }
+
+  /* 혜택 목록(01/02/03) — household-card처럼 얇은 구분선 방식으로 왼쪽 정렬 */
+  .wp-benefit-list{width:100%; text-align:left; margin-bottom:8px;}
+  .wp-benefit-item{
+    display:flex; gap:16px; align-items:flex-start; padding:16px 2px;
+    border-bottom:1px solid var(--line);
+  }
+  .wp-benefit-item:first-child{border-top:1px solid var(--line);}
+  .wb-num{font-size:13px; font-weight:800; color:var(--ink-faint); padding-top:2px; flex-shrink:0; width:20px;}
+  .wb-title{font-size:16px; font-weight:800; color:var(--navy); margin-bottom:4px;}
+  .wb-desc{font-size:13.5px; color:var(--ink-sub); line-height:1.5;}
+
   .wp-result{
     width:100%; text-align:center; font-size:var(--fs-body); line-height:1.65; padding:18px 22px; border-radius:16px;
     margin-bottom:22px; background:var(--paper); color:var(--ink-sub); font-weight:600;

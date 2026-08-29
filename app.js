@@ -2231,7 +2231,8 @@ function wpSplashNext(){
     wpCurrentPage = 'Return';
     wpShowOnly('Return');
   } else {
-    wpGoTo('All', true);
+    // 처음 오신 분께는 정보 입력 화면(All) 전에 3장짜리 소개 슬라이드부터 보여드립니다.
+    wpGoTo('Intro1', true);
   }
 }
 
@@ -2270,11 +2271,24 @@ function wpUpdateDots(pageId){
   });
 }
 
+// 소개 슬라이드(Intro1~3) 전용 점(dot) 갱신. 입력→결과 단계의 .wp-dots(WP_DOT_MAIN_PAGES)와는
+// 점 개수가 달라서(3개 vs 2개) 같은 배열에 섞으면 인덱스가 안 맞으므로 별도 클래스로 분리했습니다.
+function wpUpdateIntroDots(step){
+  document.querySelectorAll('.wp-intro-dots').forEach(dotsEl=>{
+    [...dotsEl.children].forEach((dot,i)=>{
+      dot.classList.toggle('active', i === step - 1);
+      dot.classList.toggle('done', i < step - 1);
+    });
+  });
+}
+
 function wpGoTo(n, skipHistory){
   if(!skipHistory) wpHistory.push(wpCurrentPage);
   wpShowOnly(n);
   wpCurrentPage = n;
   wpUpdateDots(n);
+  const introMatch = /^Intro([123])$/.exec(String(n));
+  if(introMatch) wpUpdateIntroDots(Number(introMatch[1]));
 }
 
 function wpBack(){
