@@ -297,5 +297,11 @@
   "tag_fire_grip": "Giúp ích cho bài thi lực nắm/lưng của lính cứu hỏa",
   "tag_fire_flex": "Giúp ích cho bài thi độ dẻo của lính cứu hỏa",
   "tag_military_endur": "Giúp ích cho bài chạy 3km của quân đội",
-  "tag_military_core": "Giúp ích cho bài chống đẩy/gập bụng của quân đội"
+  "tag_military_core": "Giúp ích cho bài chống đẩy/gập bụng của quân đội",
+  "notice_apply_period_unconfirmed": "Đây là <b>lịch dự kiến</b> vì thông báo chính thức chưa được công bố. Có thể có đợt tuyển bổ sung, vui lòng kiểm tra kỹ tại <a href=\"https://svoucher.kspo.or.kr\" target=\"_blank\" rel=\"noopener\">trang chính thức</a>.",
+  "countdown_unconfirmed_suffix": " (lịch dự kiến)",
+  "countdown_last_day": "🔥 Hôm nay là ngày cuối cùng để đăng ký Phiếu thể thao!",
+  "countdown_in_period": "🔥 Đang trong thời gian đăng ký! Còn D-{n} đến hạn chót",
+  "countdown_before_period": "⏰ Còn D-{n} đến khi mở đăng ký Phiếu thể thao",
+  "rural_hint_low_usage": "🌾 {region} có tỷ lệ sử dụng tương đối thấp — vì vậy chúng tôi sẽ giúp bạn kiểm tra kỹ hơn"
 }
