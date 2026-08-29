@@ -40,7 +40,7 @@
 
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
 
-<link rel="stylesheet" href="style.css?v=20260902f">
+<link rel="stylesheet" href="style.css?v=20260902g">
 </head>
 <body>
 
@@ -428,89 +428,48 @@
     <button class="wp-btn wp-btn-primary" data-i18n="wp_start" onclick="wpSplashNext()">시작하기</button>
   </div>
 
-  <!-- 페이지 1: 이름 -->
-  <div class="wp" id="wp1" style="display:none;">
-    <div class="wp-nav"><span></span><span class="wp-skip" data-i18n="wp_skip" onclick="wpSkip()">나중에 할게요</span></div>
-    <div class="wp-dots" data-page="1"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <div class="wp-question" data-i18n="wp_name_q">시작해볼까요?<br>이름을 알려주세요!</div>
-    <input type="text" class="wp-input" id="wpName" placeholder="이름 입력하기" data-i18n-ph="wp_name_placeholder" autocomplete="off">
-    <button class="wp-btn wp-btn-primary" id="wpNameNext" data-i18n="btn_next" onclick="wpSubmitName()">다음</button>
-  </div>
+  <!-- 통합 페이지: 이름·생년월일·지역·가정형태를 한 화면에서 입력 -->
+  <div class="wp wp-all" id="wpAll" style="display:none;">
+    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" data-i18n="wp_skip" onclick="wpSkip()">나중에 할게요</span></div>
+    <div class="wp-dots" data-page="0"><span class="dot"></span><span class="dot"></span></div>
 
-  <!-- 페이지 2: 생년월일 -->
-  <div class="wp" id="wp2" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" data-i18n="btn_prev" onclick="wpBack()">← 이전</span><span class="wp-skip" data-i18n="wp_skip" onclick="wpSkip()">나중에 할게요</span></div>
-    <div class="wp-dots" data-page="2"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <div class="wp-question" id="wpGreeting" data-i18n="wp_greeting_default">반갑습니다!</div>
-    <div class="wp-sub" data-i18n="wp_birth_sub">생년월일을 입력해주세요</div>
-    <input type="date" class="wp-input" id="wpBirth" min="2007-01-01" max="2021-12-31">
-    <button class="wp-btn wp-btn-primary" id="wpBirthNext" data-i18n="btn_next" onclick="wpSubmitBirth()">다음</button>
-  </div>
+    <div class="s1-tag"><span class="dot"></span><span data-i18n="wp_all_tag">시작하기 전에</span></div>
+    <div class="wp-question" style="font-size:clamp(26px, 5vw, 36px); margin-bottom:6px;" data-i18n="wp_all_title">필요한 정보를<br>한 번에 알려주세요</div>
+    <div class="wp-sub" style="margin-bottom:30px;" data-i18n="wp_all_sub">이름·생년월일·동네·가정형태만 입력하면 바로 확인해드려요</div>
 
-  <!-- 페이지 2b: 성인이 입력한 경우 갈림길 -->
-  <div class="wp" id="wp2b" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" onclick="wpSkip()" data-i18n="wp_skip">나중에 할게요</span></div>
-    <div class="wp-question" data-i18n="wp_age_limit_q">SPOO는 5~18세만<br>이용할 수 있어요</div>
-    <div class="wp-sub" data-i18n="wp_child_branch_sub">혹시 아이가 이용하나요?</div>
-    <button class="wp-choice" onclick="wpGoTo('2c')">
-      <span class="wp-choice-emoji">🧒</span>
-      <span class="wp-choice-text"><b data-i18n="wp_child_yes_title">네, 아이가 이용해요</b><span data-i18n="wp_child_yes_sub">아이 나이를 알려주시면 계속 진행할게요</span></span>
-    </button>
-    <button class="wp-choice" onclick="wpFinish('facility')">
-      <span class="wp-choice-emoji">🗺️</span>
-      <span class="wp-choice-text"><b data-i18n="wp_child_no_title">아니요, 시설을 찾아보시겠어요?</b><span data-i18n="wp_child_no_sub">바로 우리동네 시설을 둘러볼게요</span></span>
-    </button>
-  </div>
-
-  <!-- 페이지 2c: 아이 이름 -->
-  <div class="wp" id="wp2c" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" onclick="wpSkip()" data-i18n="wp_skip">나중에 할게요</span></div>
-    <div class="wp-question" data-i18n="wp_child_name_q">아이 이름을<br>알려주세요!</div>
-    <input type="text" class="wp-input" id="wpChildName" placeholder="아이 이름 입력하기" data-i18n-ph="wp_child_name_placeholder" autocomplete="off">
-    <button class="wp-btn wp-btn-primary" data-i18n="btn_next" onclick="wpSubmitChildName()">다음</button>
-  </div>
-
-  <!-- 페이지 2d: 아이 생년월일 -->
-  <div class="wp" id="wp2d" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" onclick="wpSkip()" data-i18n="wp_skip">나중에 할게요</span></div>
-    <div class="wp-question" id="wpChildBirthQ" data-i18n="wp_child_birth_default">생년월일을<br>알려주세요</div>
-    <input type="date" class="wp-input" id="wpChildBirth" min="2007-01-01" max="2021-12-31">
-    <button class="wp-btn wp-btn-primary" data-i18n="btn_next" onclick="wpSubmitChildBirth()">다음</button>
-  </div>
-
-  <!-- 페이지 2e: 이용 가능 확인 -->
-  <div class="wp" id="wp2e" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span></span></div>
-    <div class="wp-logo" style="font-size:44px; margin-bottom:4px;" id="wpChildResultEmoji">🎉</div>
-    <div class="wp-question" id="wpChildResultText" style="margin-bottom:40px;" data-i18n="wp_checking">확인 중이에요</div>
-    <button class="wp-btn wp-btn-primary" id="wpChildResultBtn" onclick="wpGoTo(5)" data-i18n="wp_child_result_btn_ok">이용할 시설 알아볼까요?</button>
-  </div>
-
-  <!-- 페이지 5: 지역 선택 (자가진단과 동일한 방식 — 여기서 고른 동네는 우리동네·시설찾기 화면에도 바로 반영됨) -->
-  <div class="wp" id="wp5" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" onclick="wpSkip()" data-i18n="wp_skip">나중에 할게요</span></div>
-    <div class="wp-dots" data-page="2.5"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <div class="wp-question" data-i18n="q_region">어느 동네에<br>사시나요?</div>
-    <div class="wp-sub" data-i18n="q_region_sub">결과와 함께 우리 동네 지원 현황·가까운 시설도 바로 보여드릴게요</div>
-    <div class="search-box" style="width:100%; margin-top:8px;">
-      <input type="text" id="wpRegionInput" placeholder="동네 이름으로 찾기 (예: 강남구)" data-i18n-ph="ph_region_search" autocomplete="off">
-      <div class="search-suggest" id="wpRegionSuggest" style="display:none;"></div>
+    <div class="wp-all-field">
+      <label class="field-label" for="wpName" data-i18n="label_name">이름</label>
+      <input type="text" class="wp-input wp-all-input" id="wpName" placeholder="이름을 입력해주세요" data-i18n-ph="wp_name_placeholder" autocomplete="off">
     </div>
-    <button class="locate-pin-btn" id="wpLocateBtn" data-i18n="btn_locate">📍 내 위치로 찾기</button>
-    <div class="s1-tiny-links"><span onclick="wpSkipRegion()" data-i18n="skip_region">동네는 나중에 알려드릴게요</span></div>
-  </div>
 
-  <!-- 페이지 4: 가정 형태 (자가진단과 통합) -->
-  <div class="wp" id="wp4" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" onclick="wpSkip()" data-i18n="wp_skip">나중에 할게요</span></div>
-    <div class="wp-dots" data-page="3"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <div class="wp-question" data-i18n="q_household">우리 가정은<br>어디에 해당하나요?</div>
-    <div class="wp-sub" id="wpAgeNote"></div>
-    <button class="wp-choice" onclick="wpSubmitHousehold('crime')"><span class="wp-choice-emoji">🛡️</span><span class="wp-choice-text"><b data-i18n="household_crime">범죄 피해를 입은 가정이에요</b></span></button>
-    <button class="wp-choice" onclick="wpSubmitHousehold('basic')"><span class="wp-choice-emoji">🏠</span><span class="wp-choice-text"><b data-i18n="household_basic">기초생활수급 가정이에요</b></span></button>
-    <button class="wp-choice" onclick="wpSubmitHousehold('near')"><span class="wp-choice-emoji">🌱</span><span class="wp-choice-text"><b data-i18n="household_near">차상위계층이에요</b></span></button>
-    <button class="wp-choice" onclick="wpSubmitHousehold('single')"><span class="wp-choice-emoji">👪</span><span class="wp-choice-text"><b data-i18n="household_single">한부모 가정이에요</b></span></button>
-    <button class="wp-choice" onclick="wpSubmitHousehold('unsure')"><span class="wp-choice-emoji">🤔</span><span class="wp-choice-text"><b data-i18n="opt_unsure">잘 모르겠어요</b></span></button>
+    <div class="wp-all-field">
+      <label class="field-label" for="wpBirth" data-i18n="label_birth">생년월일</label>
+      <input type="date" class="wp-input wp-all-input" id="wpBirth" min="2007-01-01" max="2021-12-31">
+      <div class="wp-sub" id="wpAgeNote" style="margin:8px 0 0; min-height:18px;"></div>
+    </div>
+
+    <div class="wp-all-field">
+      <label class="field-label" data-i18n="label_region">사는 동네 (선택)</label>
+      <div class="search-box" style="width:100%;">
+        <input type="text" id="wpRegionInput" placeholder="동네 이름으로 찾기 (예: 강남구)" data-i18n-ph="ph_region_search" autocomplete="off">
+        <div class="search-suggest" id="wpRegionSuggest" style="display:none;"></div>
+      </div>
+      <button type="button" class="locate-pin-btn" id="wpLocateBtn" data-i18n="btn_locate">📍 내 위치로 찾기</button>
+      <div class="wp-all-region-picked" id="wpRegionPicked" style="display:none;"></div>
+    </div>
+
+    <div class="wp-all-field">
+      <label class="field-label" data-i18n="q_household">우리 가정은 어디에 해당하나요?</label>
+      <div class="household-cards" id="wpAllHouseholdGroup">
+        <label class="household-card"><input type="radio" name="wpAllHousehold" value="crime"><span class="hc-emoji">🛡️</span><span class="hc-text" data-i18n="household_crime">범죄 피해를 입은 가정이에요</span></label>
+        <label class="household-card"><input type="radio" name="wpAllHousehold" value="basic"><span class="hc-emoji">🏠</span><span class="hc-text" data-i18n="household_basic">기초생활수급 가정이에요</span></label>
+        <label class="household-card"><input type="radio" name="wpAllHousehold" value="near"><span class="hc-emoji">🌱</span><span class="hc-text" data-i18n="household_near">차상위계층이에요</span></label>
+        <label class="household-card"><input type="radio" name="wpAllHousehold" value="single"><span class="hc-emoji">👪</span><span class="hc-text" data-i18n="household_single">한부모 가정이에요</span></label>
+        <label class="household-card"><input type="radio" name="wpAllHousehold" value="unsure"><span class="hc-emoji">🤔</span><span class="hc-text" data-i18n="opt_unsure">잘 모르겠어요</span></label>
+      </div>
+    </div>
+
+    <button class="wp-btn wp-btn-primary" id="wpAllSubmitBtn" data-i18n="btn_confirm_all" onclick="wpSubmitAll()" style="margin-top:6px;">확인하고 결과 보기</button>
   </div>
 
   <!-- 페이지 3: 결과 + 목표 선택 -->
@@ -563,7 +522,7 @@
 </div>
 
 
-<script src="app.js?v=20260902f"></script>
+<script src="app.js?v=20260902g"></script>
 <div class="course-modal-overlay" id="courseModalOverlay" onclick="if(event.target===this) closeCourseDetail()">
   <div class="course-modal">
     <button class="course-modal-close" onclick="closeCourseDetail()">✕</button>

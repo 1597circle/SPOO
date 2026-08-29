@@ -16,6 +16,10 @@ let sLowThreshold, nLowThreshold;
 let sRankByCode = {}, nRankByCode = {};
 let sidoStats = {}, sidoTotalCount = 0, medianSPct = 0, medianNPct = 0;
 let regionSearchList = [];
+// 지역 검색 자동완성(regionSearchList)·위치찾기(polygons)에 필요한 데이터가
+// 다 준비됐는지 기억하는 깃발. init()이 데이터를 다 불러오기 전까지는 false라서,
+// 온보딩 통합 화면의 지역 검색창을 비활성화해 "검색결과 없음" 오작동을 막습니다.
+let regionDataReady = false;
 let facilityMarker = null;
 let geocodeCache = {};
 let currentPanelCode = null;
@@ -866,6 +870,12 @@ async function init(){
     computeRanks();
     buildSearchIndex();
     buildRegionGeometry(geo.features); // 지도 없이도 위치 판별·중심점 계산이 되도록 먼저 준비
+
+    // regionSearchList·polygons가 이제 다 채워졌으므로, 온보딩 통합 화면에서
+    // 잠겨 있던 지역 검색창을 열어줍니다. (온보딩이 먼저 떠 있어도 안전하게 나중에 열림)
+    regionDataReady = true;
+    wpApplyRegionFieldReadyState();
+
     populateAgeSelect();
     renderTop10();
     renderFavorites();
@@ -2161,8 +2171,10 @@ function saveRegionResult(){
 /* ==================== 온보딩 (대화형, 페이지별 애니메이션) ==================== */
 let wpCurrentPage = 0;
 let wpHistory = [];
-// 진행 점(dot) 표시용 — 메인 흐름상의 페이지 순서 (분기 페이지 2b/2c는 점에 포함 안 함)
-const WP_DOT_MAIN_PAGES = ['1','2','5','4','3'];
+// 진행 점(dot) 표시용 — 메인 흐름상의 페이지 순서.
+// 예전엔 이름→생년월일→지역→가정형태→결과 5단계였지만, 이제 정보 입력이
+// 통합 화면(All) 하나로 합쳐져서 "입력 → 결과" 2단계만 남았습니다.
+const WP_DOT_MAIN_PAGES = ['All','3'];
 
 // 어떤 상황에서도 온보딩 페이지가 두 개 이상 겹쳐 보이지 않도록,
 // 보여줄 페이지를 정하기 전에 나머지는 전부 강제로 숨김
@@ -2177,8 +2189,12 @@ function wpShowOnly(id){
   target.style.display = 'flex';
   target.classList.add('wp-enter');
   setTimeout(()=>target.classList.remove('wp-enter'), 350);
-  const firstInput = target.querySelector('input');
-  if(firstInput) setTimeout(()=>firstInput.focus(), 200);
+  // 통합 화면(All)은 필드가 4개나 있어서, 들어가자마자 자동으로 키보드가 뜨면
+  // (특히 iOS에서) 화면이 튀어 보일 수 있어 자동 포커스를 하지 않습니다.
+  if(String(id) !== 'All'){
+    const firstInput = target.querySelector('input');
+    if(firstInput) setTimeout(()=>firstInput.focus(), 200);
+  }
   return target;
 }
 
@@ -2215,17 +2231,16 @@ function wpSplashNext(){
     wpCurrentPage = 'Return';
     wpShowOnly('Return');
   } else {
-    wpGoTo(1, true);
+    wpGoTo('All', true);
   }
 }
 
-// 재방문자가 "내 나이·이름 설정하기"를 누르면 처음 방문자와 완전히 동일한
-// 이름 → 생년월일 입력 흐름으로 들어감 (wp1부터 그대로 재사용, 뒤로가기도 자연스럽게 연결됨)
+// 재방문자가 "이름·생일 설정하기"를 누르면 처음 방문자와 똑같이
+// 이름·생년월일·지역·가정형태를 한 번에 입력하는 통합 화면(wpAll)으로 들어감
 function wpEditProfile(){
   wpHistory.push('Return');
-  wpShowOnly(1);
-  wpCurrentPage = 1;
-  wpUpdateDots(1);
+  wpShowOnly('All');
+  wpCurrentPage = 'All';
 }
 
 function wpReturnFinish(goal){
@@ -2277,57 +2292,6 @@ function wpSkip(){
   maybeShowHomeTips();
 }
 
-function wpSubmitName(){
-  const val = document.getElementById('wpName').value.trim();
-  if(!val){
-    document.getElementById('wpName').style.borderColor = 'var(--coral)';
-    document.getElementById('wpName').placeholder = t('err_enter_name','이름을 입력해주세요');
-    return;
-  }
-  localStorage.setItem('fairplay_name', val);
-  document.getElementById('wpGreeting').textContent = t('wp_greeting_named', `반갑습니다, ${val}님!`).replace('{name}', val);
-  wpGoTo(2);
-}
-
-function wpSubmitBirth(){
-  const val = document.getElementById('wpBirth').value;
-  if(!val){
-    document.getElementById('wpBirth').style.borderColor = 'var(--coral)';
-    return;
-  }
-  const age = wpCalcAge(val);
-  localStorage.setItem('fairplay_birth', val);
-
-  if(age > 18){
-    // 성인 나이 — 아이가 이용하는지 물어보는 갈림길로
-    wpGoTo('2b');
-    return;
-  }
-  // 본인 흐름은 나이 상한(18세)만 확인하고 하한을 확인하지 않아, 5세 미만 생년월일을 입력해도
-  // 그대로 "대상자"로 안내되는 문제가 있었습니다. 아이 흐름(wpSubmitChildBirth)엔 이미 있는
-  // 5세 미만 분기를 여기에도 똑같이 추가합니다. (QA 2026-08-29 지적, 수정)
-  if(age < 5){
-    const name = localStorage.getItem('fairplay_name') || '';
-    document.getElementById('wpChildResultEmoji').textContent = '😅';
-    document.getElementById('wpChildResultText').innerHTML = name
-      ? t('wp_self_result_too_young_named', `${escapeHtml(name)}님은<br>아직 조금 더 커야 해요`).replace('{name}', escapeHtml(name))
-      : t('wp_self_result_too_young', '아직 조금 더 커야 해요');
-    const btnEl = document.getElementById('wpChildResultBtn');
-    btnEl.textContent = t('wp_child_result_btn_facility', '그래도 시설은 찾아볼게요');
-    btnEl.onclick = () => wpFinish('facility');
-    wpGoTo('2e');
-    return;
-  }
-  localStorage.setItem('fairplay_age', age);
-  // 본인이 직접 이용 대상인 경우 — 표시용 이름은 본인 이름으로 확정.
-  // (다른 세션에서 "아이가 이용해요" 흐름을 탄 적이 있다면 남아있을 수 있는
-  //  이전 아이 이름 데이터가 이후 화면에 잘못 노출되지 않도록 함께 정리합니다.)
-  localStorage.setItem('fairplay_display_name', localStorage.getItem('fairplay_name') || '');
-  localStorage.removeItem('fairplay_child_name');
-  wpShowAgeNote(age);
-  wpGoTo(5);
-}
-
 function wpCalcAge(dateStr){
   const birthDate = new Date(dateStr);
   const today = new Date();
@@ -2335,50 +2299,6 @@ function wpCalcAge(dateStr){
   const m = today.getMonth() - birthDate.getMonth();
   if(m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
   return age;
-}
-
-function wpSubmitChildName(){
-  const val = document.getElementById('wpChildName').value.trim();
-  if(!val){
-    document.getElementById('wpChildName').style.borderColor = 'var(--coral)';
-    document.getElementById('wpChildName').placeholder = t('err_enter_child_name','아이 이름을 입력해주세요');
-    return;
-  }
-  localStorage.setItem('fairplay_child_name', val);
-  document.getElementById('wpChildBirthQ').innerHTML = t('wp_child_birth_q', `${escapeHtml(val)} 어린이의<br>생년월일을 알려주세요`).replace('{name}', escapeHtml(val));
-  wpGoTo('2d');
-}
-
-function wpSubmitChildBirth(){
-  const val = document.getElementById('wpChildBirth').value;
-  if(!val){
-    document.getElementById('wpChildBirth').style.borderColor = 'var(--coral)';
-    return;
-  }
-  const age = wpCalcAge(val);
-  const childName = localStorage.getItem('fairplay_child_name') || '아이';
-
-  const emojiEl = document.getElementById('wpChildResultEmoji');
-  const textEl = document.getElementById('wpChildResultText');
-  const btnEl = document.getElementById('wpChildResultBtn');
-
-  if(age >= 5 && age <= 18){
-    localStorage.setItem('fairplay_age', age);
-    localStorage.setItem('fairplay_display_name', childName); // 이후 화면(가정유형 결과, 서류 체크리스트 등)에 아이 이름이 뜨도록
-    wpShowAgeNote(age);
-    emojiEl.textContent = '🎉';
-    textEl.innerHTML = t('wp_child_result_ok', `${escapeHtml(childName)} 어린이는<br>이용 가능해요!`).replace('{name}', escapeHtml(childName));
-    btnEl.textContent = t('wp_child_result_btn_ok', '이용할 시설 알아볼까요?');
-    btnEl.onclick = () => wpGoTo(5);
-  } else {
-    emojiEl.textContent = '😅';
-    textEl.innerHTML = age < 5
-      ? t('wp_child_result_too_young', `${escapeHtml(childName)} 어린이는<br>아직 조금 더 커야 해요`).replace('{name}', escapeHtml(childName))
-      : t('wp_child_result_too_old', `${escapeHtml(childName)} 어린이는<br>이미 나이가 지났어요`).replace('{name}', escapeHtml(childName));
-    btnEl.textContent = t('wp_child_result_btn_facility', '그래도 시설은 찾아볼게요');
-    btnEl.onclick = () => wpFinish('facility');
-  }
-  wpGoTo('2e');
 }
 
 // 경계값(5세·18세) 케이스 안내 문구
@@ -2390,10 +2310,28 @@ function wpShowAgeNote(age){
   else el.textContent = '';
 }
 
-/* ---- 온보딩 5페이지: 지역 선택 (자가진단의 지역선택과 동일한 방식) ---- */
+/* ---- 온보딩 통합 화면: 지역 선택 (자가진단의 지역선택과 동일한 방식) ---- */
+// 지역 데이터(regionSearchList·polygons)가 아직 안 준비됐으면 입력창을 잠가서
+// "검색결과 없음"처럼 잘못 보이는 걸 막고, init()에서 준비가 끝나면 다시 열어줍니다.
+function wpApplyRegionFieldReadyState(){
+  const inp = document.getElementById('wpRegionInput');
+  const btn = document.getElementById('wpLocateBtn');
+  if(!inp) return;
+  if(regionDataReady){
+    inp.disabled = false;
+    inp.placeholder = t('ph_region_search','동네 이름으로 찾기 (예: 강남구)');
+    if(btn) btn.disabled = false;
+  } else {
+    inp.disabled = true;
+    inp.placeholder = t('region_loading','동네 목록 불러오는 중...');
+    if(btn) btn.disabled = true;
+  }
+}
+
 const wpRegionInput = document.getElementById('wpRegionInput');
 const wpRegionSuggest = document.getElementById('wpRegionSuggest');
 if(wpRegionInput){
+  wpApplyRegionFieldReadyState(); // 페이지가 막 열렸을 때 기준으로 우선 한 번 적용
   wpRegionInput.addEventListener('input', ()=>{
     const q = wpRegionInput.value.trim();
     if(!q){ wpRegionSuggest.style.display='none'; return; }
@@ -2409,7 +2347,7 @@ if(wpRegionInput){
     wpSelectRegion(item.dataset.code);
   });
   document.addEventListener('click', (e)=>{
-    if(!e.target.closest('#wp5 .search-box')) wpRegionSuggest.style.display = 'none';
+    if(!e.target.closest('#wpAll .search-box')) wpRegionSuggest.style.display = 'none';
   });
   bindEnterToFirstSuggestion(wpRegionInput, wpRegionSuggest);
 }
@@ -2439,38 +2377,41 @@ document.getElementById('wpLocateBtn')?.addEventListener('click', ()=>{
   );
 });
 
+// 통합 화면에서 지역을 하나 고르면, 예전처럼 다음 화면으로 넘어가지 않고
+// 같은 화면에 "✅ OO구 선택됨"만 표시합니다. 실제 선택 여부는 wpAllRegionCode에 기억해뒀다가
+// wpSubmitAll()에서 최종 제출할 때 사용합니다.
+let wpAllRegionCode = null;
 function wpSelectRegion(code){
   const row = voucherData[code];
   if(!row) return;
   onRegionClick(code, row);
   localStorage.setItem('fairplay_region_code', code);
-  wpGoTo(4);
-}
-function wpSkipRegion(){
-  wpGoTo(4);
+  wpAllRegionCode = code;
+
+  const inputEl = document.getElementById('wpRegionInput');
+  if(inputEl) inputEl.style.borderColor = '';
+  const pickedEl = document.getElementById('wpRegionPicked');
+  if(pickedEl){
+    pickedEl.style.display = 'block';
+    pickedEl.innerHTML = `✅ <b>${escapeHtml(row.sido || '')} ${escapeHtml(row.region || '')}</b> 선택됨`;
+  }
 }
 
-function wpSubmitHousehold(val){
-  localStorage.setItem('fairplay_household', val);
-  // 실제 이용 대상 이름: "아이가 이용해요" 흐름이면 아이 이름, 본인 이용이면 본인 이름.
-  // (예전 방식으로 fairplay_name만 쓰면 아이 흐름을 타도 계속 부모님 본인 이름이 떠서 수정함)
-  const name = localStorage.getItem('fairplay_display_name') || localStorage.getItem('fairplay_name') || '';
-  const age = Number(localStorage.getItem('fairplay_age'));
-  wpRenderEligibility(age, val, name);
-  document.getElementById('wpGoalTitle').innerHTML = t('wp_goal_title', `${escapeHtml(name)}님,<br>무엇을 먼저 해볼까요?`).replace('{name}', escapeHtml(name));
-  // 서류 안내가 있는 경우(대상+범주 확실) "신청 서류 준비하기" 선택지도 보여줌
-  const docBtn = document.getElementById('wpDocGoalBtn');
-  if(docBtn) docBtn.style.display = (val !== 'unsure') ? 'flex' : 'none';
-  const regionCode = currentPanelCode || localStorage.getItem('fairplay_region_code');
-  const regionRow = regionCode ? voucherData[regionCode] : null;
-  if(regionRow) s1RenderRegionConfirm(regionRow, 'wpHouseholdRegionNote');
-  wpGoTo(3);
-}
-
-// 온보딩 안에서 바로 보여주는 간단 자격 결과 (자세한 서류 체크리스트는 1단계에서 계속)
+// 온보딩 안에서 바로 보여주는 간단 자격 결과 (자세한 서류 체크리스트는 1단계에서 계속).
+// 나이가 5~18세 범위 밖이면 가정형태와 무관하게 "아직 조금 더 커야 해요"/"이미 나이가
+// 지났어요" 안내부터 보여줍니다 — 팀원분이 wpSubmitBirth에서 발견했던 "5세 미만인데도
+// 대상자로 안내되는" 버그를, 화면이 하나로 합쳐진 여기서도 똑같이 방지합니다.
 function wpRenderEligibility(age, val, name){
   const el = document.getElementById('wpEligibilityResult');
   if(!el) return;
+  if(age < 5 || age > 18){
+    el.innerHTML = `<div class="wp-result alert">${
+      age < 5
+        ? t('wp_elig_too_young', `${escapeHtml(name)}님은 아직 조금 더 커야 해요`).replace('{name}', escapeHtml(name))
+        : t('wp_elig_too_old', `${escapeHtml(name)}님은 이미 나이가 지났어요`).replace('{name}', escapeHtml(name))
+    }</div>`;
+    return;
+  }
   if(val === 'unsure'){
     el.innerHTML = `<div class="wp-result">${t('wp_elig_unsure', '헷갈리실 땐 주민센터 복지 담당자(☎ KSPO 02-410-1298~9)한테 문의해보세요')}</div>`;
     return;
@@ -2480,6 +2421,85 @@ function wpRenderEligibility(age, val, name){
   } else {
     el.innerHTML = `<div class="wp-result ok">${t('wp_elig_ok', `<b>${escapeHtml(name)}님은 지원 대상이에요! 🎉</b> 1단계에서 필요한 서류도 바로 확인할 수 있어요`).replace('{name}', escapeHtml(name))}</div>`;
   }
+}
+
+// 통합 화면의 "확인하고 결과 보기" 버튼 — 이름·생년월일·지역·가정형태를 한 번에 검증하고 저장합니다.
+function wpSubmitAll(){
+  let firstInvalid = null;
+
+  // 1) 이름 (필수)
+  const nameEl = document.getElementById('wpName');
+  const name = nameEl.value.trim();
+  if(!name){
+    nameEl.style.borderColor = 'var(--coral)';
+    firstInvalid = firstInvalid || nameEl;
+  } else {
+    nameEl.style.borderColor = '';
+  }
+
+  // 2) 생년월일 (필수)
+  const birthEl = document.getElementById('wpBirth');
+  const birth = birthEl.value;
+  if(!birth){
+    birthEl.style.borderColor = 'var(--coral)';
+    firstInvalid = firstInvalid || birthEl;
+  } else {
+    birthEl.style.borderColor = '';
+  }
+
+  // 3) 가정형태 (필수) — 라디오 그룹 이름은 기존 자가진단 화면의 "household"와
+  // 겹치지 않도록 일부러 "wpAllHousehold"라는 다른 이름을 씁니다.
+  const hhChecked = document.querySelector('input[name="wpAllHousehold"]:checked');
+  const hhGroupEl = document.getElementById('wpAllHouseholdGroup');
+  if(!hhChecked){
+    if(hhGroupEl) hhGroupEl.classList.add('wp-all-error');
+    firstInvalid = firstInvalid || hhGroupEl;
+  } else if(hhGroupEl){
+    hhGroupEl.classList.remove('wp-all-error');
+  }
+
+  // 4) 지역 (선택 항목) — 검색창에 글자만 입력하고 목록에서 실제로 고르지 않았다면
+  // "선택된 것처럼" 착각하고 넘어가지 않도록 별도로 감지합니다.
+  const regionInputEl = document.getElementById('wpRegionInput');
+  const regionTypedButNotPicked = !!(regionInputEl && regionInputEl.value.trim() && !wpAllRegionCode);
+
+  if(firstInvalid){
+    firstInvalid.scrollIntoView({ behavior:'smooth', block:'center' });
+    return;
+  }
+
+  // ---- 여기까지 통과했으면 실제로 저장 ----
+  localStorage.setItem('fairplay_name', name);
+  localStorage.setItem('fairplay_display_name', name);
+  // 예전 버전에서 "아이가 이용해요" 흐름을 탄 적이 있는 기기라면 남아있을 수 있는
+  // 이전 자녀 이름 데이터를 정리해서, 새 화면에 엉뚱하게 노출되는 걸 막습니다.
+  localStorage.removeItem('fairplay_child_name');
+
+  const age = wpCalcAge(birth);
+  localStorage.setItem('fairplay_birth', birth);
+  localStorage.setItem('fairplay_age', age);
+  wpShowAgeNote(age);
+
+  const household = hhChecked.value;
+  localStorage.setItem('fairplay_household', household);
+  const ageEligible = age >= 5 && age <= 18;
+
+  wpRenderEligibility(age, household, name);
+  document.getElementById('wpGoalTitle').innerHTML = t('wp_goal_title', `${escapeHtml(name)}님,<br>무엇을 먼저 해볼까요?`).replace('{name}', escapeHtml(name));
+  const docBtn = document.getElementById('wpDocGoalBtn');
+  // 나이가 5~18세 범위 밖이면 가정형태가 확실해도 "신청 서류 준비하기"는 보여주지 않습니다
+  // (지원 대상이 아니므로 서류 안내가 의미 없음 — teammate가 찾은 5세 미만 버그와 같은 종류의 문제 방지).
+  if(docBtn) docBtn.style.display = (household !== 'unsure' && ageEligible) ? 'flex' : 'none';
+
+  const regionCode = wpAllRegionCode || currentPanelCode || localStorage.getItem('fairplay_region_code');
+  const regionRow = regionCode ? voucherData[regionCode] : null;
+  if(regionRow) s1RenderRegionConfirm(regionRow, 'wpHouseholdRegionNote');
+
+  if(regionTypedButNotPicked){
+    alert(t('region_not_picked_notice','입력하신 동네가 목록에서 선택되지 않아 지역 정보 없이 진행할게요. 2단계에서 다시 찾을 수 있어요.'));
+  }
+
+  wpGoTo(3);
 }
 
 function wpFinish(goal){
@@ -3308,20 +3328,19 @@ function bindEnterToFirstSuggestion(inputEl, suggestEl){
 }
 bindEnterToFirstSuggestion(searchInput, searchSuggest);
 
-// 이름·생년월일 입력 화면에서 엔터를 누르면 "다음" 버튼을 누른 것과 똑같이 진행됨
-function bindEnterToSubmit(inputId, submitFn){
-  const el = document.getElementById(inputId);
+// 통합 화면(이름·생년월일·지역·가정형태)에서 엔터를 누르면 전체 제출이 아니라
+// "다음 칸으로 이동"만 하도록 합니다.
+function focusNextField(currentId, nextId){
+  const el = document.getElementById(currentId);
   if(!el) return;
   el.addEventListener('keydown', (e)=>{
     if(e.key !== 'Enter') return;
     e.preventDefault();
-    submitFn();
+    document.getElementById(nextId)?.focus();
   });
 }
-bindEnterToSubmit('wpName', wpSubmitName);
-bindEnterToSubmit('wpBirth', wpSubmitBirth);
-bindEnterToSubmit('wpChildName', wpSubmitChildName);
-bindEnterToSubmit('wpChildBirth', wpSubmitChildBirth);
+focusNextField('wpName', 'wpBirth');
+focusNextField('wpBirth', 'wpRegionInput');
 
 document.addEventListener('click', (e)=>{
   if(!e.target.closest('.search-box')) searchSuggest.style.display = 'none';
