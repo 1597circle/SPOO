@@ -2853,11 +2853,19 @@ async function onRegionClick(code, row){
   // ---- 2단계: 우리동네 카드 ----
   // (수급률 %·전국 순위는 이용자에게 도움이 안 된다는 전문가 피드백에 따라
   //  "내 예산으로 들을 수 있는 강좌" 요약으로 교체. 통계는 담당자용 화면에 그대로 있음. 2026-08-29)
+  // 군 지역은 이용률이 시·구보다 낮다는 데이터가 있어(13.5% vs 17.3%, 2026-08 분석),
+  // 더 꼼꼼히 확인하시라는 맞춤 안내를 한 줄 얹습니다. STP 1순위 타겟 대응.
+  const isRuralGun = /군$/.test(row.region || '');
+  const ruralBannerHtml = isRuralGun
+    ? `<div class="rural-hint">🌾 ${row.region}은 이용률이 상대적으로 낮은 지역이에요 — 그래서 더 꼼꼼히 확인해 드릴게요</div>`
+    : '';
+
   document.getElementById('regionStatsCard').innerHTML = `
     <div style="display:flex; justify-content:flex-end; margin-bottom:4px;">
       <button class="fav-star ${favActive?'active':''}" onclick="toggleFavorite('${code}')" title="${t('favorite','즐겨찾기')}">⭐</button>
     </div>
     <div class="s2c-tag"><span class="dot"></span>${row.sido} ${row.region} · 우리 동네에서 할 수 있는 것</div>
+    ${ruralBannerHtml}
     <div id="regionBudgetBox"></div>
     <div class="s2c-cheer">${t('s2c_cheer','신청해도 손해볼 건 없어요 📝')}</div>
     <div class="s2c-cheer-sub">${t('s2c_cheer_sub','선정은 지자체 예산·순위에 따라 달라질 수 있어요')}</div>

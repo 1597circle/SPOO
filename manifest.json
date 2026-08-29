@@ -1,5 +1,5 @@
 {
-  "name": "SPOO - 우리 아이 스포츠강좌 지원받기",
+  "name": "SPOO - 스포츠강좌이용권, 우리 아이 지원받기",
   "short_name": "SPOO",
   "description": "스포츠강좌이용권 지원 현황을 확인하고 우리 아이도 받을 수 있는지 진단해보세요",
   "start_url": "./index.html",
