@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v11'; // v10→v11: 군 지역 맞춤 안내 + 브랜드명 통일
+const CACHE_NAME = 'spoo-v12'; // v11→v12: 온보딩 순서 개편 + 신청 카운트다운 + 기관용 포스터
 const CORE_FILES = [
   './index.html',
   './style.css',

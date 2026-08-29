@@ -484,7 +484,7 @@ async function loadConfigAndApply(){
     const cfg = await fetch('config.json').then(r=>r.json());
     spooConfig = cfg; // 캘린더 등록(.ics) 기능에서 재사용
     applyVoucherAmounts(cfg);  // 월 지원 한도 등 금액 기준값 반영 (계산에 직접 쓰이므로 문구보다 먼저)
-    renderConfigNotices(); // 헤더 기준일·신청기간·결제마감 문구를 현재 언어로 렌더링
+    renderConfigNotices(); // 헤더 기준일·신청기간·결제마감 문구 + 신청 시즌 카운트다운 배너를 함께 렌더링
   }catch(e){
     console.log('config.json 로드 실패 — 화면에 있는 기본 안내 문구로 표시됩니다.', e);
   }
@@ -520,12 +520,61 @@ function renderConfigNotices(){
       : t('notice_apply_period_unconfirmed','아직 공식 공고 전이라 <b>예상 일정</b>이에요. 추가 모집이 열려 있을 수 있으니 <a href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener">공식 사이트</a>에서 꼭 확인해주세요.');
     applyEl.innerHTML = `<b>${line}${confirmed ? '' : ' (예상)'}</b> — ${suffix}`;
   }
+  renderApplyCountdown(); // 언어를 바꿔도 문구가 그 언어로 다시 그려지게
   const payEl = document.getElementById('noticePaymentDeadline');
   if(payEl){
     const line = t('notice_payment_template', '결제는 {date}까지').replace('{date}', fmt(cfg.paymentDeadline));
     payEl.innerHTML = `<b>${line}</b> — ${t('notice_payment_sub','마감일을 헷갈리지 마세요.')}`;
   }
 }
+
+/* ==================== 신청 시즌 카운트다운 배너 (2026-08-29 추가) ====================
+   config.json의 applyPeriod를 기준으로, 신청 시작 30일 전부터 그리고 신청 기간 중에
+   자동으로 D-day 배너를 띄웁니다. 신청기간이 아직 "예상"일 땐 문구에도 그 사실을 남겨서
+   확정 정보처럼 오해하지 않게 합니다. 닫기는 그 해 신청 시작일 기준으로 하루만 숨김
+   (다음날 다시 보이게 해서, 마감이 다가올수록 계속 눈에 띄게 합니다). */
+function renderApplyCountdown(){
+  if(!spooConfig || !spooConfig.applyPeriod) return;
+  const banner = document.getElementById('applyCountdownBanner');
+  const textEl = document.getElementById('applyCountdownText');
+  if(!banner || !textEl) return;
+
+  const todayStr = new Date().toISOString().slice(0,10);
+  const hideKey = `spoo_hide_countdown_${spooConfig.applyPeriod.start}_${todayStr}`;
+  if(localStorage.getItem(hideKey)){ banner.style.display = 'none'; return; }
+
+  const MS_DAY = 24*60*60*1000;
+  const today = new Date(todayStr + 'T00:00:00');
+  const start = new Date(spooConfig.applyPeriod.start + 'T00:00:00');
+  const end = new Date(spooConfig.applyPeriod.end + 'T00:00:00');
+  const confirmed = spooConfig.applyPeriodConfirmed !== false;
+  const guess = confirmed ? '' : t('countdown_unconfirmed_suffix', ' (예상 일정)');
+
+  let msg = null;
+  if(today >= start && today <= end){
+    const dLeft = Math.round((end - today) / MS_DAY);
+    msg = dLeft <= 0
+      ? t('countdown_last_day', '🔥 오늘이 스포츠강좌이용권 신청 마지막 날이에요!') + guess
+      : t('countdown_in_period', '🔥 지금 신청 기간이에요! 마감까지 D-{n}').replace('{n}', dLeft) + guess;
+  } else if(today < start){
+    const dUntil = Math.round((start - today) / MS_DAY);
+    if(dUntil <= 30){
+      msg = t('countdown_before_period', '⏰ 스포츠강좌이용권 신청까지 D-{n}').replace('{n}', dUntil) + guess;
+    }
+  }
+
+  if(!msg){ banner.style.display = 'none'; return; }
+  textEl.textContent = msg;
+  banner.style.display = 'flex';
+}
+document.getElementById('closeApplyCountdownBanner')?.addEventListener('click', ()=>{
+  const banner = document.getElementById('applyCountdownBanner');
+  banner.style.display = 'none';
+  if(spooConfig && spooConfig.applyPeriod){
+    const todayStr = new Date().toISOString().slice(0,10);
+    localStorage.setItem(`spoo_hide_countdown_${spooConfig.applyPeriod.start}_${todayStr}`, '1');
+  }
+});
 
 /* ==================== 신청기간 캘린더 등록 (.ics 다운로드) ====================
    서버·회원가입 없이, 브라우저에서 표준 iCalendar(.ics) 파일을 만들어 다운로드합니다.
@@ -3735,7 +3784,12 @@ async function placeFacilityPinsFor(facilities){
 
 // 진단 질문에 답하면 추천 카드를 부드럽게 펼침 (처음부터 다 보여주지 않고 한 단계씩)
 // 1단계 서브스텝 전환 (age → household → result → recommend), 온보딩과 같은 방식
-const S1_STEPS = ['age','region','household','priorhistory','resultIntro','docsChecklist','docsNotice','docsContact','resultAction','recommend'];
+// 순서 개편(2026-08-29, 전문가 피드백 반영): 예전엔 age→region→household 순이라
+// 동네를 다 검색해 입력한 다음에야 대상 여부(household)를 물었습니다. 이제는
+// age→household→priorhistory→region 순으로 바꿔서, 입력 수고가 드는 "동네 검색"은
+// 대상 여부를 먼저 확인한 뒤에만 하도록 했습니다. "잘 모르겠어요"를 고른 분은
+// region도 건너뛰고 바로 결과(상담 안내)로 갑니다.
+const S1_STEPS = ['age','household','priorhistory','region','resultIntro','docsChecklist','docsNotice','docsContact','resultAction','recommend'];
 let s1Initialized = false;
 let s1CurrentStepName = null; // 현재 활성화된 s1 서브스텝 (2·3단계로 이동할 때 숨겼다가, 다시 돌아오면 복원하는 용도)
 
@@ -3942,7 +3996,7 @@ function s1SubmitPriorHistory(val){
   const regionCode = currentPanelCode || localStorage.getItem('fairplay_region_code');
   const regionRow = regionCode ? voucherData[regionCode] : null;
   if(regionRow) s1RenderRegionConfirm(regionRow, 's1RegionConfirm');
-  s1GoTo('resultIntro');
+  s1GoTo('region'); // 순서 개편: 대상 여부부터 확인했으니 이제 동네를 물어봅니다
 }
 
 /* ---- 1단계 자가진단: 지역 선택 (검색 + 내 위치로 찾기) ----
@@ -4041,7 +4095,7 @@ function s1SelectRegion(code){
   s1RenderRegionConfirm(row);
   if(s1RegionInput) s1RegionInput.value = '';
   if(s1RegionSuggest) s1RegionSuggest.style.display = 'none';
-  s1GoTo('household');
+  s1GoTo('resultIntro'); // 순서 개편: 이제 region이 결과 바로 앞 단계입니다
 }
 
 function renderPriorityNotice(household, priorHistory){

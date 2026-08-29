@@ -897,6 +897,7 @@
      온보딩 중엔 어차피 안 보이는 요소들이니 아예 접어서, 헤더가 항상 화면 맨 위(0)에 오도록 합니다.
      (JS의 watchOnboardingOverlay가 body에 이 클래스를 자동으로 붙였다 뗐다 합니다) */
   body.onboarding-active #deadlineBanner,
+  body.onboarding-active #applyCountdownBanner,
   body.onboarding-active #inappBanner,
   body.onboarding-active #installBanner{
     display:none !important;
