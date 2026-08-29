@@ -297,5 +297,11 @@
   "tag_fire_grip": "有助于消防体能测试握力·背力项目",
   "tag_fire_flex": "有助于消防体能测试柔韧性项目",
   "tag_military_endur": "有助于军队3公里跑体能测试",
-  "tag_military_core": "有助于军队俯卧撑·仰卧起坐体能测试"
+  "tag_military_core": "有助于军队俯卧撑·仰卧起坐体能测试",
+  "notice_apply_period_unconfirmed": "由于官方公告尚未发布，这是<b>预计日程</b>。可能会有追加招募，请务必在<a href=\"https://svoucher.kspo.or.kr\" target=\"_blank\" rel=\"noopener\">官方网站</a>确认。",
+  "countdown_unconfirmed_suffix": " (预计日程)",
+  "countdown_last_day": "🔥 今天是体育课程券申请的最后一天！",
+  "countdown_in_period": "🔥 现在是申请期间！距离截止还有 D-{n}",
+  "countdown_before_period": "⏰ 距离体育课程券申请开始还有 D-{n}",
+  "rural_hint_low_usage": "🌾 {region}的使用率相对较低——所以我们会帮您更仔细地确认"
 }
