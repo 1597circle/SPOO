@@ -1009,7 +1009,7 @@
 
   .wp-result{
     width:100%; text-align:center; font-size:var(--fs-body); line-height:1.65; padding:18px 22px; border-radius:16px;
-    margin-bottom:22px; background:var(--paper); color:var(--ink-sub); font-weight:600;
+    margin-bottom:22px; background:var(--paper); color:var(--ink-sub); font-weight:400; word-break:keep-all;
   }
   .wp-result b{color:var(--navy);}
   .wp-result.ok{background:var(--mint-soft); color:#067A66;}
