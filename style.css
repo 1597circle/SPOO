@@ -992,8 +992,8 @@
   .wp-intro-dots .dot.active{background:var(--coral); width:20px; border-radius:5px;}
 
   .wp-intro-eyebrow{
-    display:block; color:var(--blue-deep); font-weight:700; font-size:13.5px;
-    text-decoration:underline; text-underline-offset:3px; margin-bottom:14px;
+    display:block; color:var(--blue-deep); font-weight:700; font-size:16px;
+    text-decoration:underline; text-underline-offset:3px; margin-bottom:14px; margin-top:8px;
   }
 
   /* 혜택 목록(01/02/03) — household-card처럼 얇은 구분선 방식으로 왼쪽 정렬 */
