@@ -2972,15 +2972,14 @@ function computeBudgetSummary(facilities){
 function budgetSummaryHtml(sum, facCount){
   return `
     <div class="s2c-budget-hero">
-      <div class="s2c-budget-label">내 돈 <b>0원</b>으로 들을 수 있는 강좌</div>
       <div class="s2c-budget-num">${sum.free.toLocaleString()}<span>개</span></div>
-      <div class="s2c-budget-sub">${sum.freeFac.toLocaleString()}개 시설 · 이용권 지원(월 ${(VOUCHER_LIMIT/10000).toLocaleString()}만원)으로 전액 해결</div>
+      <div class="s2c-budget-sub">${sum.freeFac.toLocaleString()}개 시설의 강좌, 수강료가 이용권으로 전액 처리돼요</div>
     </div>
     <div class="budget-chips">
-      <button class="bchip" onclick="applyBudgetChip('free')">0원 <b>${sum.free.toLocaleString()}</b></button>
-      <button class="bchip" onclick="applyBudgetChip('under3')">3만원까지 <b>${sum.u3.toLocaleString()}</b></button>
-      <button class="bchip" onclick="applyBudgetChip('under5')">5만원까지 <b>${sum.u5.toLocaleString()}</b></button>
-      <button class="bchip" onclick="applyBudgetChip('__all__')">전체 <b>${sum.total.toLocaleString()}</b></button>
+      <button class="bchip" onclick="applyBudgetChip('free')"><span class="bchip-label">0원</span><span class="bchip-num">${sum.free.toLocaleString()}</span></button>
+      <button class="bchip" onclick="applyBudgetChip('under3')"><span class="bchip-label">3만까지</span><span class="bchip-num">${sum.u3.toLocaleString()}</span></button>
+      <button class="bchip" onclick="applyBudgetChip('under5')"><span class="bchip-label">5만까지</span><span class="bchip-num">${sum.u5.toLocaleString()}</span></button>
+      <button class="bchip" onclick="applyBudgetChip('__all__')"><span class="bchip-label">전체</span><span class="bchip-num">${sum.total.toLocaleString()}</span></button>
     </div>
     <div class="s2c-caption">예산을 누르면 그 가격대 강좌만 골라서 보여드려요</div>`;
 }
@@ -3132,10 +3131,13 @@ async function onRegionClick(code, row){
     <div style="display:flex; justify-content:flex-end; margin-bottom:4px;">
       <button class="fav-star ${favActive?'active':''}" onclick="toggleFavorite('${code}')" title="${t('favorite','즐겨찾기')}">⭐</button>
     </div>
-    <div class="s2c-tag"><span class="dot"></span>${row.sido} ${row.region} · 우리 동네에서 할 수 있는 것</div>
+    <div class="s2c-header-row">
+      <span class="s2c-header-region">${row.sido} ${row.region}</span>
+      <span class="s2c-header-label">0원으로 들을 수 있는 강좌</span>
+    </div>
     ${ruralBannerHtml}
     <div id="regionBudgetBox"></div>
-    <div class="s2c-cheer">${t('s2c_cheer','신청해도 손해볼 건 없어요 📝')}</div>
+    <div class="s2c-cheer">✅ ${t('s2c_cheer','신청해도 손해볼 건 없어요')}</div>
     <div class="s2c-cheer-sub">${t('s2c_cheer_sub','선정은 지자체 예산·순위에 따라 달라질 수 있어요')}</div>
     <div class="s2c-minor-link" onclick="openRegionView()">📊 지역별 수급 통계·순위가 필요하신 담당자는 이곳에서 →</div>
   `;
