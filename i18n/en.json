@@ -88,7 +88,7 @@
   "wp_child_result_too_old": "{name} has<br>already aged out",
   "wp_child_result_btn_facility": "Browse facilities anyway",
   "wp_goal_title": "{name},<br>what would you like to do first?",
-  "wp_elig_unsure": "If you're not sure, contact the welfare officer at your community center (☎ KSPO 02-410-1298~9)",
+  "wp_elig_unsure": "If you're unsure whether you qualify, contact your local community center's welfare officer or the Sports Voucher Support Center (☎ 1551-0078)",
   "wp_elig_near": "<b>Near-poverty families can receive support too!</b> But only 2–3 out of 100 eligible families apply — be sure to apply",
   "wp_elig_ok": "<b>{name} is eligible for support! 🎉</b> You can check the required documents right away in step 1",
   "wp_doc_title": "Prepare application documents",
