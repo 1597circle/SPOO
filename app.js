@@ -2536,7 +2536,7 @@ function wpRenderEligibility(age, val, name){
     // 2026-08-30 수정: "02-410-1298~9"는 실제로는 스포츠강좌이용권 상담센터의 팩스 번호였고
     // (svoucher.kspo.or.kr 공식 신청안내 페이지 확인 — TEL 1551-0078 / FAX 02-410-1339),
     // 전화 상담 번호가 아니었습니다. 아래 applyHelpHtml()의 검증된 번호로 통일합니다.
-    el.innerHTML = `<div class="wp-result">${t('wp_elig_unsure', '헷갈리실 땐 주민센터 복지 담당자나 스포츠강좌이용권 상담센터(☎ 1551-0078)에 문의해보세요')}</div>`;
+    el.innerHTML = `<div class="wp-result">${t('wp_elig_unsure', '지원 대상이 헷갈리신다면 주민센터 복지 담당자 또는 스포츠강좌이용권 상담센터(☎ 1551-0078)에 문의해보세요')}</div>`;
     return;
   }
 
