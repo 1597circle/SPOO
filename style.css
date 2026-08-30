@@ -1004,7 +1004,7 @@
   }
   .wp-benefit-item:first-child{border-top:1px solid var(--line);}
   .wb-num{font-size:13px; font-weight:800; color:var(--ink-faint); padding-top:12px; flex-shrink:0; width:20px;}
-  .wb-title{font-size:16px; font-weight:800; color:var(--navy); margin-bottom:4px;}
+  .wb-title{font-size:16px; font-weight:600; color:var(--navy); margin-bottom:4px;}
   .wb-desc{font-size:13.5px; color:var(--ink-sub); line-height:1.5;}
 
   .wp-result{
