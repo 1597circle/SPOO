@@ -3128,9 +3128,6 @@ async function onRegionClick(code, row){
     : '';
 
   document.getElementById('regionStatsCard').innerHTML = `
-    <div style="display:flex; justify-content:flex-end; margin-bottom:4px;">
-      <button class="fav-star ${favActive?'active':''}" onclick="toggleFavorite('${code}')" title="${t('favorite','즐겨찾기')}">⭐</button>
-    </div>
     <div class="s2c-header-row">
       <span class="s2c-header-region">${row.sido} ${row.region}</span>
       <span class="s2c-header-label">0원으로 들을 수 있는 강좌</span>
