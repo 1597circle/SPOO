@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v15'; // v14→v15: 지원금액 문구 정정(연→월), 온보딩 통합화면을 이름·생년월일·지역 / 가정형태 2단계로 분리
+const CACHE_NAME = 'spoo-v16'; // v15→v16: 나이 부적격(5세 미만/18세 초과) 결과 화면을 온보딩 톤의 전용 화면으로 분리
 const CORE_FILES = [
   './index.html',
   './style.css',

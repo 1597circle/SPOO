@@ -2419,15 +2419,39 @@ function wpSelectRegion(code){
 // 대상자로 안내되는" 버그를, 화면이 하나로 합쳐진 여기서도 똑같이 방지합니다.
 function wpRenderEligibility(age, val, name){
   const el = document.getElementById('wpEligibilityResult');
+  const goalSection = document.getElementById('wpGoalSection');
+  const ineligibleSection = document.getElementById('wpIneligibleSection');
   if(!el) return;
+
   if(age < 5 || age > 18){
-    el.innerHTML = `<div class="wp-result alert">${
-      age < 5
-        ? t('wp_elig_too_young', `${escapeHtml(name)}님은 아직 조금 더 커야 해요`).replace('{name}', escapeHtml(name))
-        : t('wp_elig_too_old', `${escapeHtml(name)}님은 이미 나이가 지났어요`).replace('{name}', escapeHtml(name))
-    }</div>`;
+    // 나이 밖 대상자는 작은 알림 문구 대신, 온보딩 소개 화면과 같은 톤의 전용 화면을
+    // 보여주고, 목표 선택 버튼 3개(신청 서류/시설/순위)는 감춥니다 — 어차피 신청 대상이
+    // 아니므로 "시설 찾기" 하나만 대안으로 남겨둡니다. (팀원 피드백, 2026-08-30)
+    el.innerHTML = '';
+    if(goalSection) goalSection.style.display = 'none';
+    if(ineligibleSection){
+      ineligibleSection.style.display = 'flex';
+      ineligibleSection.style.flexDirection = 'column';
+      ineligibleSection.style.alignItems = 'center';
+      const emojiEl = document.getElementById('wpIneligibleEmoji');
+      const titleEl = document.getElementById('wpIneligibleTitle');
+      const subEl = document.getElementById('wpIneligibleSub');
+      if(age < 5){
+        if(emojiEl) emojiEl.textContent = '😅';
+        if(titleEl) titleEl.innerHTML = t('wp_elig_too_young_title', `${escapeHtml(name)}님은<br>아직 조금 더 커야 해요`).replace('{name}', escapeHtml(name));
+        if(subEl) subEl.textContent = t('wp_elig_too_young_sub', '만 5세부터 신청할 수 있어요. 그때 다시 확인해주세요!');
+      } else {
+        if(emojiEl) emojiEl.textContent = '🙏';
+        if(titleEl) titleEl.innerHTML = t('wp_elig_too_old_title', `${escapeHtml(name)}님은<br>이미 나이가 지났어요`).replace('{name}', escapeHtml(name));
+        if(subEl) subEl.textContent = t('wp_elig_too_old_sub', '만 18세까지만 신청할 수 있는 제도예요');
+      }
+    }
     return;
   }
+
+  if(goalSection) goalSection.style.display = '';
+  if(ineligibleSection) ineligibleSection.style.display = 'none';
+
   if(val === 'unsure'){
     el.innerHTML = `<div class="wp-result">${t('wp_elig_unsure', '헷갈리실 땐 주민센터 복지 담당자(☎ KSPO 02-410-1298~9)한테 문의해보세요')}</div>`;
     return;
