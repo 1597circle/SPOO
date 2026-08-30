@@ -4151,13 +4151,13 @@ function runDiagnose(){
   hideSpeakButtonsIfUnsupported(); // 방금 새로 생긴 듣기 버튼도 미지원 브라우저면 숨김
 
   if(val === 'near'){
-    introEmoji.textContent = '🎉';
+    introEmoji.textContent = '';
     introTitle.innerHTML = t('result_near_title', `${escapeHtml(namePrefix)}<br>차상위계층도 받을 수 있어요!`).replace('{name}', escapeHtml(displayName));
     introSub.className = 's1-sub';
     introSub.style.display = 'block';
     introSub.innerHTML = t('result_near_sub', `100명 중 <b class="stat-callout">2~3명</b>만 신청 중이에요<br>아직 신청 안 하신 분이 있을 수 있어요`);
   } else {
-    introEmoji.textContent = '🎉';
+    introEmoji.textContent = '';
     introTitle.innerHTML = t('result_eligible_title', `${escapeHtml(namePrefix)}<br>받을 수 있는 대상이에요!`).replace('{name}', escapeHtml(displayName));
     introSub.className = 's1-sub';
     introSub.style.display = 'none';
