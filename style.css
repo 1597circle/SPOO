@@ -504,6 +504,10 @@
     color:var(--blue-deep); font-size:var(--fs-label); line-height:1.6;
   }
   .guide-tip.warn{ background:var(--coral-soft); color:var(--coral-deep); }
+  .guide-priority-summary{
+    margin:10px 0; padding:12px 14px; border-radius:12px; background:var(--blue-soft);
+    color:var(--blue-deep); font-size:var(--fs-label); line-height:1.6; font-weight:600;
+  }
   .guide-example{
     margin-top:10px; padding:12px 14px; border-radius:12px; background:var(--paper);
     color:var(--ink); font-size:var(--fs-label); line-height:1.7;
@@ -740,7 +744,10 @@
     background:var(--blue); color:#fff; border:none; padding:7px 14px; border-radius:10px;
     font-weight:700; font-size:var(--fs-label); cursor:pointer; flex-shrink:0;
   }
-  .install-banner .ib-close{background:none; border:none; font-size:15px; color:#8B95A1; cursor:pointer; padding:2px 6px;}
+  /* 2026-08-30: db-close(마감/카운트다운 배너 닫기)는 44px 최소 터치 영역을 지켰는데
+     ib-close(설치 배너 닫기)만 훨씬 작아서(패딩 2px 6px) 모바일에서 오탭 위험이 있었습니다
+     (팀원 피드백). 같은 유형의 닫기 버튼이니 터치 영역을 맞춥니다. */
+  .install-banner .ib-close{background:none; border:none; font-size:15px; color:#8B95A1; cursor:pointer; padding:2px 6px; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;}
 
   /* ---- TOP10 우선순위 지역 ---- */
   .top10-item{

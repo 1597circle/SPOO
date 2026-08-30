@@ -27,7 +27,7 @@
   ⚠️ 여기에 네이버클라우드 콘솔에서 발급받은 Client ID를 넣으세요.
   파라미터 이름은 최신 버전 기준 ncpKeyId 입니다 (예전 문서엔 ncpClientId).
 ============================================================= -->
-<script src="naver-auth-handler.js?v=20260902j"></script>
+<script src="naver-auth-handler.js?v=20260902k"></script>
 <!-- 아래 외부 스크립트 5개는 defer를 붙여 첫 화면 그리기를 막지 않게 합니다.
      defer는 문서 순서대로 실행되므로 (인증 핸들러 → 네이버지도 → 나머지) 동작 순서는 그대로입니다. -->
 <script src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=414ow9gvoj&submodules=geocoder" defer></script>
@@ -40,25 +40,25 @@
 
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
 
-<link rel="stylesheet" href="style.css?v=20260902j">
+<link rel="stylesheet" href="style.css?v=20260902k">
 </head>
 <body>
 
 <header>
   <h1 onclick="goHome()" style="cursor:pointer;">🏃 SPOO <span data-i18n="header_sub">· 스포츠강좌이용권으로 우리 아이 지원받기</span></h1>
   <div style="display:flex; align-items:center; gap:14px; position:relative;">
-    <span class="header-link" onclick="toggleHeaderMoreMenu()" data-i18n="header_more">더 알아보기 ▾</span>
-    <div id="headerMoreMenu" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:200px; z-index:2000;">
-      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openRegionView();" data-i18n="menu_region">📊 지역 현황이 궁금하신가요?</div>
-      <div style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openFacilityView();" data-i18n="menu_operator">🏢 시설을 운영하고 계신가요?</div>
-      <a href="spoo_institution_poster.pdf" download="SPOO_안내포스터.pdf" style="display:block; text-decoration:none; padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu();" data-i18n="menu_institution">📋 기관 담당자이신가요? 안내 포스터 받기</a>
+    <span class="header-link" id="headerMoreBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-controls="headerMoreMenu" onclick="toggleHeaderMoreMenu()" data-i18n="header_more">더 알아보기 ▾</span>
+    <div id="headerMoreMenu" role="menu" aria-labelledby="headerMoreBtn" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:200px; z-index:2000;">
+      <div role="menuitem" tabindex="-1" style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openRegionView();" data-i18n="menu_region">📊 지역 현황이 궁금하신가요?</div>
+      <div role="menuitem" tabindex="-1" style="padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu(); openFacilityView();" data-i18n="menu_operator">🏢 시설을 운영하고 계신가요?</div>
+      <a role="menuitem" tabindex="-1" href="spoo_institution_poster.pdf" download="SPOO_안내포스터.pdf" style="display:block; text-decoration:none; padding:10px 12px; font-size:var(--fs-label); color:var(--ink); cursor:pointer; border-radius:8px; white-space:nowrap;" onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background='none'" onclick="closeHeaderMoreMenu();" data-i18n="menu_institution">📋 기관 담당자이신가요? 안내 포스터 받기</a>
     </div>
-    <span class="header-link" onclick="toggleLangMenu()">🌐 <span id="langBtnLabel">한국어</span> ▾</span>
-    <div id="langMenu" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:160px; z-index:2000;">
-      <div class="lang-menu-item" onclick="setLanguage('ko')">한국어</div>
-      <div class="lang-menu-item" onclick="setLanguage('en')">English</div>
-      <div class="lang-menu-item" onclick="setLanguage('vi')">Tiếng Việt</div>
-      <div class="lang-menu-item" onclick="setLanguage('zh')">中文</div>
+    <span class="header-link" id="langMenuBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-controls="langMenu" onclick="toggleLangMenu()">🌐 <span id="langBtnLabel">한국어</span> ▾</span>
+    <div id="langMenu" role="menu" aria-labelledby="langMenuBtn" style="display:none; position:absolute; top:28px; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:8px; min-width:160px; z-index:2000;">
+      <div class="lang-menu-item" role="menuitem" tabindex="-1" onclick="setLanguage('ko')">한국어</div>
+      <div class="lang-menu-item" role="menuitem" tabindex="-1" onclick="setLanguage('en')">English</div>
+      <div class="lang-menu-item" role="menuitem" tabindex="-1" onclick="setLanguage('vi')">Tiếng Việt</div>
+      <div class="lang-menu-item" role="menuitem" tabindex="-1" onclick="setLanguage('zh')">中文</div>
     </div>
     <span class="tag" id="headerConfigTag">전국 229개 지역 · 2025.7 기준</span>
   </div>
@@ -71,8 +71,14 @@
   <div class="preload-tagline">Sports Opportunity, Open to You</div>
 </div>
 
+<!-- 2026-08-30 수정: 예전엔 "이번 달에 못 쓰면 사라져요 + 서둘러 신청해보세요"가 한 문장에
+     섞여 있어서, 신청 시즌이 아닐 때도 "지금 당장 신청해야 하나?"처럼 오해할 수 있었습니다
+     (팀원 피드백). 이 배너는 "이미 이용권을 받은 분"을 위한 월별 사용 안내로 문구를 좁히고,
+     "지금 신청해야 하는지"는 아래 신청 시즌 카운트다운 배너(#applyCountdownBanner)가
+     전담하도록 역할을 나눴습니다. 두 배너가 동시에 쌓여 보이지 않도록 renderApplyCountdown()에서
+     카운트다운이 뜨는 동안은 이 배너를 자동으로 숨깁니다. -->
 <div class="deadline-banner" id="deadlineBanner">
-  <span data-i18n="urgent_banner">⏰ 스포츠강좌이용권은 이번 달에 못 쓰면 이월 없이 사라져요. 대상이시라면 서둘러 신청해보세요!</span>
+  <span data-i18n="urgent_banner">⏰ 이미 이용권을 받으셨다면, 이번 달에 안 쓰면 이월 없이 사라져요 — 한 달에 한 번은 꼭 결제해주세요!</span>
   <button class="db-close" id="closeBanner" aria-label="배너 닫기">✕</button>
 </div>
 
@@ -110,7 +116,7 @@
     <div class="step-panel" id="step1Panel">
       <!-- s1 서브스텝 진행 점 -->
       <div class="s1-dots" id="s1Dots">
-        <span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
       </div>
 
       <!-- 서브스텝 1: 나이 (온보딩을 건너뛴 사람을 위한 예비 흐름) -->
@@ -198,6 +204,11 @@
                 <li data-i18n="guide_target_2">만 14세 미만은 법정대리인(보호자)이 신청해요</li>
                 <li data-i18n="guide_target_3">시설보호(거주) 아동은 시설장이 학생별로 신청해요</li>
               </ul>
+              <!-- 2026-08-30: 표만 덜렁 있으면 관공서 서식처럼 딱딱해 보여서(팀원 피드백),
+                   "내 상황이면 대략 몇 순위"를 바로 알 수 있는 요약 문장을 표 위에 붙였습니다.
+                   자가진단(1단계)에서도 household·priorHistory 값으로 이미 같은 계산을 하고
+                   있어서(renderPriorityNotice), 여기 표는 "전체 기준표"로서의 역할을 유지합니다. -->
+              <p class="guide-priority-summary" data-i18n="guide_priority_summary">💡 예를 들어 올해 처음 신청하는 기초생활수급 가정이면 1순위, 차상위·한부모 가정이면 2순위에 해당해요</p>
               <table class="guide-priority-table">
                 <tr><th data-i18n="guide_priority_rank">순위</th><th data-i18n="guide_priority_cond">해당 조건</th></tr>
                 <tr><td data-i18n="guide_priority_top">우선</td><td data-i18n="guide_priority_top_cond">범죄피해가정</td></tr>
@@ -477,7 +488,7 @@
   <!-- 통합 페이지 1/2: 이름·생년월일·지역 -->
   <div class="wp wp-all" id="wpAll" style="display:none;">
     <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" data-i18n="wp_skip" onclick="wpSkip()">나중에 할게요</span></div>
-    <div class="wp-dots" data-page="0"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+    <div class="wp-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
 
     <div class="s1-tag"><span class="dot"></span><span data-i18n="wp_all_tag">시작하기 전에</span></div>
     <div class="wp-question" style="font-size:clamp(26px, 5vw, 36px); margin-bottom:6px;" data-i18n="wp_all_title">먼저,<br>정보를 알려주세요</div>
@@ -490,7 +501,7 @@
 
     <div class="wp-all-field">
       <label class="field-label" for="wpBirth" data-i18n="label_birth">생년월일</label>
-      <input type="date" class="wp-input wp-all-input" id="wpBirth" min="2007-01-01" max="2021-12-31">
+      <input type="date" class="wp-input wp-all-input" id="wpBirth">
       <div class="wp-sub" id="wpAgeNote" style="margin:8px 0 0; min-height:18px;"></div>
     </div>
 
@@ -510,7 +521,7 @@
   <!-- 통합 페이지 2/2: 가정형태 -->
   <div class="wp wp-all" id="wpAll2" style="display:none;">
     <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span class="wp-skip" data-i18n="wp_skip" onclick="wpSkip()">나중에 할게요</span></div>
-    <div class="wp-dots" data-page="0"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+    <div class="wp-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
 
     <div class="s1-tag"><span class="dot"></span><span data-i18n="wp_all2_tag">마지막으로</span></div>
     <div class="wp-question" style="font-size:clamp(26px, 5vw, 36px); margin-bottom:30px;" data-i18n="q_household">우리 가정은<br>어디에 해당하나요?</div>
@@ -531,7 +542,7 @@
   <!-- 페이지 3: 결과 + 목표 선택 -->
   <div class="wp" id="wp3" style="display:none;">
     <div class="wp-nav"><span class="wp-back" onclick="wpBack()" data-i18n="btn_prev">← 이전</span><span></span></div>
-    <div class="wp-dots" data-page="4"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+    <div class="wp-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
     <div id="wpEligibilityResult"></div>
 
     <!-- 나이가 5~18세 범위 밖일 때만 보여주는 전용 화면. 예전엔 작은 알림 박스 하나만 뜨고
@@ -543,6 +554,18 @@
       <div class="wp-question" id="wpIneligibleTitle" style="font-size:clamp(26px, 5vw, 36px);"></div>
       <div class="wp-sub" id="wpIneligibleSub" style="margin-bottom:28px;"></div>
       <button class="wp-btn wp-btn-primary" onclick="wpFinish('facility')" data-i18n="wp_ineligible_facility_btn">그래도 우리 집 근처 시설 확인해요!</button>
+    </div>
+
+    <!-- 대상자로 보이는 경우(기초생활수급·차상위·한부모·범죄피해, "잘 모르겠어요" 제외) 전용 화면.
+         예전엔 작은 초록 알림 박스 하나("OO님은 지원 대상이에요! 🎉")만 뜨고 바로 아래 서류/시설/
+         순위 3개 버튼이 나란히 있어서 "그럼 신청은 어디서?"가 눈에 안 띄었습니다(팀원 피드백,
+         2026-08-30). 부적격 화면과 같은 톤(큰 이모지+제목+설명)에 "신청하러 가기" 버튼을 가장
+         크게 두고, 서류/시설/순위는 그 아래 보조 옵션으로 남겨둡니다. -->
+    <div id="wpEligibleSection" style="display:none;">
+      <div class="wp-logo" id="wpEligibleEmoji" style="font-size:52px; margin-bottom:10px; animation:none;">🎉</div>
+      <div class="wp-question" id="wpEligibleTitle" style="font-size:clamp(26px, 5vw, 36px);"></div>
+      <div class="wp-sub" id="wpEligibleSub" style="margin-bottom:28px;"></div>
+      <button class="wp-btn wp-btn-primary" onclick="window.open('https://svoucher.kspo.or.kr','_blank')" data-i18n="wp_eligible_apply_btn">그럼 신청하러 가볼까요?</button>
     </div>
 
     <div id="wpGoalSection">
@@ -592,7 +615,7 @@
 </div>
 
 
-<script src="app.js?v=20260902j"></script>
+<script src="app.js?v=20260902k"></script>
 <div class="course-modal-overlay" id="courseModalOverlay" onclick="if(event.target===this) closeCourseDetail()">
   <div class="course-modal">
     <button class="course-modal-close" onclick="closeCourseDetail()">✕</button>
@@ -696,7 +719,7 @@
       <ol style="margin:0; padding-left:20px; font-size:var(--fs-label); color:var(--ink-sub); line-height:2;">
         <li data-i18n="fv_step1">시설정보 등록</li>
         <li data-i18n="fv_step2">지자체 확인</li>
-        <li data-i18n="fv_step3">PG사 가맹 등록</li>
+        <li data-i18n="fv_step3">PG사(결제대행사) 가맹 등록 — 이용권 결제를 처리해줄 카드결제 업체 등록</li>
         <li data-i18n="fv_step4">강좌 등록</li>
         <li data-i18n="fv_step5">수강신청</li>
         <li data-i18n="fv_step6">정산</li>

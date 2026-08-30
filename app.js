@@ -193,11 +193,14 @@ function toggleLangMenu(){
   const menu = document.getElementById('langMenu');
   if(!menu) return;
   closeHeaderMoreMenu();
-  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  const willOpen = menu.style.display === 'none';
+  menu.style.display = willOpen ? 'block' : 'none';
+  document.getElementById('langMenuBtn')?.setAttribute('aria-expanded', String(willOpen));
 }
 function closeLangMenu(){
   const menu = document.getElementById('langMenu');
   if(menu) menu.style.display = 'none';
+  document.getElementById('langMenuBtn')?.setAttribute('aria-expanded', 'false');
 }
 
 // 저장된 언어가 있으면(재방문자) 페이지 로드 시 바로 적용
@@ -567,9 +570,18 @@ function renderApplyCountdown(){
     }
   }
 
-  if(!msg){ banner.style.display = 'none'; return; }
+  // 카운트다운 배너와 상단 "이월 없이 사라져요" 배너(#deadlineBanner)가 동시에 쌓여 보이면
+  // 배너 2개가 겹쳐 정신없어 보이므로, 신청 시즌 메시지가 뜨는 동안은 월별 사용 안내를 잠깐
+  // 접어둡니다 — 닫기(hide_banner) 여부와 무관하게 이 함수가 매번 상태를 다시 정합니다.
+  const deadlineBanner = document.getElementById('deadlineBanner');
+  if(!msg){
+    banner.style.display = 'none';
+    if(deadlineBanner && !localStorage.getItem('fairplay_hide_banner')) deadlineBanner.style.display = 'flex';
+    return;
+  }
   textEl.textContent = msg;
   banner.style.display = 'flex';
+  if(deadlineBanner) deadlineBanner.style.display = 'none';
 }
 document.getElementById('closeApplyCountdownBanner')?.addEventListener('click', ()=>{
   const banner = document.getElementById('applyCountdownBanner');
@@ -1612,20 +1624,58 @@ function closeFilterSheet(){ document.getElementById('filterSheetOverlay').class
 function toggleHeaderMoreMenu(){
   const menu = document.getElementById('headerMoreMenu');
   closeLangMenu();
-  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  const willOpen = menu.style.display === 'none';
+  menu.style.display = willOpen ? 'block' : 'none';
+  document.getElementById('headerMoreBtn')?.setAttribute('aria-expanded', String(willOpen));
 }
 function closeHeaderMoreMenu(){
   document.getElementById('headerMoreMenu').style.display = 'none';
+  document.getElementById('headerMoreBtn')?.setAttribute('aria-expanded', 'false');
 }
 document.addEventListener('click', (e)=>{
   const menu = document.getElementById('headerMoreMenu');
   if(menu && menu.style.display === 'block' && !e.target.closest('#headerMoreMenu') && !e.target.closest('.header-link')){
-    menu.style.display = 'none';
+    closeHeaderMoreMenu();
   }
   const langMenu = document.getElementById('langMenu');
   if(langMenu && langMenu.style.display === 'block' && !e.target.closest('#langMenu') && !e.target.closest('.header-link')){
-    langMenu.style.display = 'none';
+    closeLangMenu();
   }
+});
+
+// 헤더 드롭다운 2개(더 알아보기·언어 선택) 키보드 접근성 보강 (팀원 피드백, 2026-08-30):
+// 트리거는 Enter/Space로 열고 Escape로 닫히게, 메뉴 항목은 Tab으로 순서대로 오갈 수 있고
+// Enter/Space로 선택할 수 있게 합니다. 항목이 onclick만 가진 <div>/<a>라 role="menuitem"
+// tabindex="-1"만으로는 키보드로 활성화가 안 되므로, 여기서 keydown을 얹어줍니다.
+document.querySelectorAll('#headerMoreBtn, #langMenuBtn').forEach(btn=>{
+  btn.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      btn.click();
+      // 메뉴가 열렸으면 첫 항목으로 포커스를 옮겨서 바로 Tab/화살표 없이도 이어갈 수 있게 함
+      const menu = document.getElementById(btn.getAttribute('aria-controls'));
+      if(menu && menu.style.display === 'block'){
+        menu.querySelector('[role="menuitem"]')?.focus();
+      }
+    } else if(e.key === 'Escape'){
+      closeHeaderMoreMenu();
+      closeLangMenu();
+      btn.focus();
+    }
+  });
+});
+document.querySelectorAll('#headerMoreMenu [role="menuitem"], #langMenu [role="menuitem"]').forEach(item=>{
+  item.setAttribute('tabindex', '0'); // 메뉴가 열려 있는 동안은 Tab으로 순서대로 도달 가능해야 함
+  item.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      item.click();
+    } else if(e.key === 'Escape'){
+      closeHeaderMoreMenu();
+      closeLangMenu();
+      document.getElementById('headerMoreBtn')?.focus();
+    }
+  });
 });
 
 function openRegionView(){
@@ -2308,6 +2358,25 @@ function wpSkip(){
   maybeShowHomeTips();
 }
 
+// 생년월일 입력창의 선택 가능 범위(만 5~18세)를 오늘 날짜 기준으로 매번 계산해서 세팅합니다.
+// 예전엔 "2007-01-01~2021-12-31"처럼 연도를 직접 박아뒀는데, 그러면 해가 바뀔 때마다
+// 담당자가 이 두 날짜를 손으로 계산해서 고쳐야 하고, 안 고치면 실제 나이 판정 기준(만 5~18세)과
+// 슬금슬금 어긋납니다. config.json처럼 별도 설정 없이도 항상 맞도록 동적으로 계산합니다.
+// (팀원 피드백, 2026-08-30)
+function wpSetBirthInputRange(){
+  const birthEl = document.getElementById('wpBirth');
+  if(!birthEl) return;
+  const today = new Date();
+  const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  // 오늘 만 5세인 가장 늦은 생일 = 오늘로부터 정확히 5년 전
+  const maxDate = new Date(today.getFullYear()-5, today.getMonth(), today.getDate());
+  // 오늘 만 18세인 가장 이른 생일 = 오늘로부터 19년 전 + 하루(19년 전 생일 당일은 아직 만 18세)
+  const minDate = new Date(today.getFullYear()-19, today.getMonth(), today.getDate()+1);
+  birthEl.min = fmt(minDate);
+  birthEl.max = fmt(maxDate);
+}
+wpSetBirthInputRange();
+
 function wpCalcAge(dateStr){
   const birthDate = new Date(dateStr);
   const today = new Date();
@@ -2420,10 +2489,13 @@ function wpSelectRegion(code){
 function wpRenderEligibility(age, val, name){
   const el = document.getElementById('wpEligibilityResult');
   const goalSection = document.getElementById('wpGoalSection');
+  const goalTitleEl = document.getElementById('wpGoalTitle');
   const ineligibleSection = document.getElementById('wpIneligibleSection');
+  const eligibleSection = document.getElementById('wpEligibleSection');
   if(!el) return;
 
   if(age < 5 || age > 18){
+    if(eligibleSection) eligibleSection.style.display = 'none';
     // 나이 밖 대상자는 작은 알림 문구 대신, 온보딩 소개 화면과 같은 톤의 전용 화면을
     // 보여주고, 목표 선택 버튼 3개(신청 서류/시설/순위)는 감춥니다 — 어차피 신청 대상이
     // 아니므로 "시설 찾기" 하나만 대안으로 남겨둡니다. (팀원 피드백, 2026-08-30)
@@ -2453,13 +2525,48 @@ function wpRenderEligibility(age, val, name){
   if(ineligibleSection) ineligibleSection.style.display = 'none';
 
   if(val === 'unsure'){
-    el.innerHTML = `<div class="wp-result">${t('wp_elig_unsure', '헷갈리실 땐 주민센터 복지 담당자(☎ KSPO 02-410-1298~9)한테 문의해보세요')}</div>`;
+    // "잘 모르겠어요"는 대상 여부 자체를 모르는 상태라 부적격/적격 전용 화면 대신
+    // 예전처럼 작은 안내 문구 + 기본 목표 선택지를 그대로 보여줍니다.
+    if(eligibleSection) eligibleSection.style.display = 'none';
+    if(goalTitleEl){
+      goalTitleEl.innerHTML = t('wp_goal_title', `${escapeHtml(name)}님,<br>무엇을 먼저 해볼까요?`).replace('{name}', escapeHtml(name));
+      goalTitleEl.style.fontSize = 'clamp(26px, 5vw, 36px)';
+      goalTitleEl.style.color = '';
+    }
+    // 2026-08-30 수정: "02-410-1298~9"는 실제로는 스포츠강좌이용권 상담센터의 팩스 번호였고
+    // (svoucher.kspo.or.kr 공식 신청안내 페이지 확인 — TEL 1551-0078 / FAX 02-410-1339),
+    // 전화 상담 번호가 아니었습니다. 아래 applyHelpHtml()의 검증된 번호로 통일합니다.
+    el.innerHTML = `<div class="wp-result">${t('wp_elig_unsure', '헷갈리실 땐 주민센터 복지 담당자나 스포츠강좌이용권 상담센터(☎ 1551-0078)에 문의해보세요')}</div>`;
     return;
   }
-  if(val === 'near'){
-    el.innerHTML = `<div class="wp-result alert">${t('wp_elig_near', '<b>차상위계층도 받을 수 있어요!</b> 근데 100명 중 2~3명만 신청하고 있어요 — 꼭 신청해보세요')}</div>`;
-  } else {
-    el.innerHTML = `<div class="wp-result ok">${t('wp_elig_ok', `<b>${escapeHtml(name)}님은 지원 대상이에요! 🎉</b> 1단계에서 필요한 서류도 바로 확인할 수 있어요`).replace('{name}', escapeHtml(name))}</div>`;
+
+  // 대상자로 보이는 경우(기초생활수급·차상위·한부모·범죄피해) — 예전엔 작은 초록 알림
+  // 박스 하나만 뜨고 바로 아래 서류/시설/순위 버튼 3개가 나란히 있어서 "신청은 어디서
+  // 하나요?"가 눈에 안 띄었습니다(팀원 피드백, 2026-08-30). 부적격 화면과 같은 톤으로
+  // 크게 보여주고, "그럼 신청하러 가볼까요?"를 가장 눈에 띄는 버튼으로 둡니다. 서류·시설·
+  // 순위 확인은 그 아래 보조 옵션으로 남겨서 신청 전에 준비하고 싶은 사람도 배려합니다.
+  el.innerHTML = '';
+  if(eligibleSection){
+    eligibleSection.style.display = 'flex';
+    eligibleSection.style.flexDirection = 'column';
+    eligibleSection.style.alignItems = 'center';
+    const emojiEl = document.getElementById('wpEligibleEmoji');
+    const titleEl = document.getElementById('wpEligibleTitle');
+    const subEl = document.getElementById('wpEligibleSub');
+    if(val === 'near'){
+      if(emojiEl) emojiEl.textContent = '🌱';
+      if(titleEl) titleEl.innerHTML = t('wp_elig_near_title', `${escapeHtml(name)}님도<br>받을 수 있어요!`).replace('{name}', escapeHtml(name));
+      if(subEl) subEl.textContent = t('wp_elig_near_sub', '차상위계층은 100명 중 2~3명만 신청하고 있어요 — 꼭 신청해보세요');
+    } else {
+      if(emojiEl) emojiEl.textContent = '🎉';
+      if(titleEl) titleEl.innerHTML = t('wp_elig_ok_title', `${escapeHtml(name)}님은<br>지원 대상이에요!`).replace('{name}', escapeHtml(name));
+      if(subEl) subEl.textContent = t('wp_elig_ok_sub', '아래에서 필요한 서류나 가까운 시설도 바로 확인할 수 있어요');
+    }
+  }
+  if(goalTitleEl){
+    goalTitleEl.innerHTML = t('wp_goal_after_eligible', '또는, 이런 것부터<br>준비해볼까요?');
+    goalTitleEl.style.fontSize = 'clamp(19px, 3.6vw, 23px)';
+    goalTitleEl.style.color = 'var(--ink-faint)';
   }
 }
 
@@ -2542,8 +2649,11 @@ function wpSubmitAll(){
   localStorage.setItem('fairplay_household', household);
   const ageEligible = age >= 5 && age <= 18;
 
+  // wpGoalTitle의 문구는 wpRenderEligibility()가 상황(부적격/적격/모름)에 맞춰 직접 정합니다 —
+  // 예전엔 여기서 무조건 "OO님, 무엇을 먼저 해볼까요?"로 덮어써서, 대상자인 경우 큰 CTA
+  // 화면(wpEligibleSection) 아래에 붙는 보조 문구("또는, 이런 것부터 준비해볼까요?")가
+  // 항상 원래 문구로 되돌아가는 버그가 있었습니다. (팀원 피드백, 2026-08-30)
   wpRenderEligibility(age, household, name);
-  document.getElementById('wpGoalTitle').innerHTML = t('wp_goal_title', `${escapeHtml(name)}님,<br>무엇을 먼저 해볼까요?`).replace('{name}', escapeHtml(name));
   const docBtn = document.getElementById('wpDocGoalBtn');
   // 나이가 5~18세 범위 밖이면 가정형태가 확실해도 "신청 서류 준비하기"는 보여주지 않습니다
   // (지원 대상이 아니므로 서류 안내가 의미 없음 — teammate가 찾은 5세 미만 버그와 같은 종류의 문제 방지).
@@ -3993,9 +4103,11 @@ function runDiagnose(){
     introTitle.innerHTML = t('result_unsure_title', '헷갈리실 땐<br>이렇게 확인해보세요');
     introSub.className = 's1-info-box';
     introSub.style.display = 'block';
+    // 2026-08-30: "02-410-1298~9"는 상담센터 팩스 번호였습니다 — 실제 전화 상담 번호인
+    // 1551-0078(공식 신청안내 페이지 기준, applyHelpHtml()과 동일)로 통일합니다.
     introSub.innerHTML = t('result_unsure_sub', `
       <div class="info-row">📍 우리 동네 <b>주민센터</b> 복지 담당자에게 문의</div>
-      <div class="info-row">📞 <a href="tel:02-410-1298">KSPO 고객센터 02-410-1298~9</a></div>`);
+      <div class="info-row">📞 <a href="tel:1551-0078">스포츠강좌이용권 상담센터 1551-0078</a></div>`);
     docsContent.innerHTML = '';
     // 서류 페이지엔 보여줄 정보가 없으니, 확인 후 바로 다음 단계(시설 찾기 등)로 안내
     setResultIntroNextBtn(t('btn_action_next', '확인했어요, 다음으로 →'), 'resultAction');
@@ -4096,14 +4208,26 @@ document.querySelectorAll('input[name="household"]').forEach(el=>{
     runDiagnose();
     const regionCode = currentPanelCode || localStorage.getItem('fairplay_region_code');
     const regionRow = regionCode ? voucherData[regionCode] : null;
-    // "잘 모르겠어요"는 순위 계산이 의미 없으니 바로 결과로, 나머지는 이전 이용 여부부터 물어봄
-    if(el.value === 'unsure'){
-      if(regionRow) s1RenderRegionConfirm(regionRow, 's1RegionConfirm');
-      s1GoTo('resultIntro');
-    } else {
-      if(regionRow) s1RenderRegionConfirm(regionRow, 's1PriorHistoryRegionNote');
-      s1GoTo('priorhistory');
-    }
+    // 2026-08-30: 다른 자가진단 단계는 전부 "다음" 버튼을 눌러야 넘어가는데, 이 단계만
+    // 라디오를 클릭하는 즉시 화면이 넘어가서 잘못 눌렀을 때 "아차" 하고 되돌리기 어려웠습니다
+    // (팀원 피드백). 삭제하지 않고, 선택한 카드가 하이라이트되는 걸 짧게 보여준 뒤(약 0.35초)
+    // 넘어가도록 완충 시간을 둡니다 — 실수로 다른 카드를 눌렀다면 그 사이에 다시 클릭해
+    // 바꿀 수 있습니다.
+    if(el.dataset.advanceTimer) clearTimeout(Number(el.dataset.advanceTimer));
+    const timer = setTimeout(()=>{
+      // 넘어가기 직전에 이 라디오가 여전히 선택된 상태인지 다시 확인 — 그 사이에
+      // 다른 항목을 눌렀다면(el.checked === false) 그쪽 change 이벤트가 새로 예약한
+      // 타이머가 진행되므로 여기서는 조용히 취소합니다.
+      if(!el.checked) return;
+      if(el.value === 'unsure'){
+        if(regionRow) s1RenderRegionConfirm(regionRow, 's1RegionConfirm');
+        s1GoTo('resultIntro');
+      } else {
+        if(regionRow) s1RenderRegionConfirm(regionRow, 's1PriorHistoryRegionNote');
+        s1GoTo('priorhistory');
+      }
+    }, 350);
+    el.dataset.advanceTimer = String(timer);
   });
 });
 
