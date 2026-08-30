@@ -2173,8 +2173,10 @@ let wpCurrentPage = 0;
 let wpHistory = [];
 // 진행 점(dot) 표시용 — 메인 흐름상의 페이지 순서.
 // 예전엔 이름→생년월일→지역→가정형태→결과 5단계였지만, 이제 정보 입력이
-// 통합 화면(All) 하나로 합쳐져서 "입력 → 결과" 2단계만 남았습니다.
-const WP_DOT_MAIN_PAGES = ['All','3'];
+// 두 화면(All: 이름·생년월일·지역, All2: 가정형태)으로 줄어서 "입력1 → 입력2 → 결과" 3단계입니다.
+// (2026-08-30: "이름/생년월일/지역"과 "가정형태"를 한 화면에 몰아두면 입력 부담이 커 보인다는
+// 피드백을 반영해 다시 두 화면으로 나눴습니다 — 단, 예전처럼 5단계로 잘게 쪼개지는 않았습니다.)
+const WP_DOT_MAIN_PAGES = ['All','All2','3'];
 
 // 어떤 상황에서도 온보딩 페이지가 두 개 이상 겹쳐 보이지 않도록,
 // 보여줄 페이지를 정하기 전에 나머지는 전부 강제로 숨김
@@ -2189,9 +2191,9 @@ function wpShowOnly(id){
   target.style.display = 'flex';
   target.classList.add('wp-enter');
   setTimeout(()=>target.classList.remove('wp-enter'), 350);
-  // 통합 화면(All)은 필드가 4개나 있어서, 들어가자마자 자동으로 키보드가 뜨면
-  // (특히 iOS에서) 화면이 튀어 보일 수 있어 자동 포커스를 하지 않습니다.
-  if(String(id) !== 'All'){
+  // 통합 화면(All·All2)은 들어가자마자 자동으로 키보드가 뜨거나(All) 라디오에 포커스
+  // 링이 잡히면(All2) 화면이 튀어 보일 수 있어 자동 포커스를 하지 않습니다.
+  if(String(id) !== 'All' && String(id) !== 'All2'){
     const firstInput = target.querySelector('input');
     if(firstInput) setTimeout(()=>firstInput.focus(), 200);
   }
@@ -2437,8 +2439,10 @@ function wpRenderEligibility(age, val, name){
   }
 }
 
-// 통합 화면의 "확인하고 결과 보기" 버튼 — 이름·생년월일·지역·가정형태를 한 번에 검증하고 저장합니다.
-function wpSubmitAll(){
+// 통합 화면 1/2의 "다음" 버튼 — 이름·생년월일만 검증하고(지역은 선택) All2(가정형태)로 넘어갑니다.
+// (2026-08-30: 예전엔 이 화면에서 가정형태까지 한 번에 받았는데, 입력 항목이 4개나 한 화면에
+// 몰려 있으면 부담스러워 보인다는 피드백을 반영해 "이름·생년월일·지역"과 "가정형태"를 나눴습니다.)
+function wpSubmitAllStep1(){
   let firstInvalid = null;
 
   // 1) 이름 (필수)
@@ -2461,18 +2465,7 @@ function wpSubmitAll(){
     birthEl.style.borderColor = '';
   }
 
-  // 3) 가정형태 (필수) — 라디오 그룹 이름은 기존 자가진단 화면의 "household"와
-  // 겹치지 않도록 일부러 "wpAllHousehold"라는 다른 이름을 씁니다.
-  const hhChecked = document.querySelector('input[name="wpAllHousehold"]:checked');
-  const hhGroupEl = document.getElementById('wpAllHouseholdGroup');
-  if(!hhChecked){
-    if(hhGroupEl) hhGroupEl.classList.add('wp-all-error');
-    firstInvalid = firstInvalid || hhGroupEl;
-  } else if(hhGroupEl){
-    hhGroupEl.classList.remove('wp-all-error');
-  }
-
-  // 4) 지역 (선택 항목) — 검색창에 글자만 입력하고 목록에서 실제로 고르지 않았다면
+  // 3) 지역 (선택 항목) — 검색창에 글자만 입력하고 목록에서 실제로 고르지 않았다면
   // "선택된 것처럼" 착각하고 넘어가지 않도록 별도로 감지합니다.
   const regionInputEl = document.getElementById('wpRegionInput');
   const regionTypedButNotPicked = !!(regionInputEl && regionInputEl.value.trim() && !wpAllRegionCode);
@@ -2482,7 +2475,7 @@ function wpSubmitAll(){
     return;
   }
 
-  // ---- 여기까지 통과했으면 실제로 저장 ----
+  // ---- 여기까지 통과했으면 이름·생년월일을 저장하고 다음 화면(가정형태)으로 ----
   localStorage.setItem('fairplay_name', name);
   localStorage.setItem('fairplay_display_name', name);
   // 예전 버전에서 "아이가 이용해요" 흐름을 탄 적이 있는 기기라면 남아있을 수 있는
@@ -2493,6 +2486,33 @@ function wpSubmitAll(){
   localStorage.setItem('fairplay_birth', birth);
   localStorage.setItem('fairplay_age', age);
   wpShowAgeNote(age);
+
+  if(regionTypedButNotPicked){
+    alert(t('region_not_picked_notice','입력하신 동네가 목록에서 선택되지 않아 지역 정보 없이 진행할게요. 2단계에서 다시 찾을 수 있어요.'));
+  }
+
+  wpGoTo('All2');
+}
+
+// 통합 화면 2/2의 "확인하고 결과 보기" 버튼 — 가정형태를 검증하고, 앞 화면에서 저장해둔
+// 이름·생년월일과 합쳐 최종 결과를 계산합니다.
+function wpSubmitAll(){
+  // 가정형태 (필수) — 라디오 그룹 이름은 기존 자가진단 화면의 "household"와
+  // 겹치지 않도록 일부러 "wpAllHousehold"라는 다른 이름을 씁니다.
+  const hhChecked = document.querySelector('input[name="wpAllHousehold"]:checked');
+  const hhGroupEl = document.getElementById('wpAllHouseholdGroup');
+  if(!hhChecked){
+    if(hhGroupEl) hhGroupEl.classList.add('wp-all-error');
+    hhGroupEl.scrollIntoView({ behavior:'smooth', block:'center' });
+    return;
+  } else if(hhGroupEl){
+    hhGroupEl.classList.remove('wp-all-error');
+  }
+
+  // 이전 화면(wpAll)에서 이미 검증·저장해둔 이름·생년월일을 가져옵니다.
+  const name = localStorage.getItem('fairplay_name') || '';
+  const birth = localStorage.getItem('fairplay_birth') || '';
+  const age = Number(localStorage.getItem('fairplay_age'));
 
   const household = hhChecked.value;
   localStorage.setItem('fairplay_household', household);
@@ -2508,10 +2528,6 @@ function wpSubmitAll(){
   const regionCode = wpAllRegionCode || currentPanelCode || localStorage.getItem('fairplay_region_code');
   const regionRow = regionCode ? voucherData[regionCode] : null;
   if(regionRow) s1RenderRegionConfirm(regionRow, 'wpHouseholdRegionNote');
-
-  if(regionTypedButNotPicked){
-    alert(t('region_not_picked_notice','입력하신 동네가 목록에서 선택되지 않아 지역 정보 없이 진행할게요. 2단계에서 다시 찾을 수 있어요.'));
-  }
 
   wpGoTo(3);
 }

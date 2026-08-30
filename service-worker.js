@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v14'; // v13→v14: QA 보고서 반영(지도 실패 가드, 순위 반전 수정, SW 캐시, 카카오 썸네일, 5세 미만, 접근성, 다국어)
+const CACHE_NAME = 'spoo-v15'; // v14→v15: 지원금액 문구 정정(연→월), 온보딩 통합화면을 이름·생년월일·지역 / 가정형태 2단계로 분리
 const CORE_FILES = [
   './index.html',
   './style.css',
