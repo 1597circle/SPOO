@@ -2529,6 +2529,7 @@ function wpRenderEligibility(age, val, name){
     // 예전처럼 작은 안내 문구 + 기본 목표 선택지를 그대로 보여줍니다.
     if(eligibleSection) eligibleSection.style.display = 'none';
     if(goalTitleEl){
+      goalTitleEl.style.display = '';
       goalTitleEl.innerHTML = t('wp_goal_title', `${escapeHtml(name)}님,<br>무엇을 먼저 해볼까요?`).replace('{name}', escapeHtml(name));
       goalTitleEl.style.fontSize = 'clamp(26px, 5vw, 36px)';
       goalTitleEl.style.color = '';
@@ -2564,9 +2565,8 @@ function wpRenderEligibility(age, val, name){
     }
   }
   if(goalTitleEl){
-    goalTitleEl.innerHTML = t('wp_goal_after_eligible', '또는, 이런 것부터<br>준비해볼까요?');
-    goalTitleEl.style.fontSize = 'clamp(19px, 3.6vw, 23px)';
-    goalTitleEl.style.color = 'var(--ink-faint)';
+    goalTitleEl.innerHTML = '';
+    goalTitleEl.style.display = 'none';
   }
 }
 
