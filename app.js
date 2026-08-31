@@ -317,7 +317,7 @@ function cssEscape(str){
 // (아직 좌표 매칭 배치가 안 끝난 시설은 이 값이 없어서 자동으로 기존 방식으로 대체됨)
 function openNaverSearch(name, addr, sgg, tel, naverTitle){
   const q = naverTitle ? naverTitle : (sgg ? `${name} ${sgg}` : `${name} ${addr}`);
-  window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(q)}`, '_blank');
+  window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(q)}`, '_blank', 'noopener');
 }
 
 // "네이버 지도에서 길찾기" 클릭 → 네이버 지도 새 탭으로 이동
@@ -338,21 +338,21 @@ function openNaverMap(name, addr, sgg, tel, naverTitle, naverLat, naverLng){
   const displayName = naverTitle || name; // 검증된 실제 등록명이 있으면 지도 라벨도 그걸로 표시
   // 좌표 매칭 배치에서 이미 검증된 좌표가 있으면 지오코딩 없이 바로 새 탭을 엶
   if(naverLat && naverLng){
-    window.open(`https://map.naver.com/?lng=${naverLng}&lat=${naverLat}&title=${encodeURIComponent(displayName)}`, '_blank');
+    window.open(`https://map.naver.com/?lng=${naverLng}&lat=${naverLat}&title=${encodeURIComponent(displayName)}`, '_blank', 'noopener');
     return;
   }
   const fallback = (winRef) => {
     const q = naverTitle ? naverTitle : (tel ? tel : (sgg ? `${name} ${sgg}` : name));
     const url = `https://map.naver.com/p/search/${encodeURIComponent(q)}`;
-    if(winRef && !winRef.closed) winRef.location.href = url; else window.open(url, '_blank');
+    if(winRef && !winRef.closed) winRef.location.href = url; else window.open(url, '_blank', 'noopener');
   };
   const openAtCoord = (winRef, coord) => {
     const url = `https://map.naver.com/?lng=${coord.lng}&lat=${coord.lat}&title=${encodeURIComponent(displayName)}`;
-    if(winRef && !winRef.closed) winRef.location.href = url; else window.open(url, '_blank');
+    if(winRef && !winRef.closed) winRef.location.href = url; else window.open(url, '_blank', 'noopener');
   };
   // 이미 좌표를 알고 있으면(카드 클릭으로 지도 핀을 본 적 있으면) 바로 동기적으로 새 탭을 열어서 이동
   if(geocodeCache[addr]){
-    window.open(`https://map.naver.com/?lng=${geocodeCache[addr].lng}&lat=${geocodeCache[addr].lat}&title=${encodeURIComponent(displayName)}`, '_blank');
+    window.open(`https://map.naver.com/?lng=${geocodeCache[addr].lng}&lat=${geocodeCache[addr].lat}&title=${encodeURIComponent(displayName)}`, '_blank', 'noopener');
     return;
   }
   if(typeof naver === 'undefined' || !naver.maps.Service){
@@ -362,6 +362,7 @@ function openNaverMap(name, addr, sgg, tel, naverTitle, naverLat, naverLng){
   // 좌표 변환은 비동기라, 팝업 차단을 피하려면 클릭 직후 빈 탭부터 동기적으로 열어두고
   // 변환이 끝나면 그 탭 주소를 바꿔치기함 (탭을 새로 못 열게 막혔다면 winRef가 null일 수 있음)
   const winRef = window.open('', '_blank');
+  if(winRef) winRef.opener = null; // 빈 탭 선오픈 구조라 features의 noopener를 못 쓰므로 수동 차단 (reverse tabnabbing 방지)
   naver.maps.Service.geocode({ query: addr }, function(status, response){
     if(status !== naver.maps.Service.Status.OK || !response.v2.addresses.length){
       fallback(winRef);
@@ -540,13 +541,19 @@ function renderConfigNotices(){
    자동으로 D-day 배너를 띄웁니다. 신청기간이 아직 "예상"일 땐 문구에도 그 사실을 남겨서
    확정 정보처럼 오해하지 않게 합니다. 닫기는 그 해 신청 시작일 기준으로 하루만 숨김
    (다음날 다시 보이게 해서, 마감이 다가올수록 계속 눈에 띄게 합니다). */
+function localDateStr(d){
+  const n = d || new Date();
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+}
 function renderApplyCountdown(){
   if(!spooConfig || !spooConfig.applyPeriod) return;
   const banner = document.getElementById('applyCountdownBanner');
   const textEl = document.getElementById('applyCountdownText');
   if(!banner || !textEl) return;
 
-  const todayStr = new Date().toISOString().slice(0,10);
+  // 주의: toISOString()은 UTC 기준이라 KST 00:00~08:59에 "어제" 날짜가 나온다.
+  // 마감 다음날 새벽에 "오늘이 마지막 날"이 표시되는 사고를 막기 위해 로컬 날짜를 사용한다.
+  const todayStr = localDateStr();
   const hideKey = `spoo_hide_countdown_${spooConfig.applyPeriod.start}_${todayStr}`;
   if(localStorage.getItem(hideKey)){ banner.style.display = 'none'; return; }
 
@@ -587,7 +594,7 @@ document.getElementById('closeApplyCountdownBanner')?.addEventListener('click', 
   const banner = document.getElementById('applyCountdownBanner');
   banner.style.display = 'none';
   if(spooConfig && spooConfig.applyPeriod){
-    const todayStr = new Date().toISOString().slice(0,10);
+    const todayStr = localDateStr();
     localStorage.setItem(`spoo_hide_countdown_${spooConfig.applyPeriod.start}_${todayStr}`, '1');
   }
 });
@@ -1407,7 +1414,7 @@ function renderFacilityList(facilities, filterType, timeFilter, costFilter, styl
         day: c.day||'', start_tm: c.start_tm||'', end_tm: c.end_tm||'',
         settl_amt: c.settl_amt||'', desc: cleanCourseDesc(c.course_seta_desc_cn).slice(0,500)
       }));
-      return `<span class="course-tag${isFree?' cost-free':''}" onclick="event.stopPropagation(); showCourseDetail('${payload}')">${emoji} ${parts.join(' · ')} · <b>${costLabel}</b>${isFree?' ✅':''}${benefitBadges} <span class="cm-hint">▸</span></span>`;
+      return `<span class="course-tag${isFree?' cost-free':''}" onclick="event.stopPropagation(); showCourseDetail('${payload}')">${emoji} ${escapeHtml(parts.join(' · '))} · <b>${costLabel}</b>${isFree?' ✅':''}${benefitBadges} <span class="cm-hint">▸</span></span>`;
     }).join('');
     const hasAnyCourse = courses.length > 0 || (coursesByFacility[facilityKey] || []).length > 0;
     const emptyMsg = timeFilter && timeFilter !== '__all__' && hasAnyCourse
@@ -1563,7 +1570,7 @@ function showCourseDetail(jsonStr){
     ['종목', c.item_nm || '-'],
     ['요일', c.day || '-'],
     ['운영 시간', timeRange],
-  ].map(([label,val])=>`<div class="cm-row"><span>${label}</span><span>${val}</span></div>`).join('');
+  ].map(([label,val])=>`<div class="cm-row"><span>${label}</span><span>${escapeHtml(String(val))}</span></div>`).join('');
 
   const descHtml = c.desc && c.desc.trim()
     ? `<div class="cm-desc">🏢 시설 안내문<br>${c.desc.replace(/</g,'&lt;')}</div>`
@@ -1571,7 +1578,7 @@ function showCourseDetail(jsonStr){
 
   document.getElementById('courseModalBody').innerHTML = `
     <h3>${escapeHtml(c.course_nm || c.item_nm || '강좌 정보')}</h3>
-    <div class="cm-facility">${c.facility}</div>
+    <div class="cm-facility">${escapeHtml(c.facility || '')}</div>
     <div class="cm-price">${priceHtml}</div>
     ${costHtml}
     <div class="cm-price-note">

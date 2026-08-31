@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v17'; // v16→v17: 전체 UX/디자인 점검 반영 - i18n 누락 키, s1 진행점 개수, 마감배너 문구/중복노출, 생년월일 범위 동적화, 상담전화번호 정정, 헤더 드롭다운 키보드 접근성, 적격 결과 화면 CTA
+const CACHE_NAME = 'spoo-v18'; // v17→v18: 신청 카운트다운 KST 날짜 오차 수정, 강좌 모달 이스케이프 보강, 외부 새 탭 noopener, 다국어 배너 문구 동기화
 const CORE_FILES = [
   './index.html',
   './style.css',
