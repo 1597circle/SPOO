@@ -317,7 +317,7 @@ function cssEscape(str){
 // (아직 좌표 매칭 배치가 안 끝난 시설은 이 값이 없어서 자동으로 기존 방식으로 대체됨)
 function openNaverSearch(name, addr, sgg, tel, naverTitle){
   const q = naverTitle ? naverTitle : (sgg ? `${name} ${sgg}` : `${name} ${addr}`);
-  window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(q)}`, '_blank');
+  window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(q)}`, '_blank', 'noopener');
 }
 
 // "네이버 지도에서 길찾기" 클릭 → 네이버 지도 새 탭으로 이동
@@ -338,21 +338,21 @@ function openNaverMap(name, addr, sgg, tel, naverTitle, naverLat, naverLng){
   const displayName = naverTitle || name; // 검증된 실제 등록명이 있으면 지도 라벨도 그걸로 표시
   // 좌표 매칭 배치에서 이미 검증된 좌표가 있으면 지오코딩 없이 바로 새 탭을 엶
   if(naverLat && naverLng){
-    window.open(`https://map.naver.com/?lng=${naverLng}&lat=${naverLat}&title=${encodeURIComponent(displayName)}`, '_blank');
+    window.open(`https://map.naver.com/?lng=${naverLng}&lat=${naverLat}&title=${encodeURIComponent(displayName)}`, '_blank', 'noopener');
     return;
   }
   const fallback = (winRef) => {
     const q = naverTitle ? naverTitle : (tel ? tel : (sgg ? `${name} ${sgg}` : name));
     const url = `https://map.naver.com/p/search/${encodeURIComponent(q)}`;
-    if(winRef && !winRef.closed) winRef.location.href = url; else window.open(url, '_blank');
+    if(winRef && !winRef.closed) winRef.location.href = url; else window.open(url, '_blank', 'noopener');
   };
   const openAtCoord = (winRef, coord) => {
     const url = `https://map.naver.com/?lng=${coord.lng}&lat=${coord.lat}&title=${encodeURIComponent(displayName)}`;
-    if(winRef && !winRef.closed) winRef.location.href = url; else window.open(url, '_blank');
+    if(winRef && !winRef.closed) winRef.location.href = url; else window.open(url, '_blank', 'noopener');
   };
   // 이미 좌표를 알고 있으면(카드 클릭으로 지도 핀을 본 적 있으면) 바로 동기적으로 새 탭을 열어서 이동
   if(geocodeCache[addr]){
-    window.open(`https://map.naver.com/?lng=${geocodeCache[addr].lng}&lat=${geocodeCache[addr].lat}&title=${encodeURIComponent(displayName)}`, '_blank');
+    window.open(`https://map.naver.com/?lng=${geocodeCache[addr].lng}&lat=${geocodeCache[addr].lat}&title=${encodeURIComponent(displayName)}`, '_blank', 'noopener');
     return;
   }
   if(typeof naver === 'undefined' || !naver.maps.Service){
@@ -362,6 +362,7 @@ function openNaverMap(name, addr, sgg, tel, naverTitle, naverLat, naverLng){
   // 좌표 변환은 비동기라, 팝업 차단을 피하려면 클릭 직후 빈 탭부터 동기적으로 열어두고
   // 변환이 끝나면 그 탭 주소를 바꿔치기함 (탭을 새로 못 열게 막혔다면 winRef가 null일 수 있음)
   const winRef = window.open('', '_blank');
+  if(winRef) winRef.opener = null; // 빈 탭 선오픈 구조라 features의 noopener를 못 쓰므로 수동 차단 (reverse tabnabbing 방지)
   naver.maps.Service.geocode({ query: addr }, function(status, response){
     if(status !== naver.maps.Service.Status.OK || !response.v2.addresses.length){
       fallback(winRef);
@@ -540,13 +541,19 @@ function renderConfigNotices(){
    자동으로 D-day 배너를 띄웁니다. 신청기간이 아직 "예상"일 땐 문구에도 그 사실을 남겨서
    확정 정보처럼 오해하지 않게 합니다. 닫기는 그 해 신청 시작일 기준으로 하루만 숨김
    (다음날 다시 보이게 해서, 마감이 다가올수록 계속 눈에 띄게 합니다). */
+function localDateStr(d){
+  const n = d || new Date();
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+}
 function renderApplyCountdown(){
   if(!spooConfig || !spooConfig.applyPeriod) return;
   const banner = document.getElementById('applyCountdownBanner');
   const textEl = document.getElementById('applyCountdownText');
   if(!banner || !textEl) return;
 
-  const todayStr = new Date().toISOString().slice(0,10);
+  // 주의: toISOString()은 UTC 기준이라 KST 00:00~08:59에 "어제" 날짜가 나온다.
+  // 마감 다음날 새벽에 "오늘이 마지막 날"이 표시되는 사고를 막기 위해 로컬 날짜를 사용한다.
+  const todayStr = localDateStr();
   const hideKey = `spoo_hide_countdown_${spooConfig.applyPeriod.start}_${todayStr}`;
   if(localStorage.getItem(hideKey)){ banner.style.display = 'none'; return; }
 
@@ -587,7 +594,7 @@ document.getElementById('closeApplyCountdownBanner')?.addEventListener('click', 
   const banner = document.getElementById('applyCountdownBanner');
   banner.style.display = 'none';
   if(spooConfig && spooConfig.applyPeriod){
-    const todayStr = new Date().toISOString().slice(0,10);
+    const todayStr = localDateStr();
     localStorage.setItem(`spoo_hide_countdown_${spooConfig.applyPeriod.start}_${todayStr}`, '1');
   }
 });
@@ -1058,7 +1065,7 @@ function renderTop10(){
       <div class="t10-rank">${i+1}</div>
       <div>
         <div class="t10-name">${escapeHtml(m.region)}</div>
-        <div class="t10-sido">${escapeHtml(m.sido)} · 수급률 ${m.totalPct.toFixed(1)}% · 미수급 ${Math.round(m.unmet).toLocaleString()}명</div>
+        <div class="t10-sido">${escapeHtml(m.sido)} · 수급률 ${m.totalPct.toFixed(1)}% · 미수급 추정 ${Math.round(m.unmet).toLocaleString()}명</div>
       </div>
     </div>
   `).join('');
@@ -1409,7 +1416,7 @@ function renderFacilityList(facilities, filterType, timeFilter, costFilter, styl
         settl_amt: c.settl_amt||'', desc: cleanCourseDesc(c.course_seta_desc_cn).slice(0,500)
       }));
       return `<div class="course-row${isFree?' cost-free':''}" onclick="event.stopPropagation(); showCourseDetail('${payload}')">
-        <span class="course-row-info">${emoji} ${parts.join(' · ')}</span>
+        <span class="course-row-info">${emoji} ${escapeHtml(parts.join(' · '))}</span>
         <span class="course-row-badge${isFree?' free':' paid'}">${costLabel}${isFree?' ✅':''}</span>${benefitBadges}
       </div>`;
     }).join('');
@@ -1567,7 +1574,7 @@ function showCourseDetail(jsonStr){
     ['종목', c.item_nm || '-'],
     ['요일', c.day || '-'],
     ['운영 시간', timeRange],
-  ].map(([label,val])=>`<div class="cm-row"><span>${label}</span><span>${val}</span></div>`).join('');
+  ].map(([label,val])=>`<div class="cm-row"><span>${label}</span><span>${escapeHtml(String(val))}</span></div>`).join('');
 
   const descHtml = c.desc && c.desc.trim()
     ? `<div class="cm-desc">🏢 시설 안내문<br>${c.desc.replace(/</g,'&lt;')}</div>`
@@ -1575,7 +1582,7 @@ function showCourseDetail(jsonStr){
 
   document.getElementById('courseModalBody').innerHTML = `
     <h3>${escapeHtml(c.course_nm || c.item_nm || '강좌 정보')}</h3>
-    <div class="cm-facility">${c.facility}</div>
+    <div class="cm-facility">${escapeHtml(c.facility || '')}</div>
     <div class="cm-price">${priceHtml}</div>
     ${costHtml}
     <div class="cm-price-note">
@@ -1994,7 +2001,7 @@ async function renderFacilityViewRegion(code){
     <div id="fvSaveArea">
       <h3 style="margin:14px 0 2px;">${row.sido} ${row.region}</h3>
       <div class="rv-stat-row" style="margin-top:10px;">
-        <div class="rv-stat-box"><div class="rv-stat-num">${Math.round(unmet).toLocaleString()}명</div><div class="rv-stat-label">잠재 수요 (미수급 인원 합계)</div></div>
+        <div class="rv-stat-box"><div class="rv-stat-num">${Math.round(unmet).toLocaleString()}명</div><div class="rv-stat-label">잠재 수요 (대상 인구 중 미수급 추정)</div></div>
         <div class="rv-stat-box"><div class="rv-stat-num">${facCount}개</div><div class="rv-stat-label">현재 가맹시설 수</div></div>
       </div>
       ${perFacility ? `
@@ -2153,7 +2160,7 @@ function shareRegion(){
   const unmetText = bucketUnmetCount(unmet);
   const title = t('share_title', `{region} · 스포츠강좌이용권 현황`).replace('{region}', `${row.sido} ${row.region}`);
   const desc = unmetText
-    ? t('share_desc', `{region}, 아직 신청 안 하신 분이 {n} 있어요. SPOO에서 확인해보세요.`).replace('{region}', `${row.sido} ${row.region}`).replace('{n}', unmetText)
+    ? t('share_desc', `{region}, 지원 대상인데 아직 못 받고 있는 아이가 {n} 있어요. SPOO에서 확인해보세요.`).replace('{region}', `${row.sido} ${row.region}`).replace('{n}', unmetText)
     : t('share_desc_fallback', `{region}의 스포츠강좌이용권 지원 현황을 SPOO에서 확인해보세요!`).replace('{region}', `${row.sido} ${row.region}`);
 
   // 공유 링크에 지역 코드를 담습니다(?region=코드). 예전엔 location.href(=그냥 홈 화면 주소)를 그대로
@@ -4159,7 +4166,7 @@ function runDiagnose(){
     introTitle.innerHTML = t('result_near_title', `${escapeHtml(namePrefix)}<br>차상위계층도 받을 수 있어요!`).replace('{name}', escapeHtml(displayName));
     introSub.className = 's1-sub';
     introSub.style.display = 'block';
-    introSub.innerHTML = t('result_near_sub', `100명 중 <b class="stat-callout">2~3명</b>만 신청 중이에요<br>아직 신청 안 하신 분이 있을 수 있어요`);
+    introSub.innerHTML = t('result_near_sub', `대상 100명 중 <b class="stat-callout">2~3명</b>만 지원받고 있어요<br>지원 규모가 한정돼 있어 선정 순위 확인이 중요해요`);
   } else {
     introEmoji.textContent = '';
     introTitle.innerHTML = t('result_eligible_title', `${escapeHtml(namePrefix)}<br>받을 수 있는 대상이에요!`).replace('{name}', escapeHtml(displayName));
@@ -4310,7 +4317,7 @@ function s1RenderRegionConfirm(row, targetId){
   const regionLabel = `${row.sido} ${row.region}`;
   const baseLine = t('region_confirm_base', `📍 {region} 기준으로 안내해드릴게요`).replace('{region}', `<b>${regionLabel}</b>`);
   const shareLine = unmetText
-    ? '<br>' + t('region_confirm_share', `우리 지역에 아직 신청 안 하신 분이 {n} 있어요. 주변 사람들에게 공유해보아요!`).replace('{n}', `<b>${unmetText}</b>`)
+    ? '<br>' + t('region_confirm_share', `우리 지역엔 지원 대상인데 아직 못 받고 있는 아이가 {n} 있어요. 주변에 알려주세요!`).replace('{n}', `<b>${unmetText}</b>`)
     : '';
   confirmEl.innerHTML = `
     ${baseLine}
@@ -4352,13 +4359,19 @@ function renderPriorityNotice(household, priorHistory){
 
   let tierText = '';
   if(household === 'crime'){
-    tierText = '범죄피해가정은 별도 우선순위 기준이 적용돼요. 자세한 내용은 지자체에 문의해주세요.';
+    tierText = '범죄피해가정은 누적 이용기간과 관계없이 <b>우선선정</b> 대상이에요. 자세한 내용은 지자체에 문의해주세요.';
   } else {
+    // 공식 선정기준: 순위 경계는 "이용 여부"가 아니라 "누적 이용 30개월"이므로,
+    // 재신청자에겐 30개월 미만/이상 두 경우를 모두 안내한다 (30개월 미만 재신청자는 1·2순위).
     const isNew = priorHistory === 'new';
     if(household === 'basic'){
-      tierText = isNew ? '일반적으로 <b>1순위</b>에 해당하는 조건이에요.' : '일반적으로 <b>3순위</b>에 해당하는 조건이에요.';
+      tierText = isNew
+        ? '일반적으로 <b>1순위</b>에 해당하는 조건이에요.'
+        : '누적 이용 <b>30개월 미만</b>이면 <b>1순위</b>, <b>30개월 이상</b>이면 <b>3순위</b>에 해당하는 조건이에요.';
     } else if(household === 'near' || household === 'single'){
-      tierText = isNew ? '일반적으로 <b>2순위</b>에 해당하는 조건이에요.' : '일반적으로 <b>4순위</b>에 해당하는 조건이에요.';
+      tierText = isNew
+        ? '일반적으로 <b>2순위</b>에 해당하는 조건이에요.'
+        : '누적 이용 <b>30개월 미만</b>이면 <b>2순위</b>, <b>30개월 이상</b>이면 <b>4순위</b>에 해당하는 조건이에요.';
     }
   }
   if(!tierText){ el.innerHTML = ''; return; }
@@ -4368,8 +4381,8 @@ function renderPriorityNotice(household, priorHistory){
       <div class="doc-title" style="margin-bottom:6px;">🏅 예상 선정 순위</div>
       <div>${tierText}</div>
       <div class="priority-disclaimer">
-        ※ 정부24 공식 기준(생계·의료·주거급여 1·3순위, 차상위·한부모 2·4순위)을 바탕으로 한 <b>일반적인 안내</b>예요.
-        신청자 모두가 선정되는 건 아니고, 실제 선정은 지자체 예산과 사정에 따라 달라질 수 있어요.
+        ※ 스포츠강좌이용권 공식 선정기준(선정순위 · 누적이용기간 · 수급자격)을 바탕으로 한 <b>일반적인 안내</b>예요.
+        실제 선정은 시·군·구청이 지자체 예산 범위 안에서 순위에 따라 진행하므로, 신청자 모두가 선정되는 건 아니에요.
         정확한 내용은 우리 지역 공고를 꼭 확인해주세요.
       </div>
     </div>`;
