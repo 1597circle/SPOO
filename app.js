@@ -2566,11 +2566,11 @@ function wpRenderEligibility(age, val, name){
     const titleEl = document.getElementById('wpEligibleTitle');
     const subEl = document.getElementById('wpEligibleSub');
     if(val === 'near'){
-      if(emojiEl) emojiEl.textContent = '🌱';
+      if(emojiEl) emojiEl.textContent = '';
       if(titleEl) titleEl.innerHTML = t('wp_elig_near_title', `${escapeHtml(name)}님도<br>받을 수 있어요!`).replace('{name}', escapeHtml(name));
       if(subEl) subEl.textContent = t('wp_elig_near_sub', '차상위계층은 100명 중 2~3명만 신청하고 있어요 — 꼭 신청해보세요');
     } else {
-      if(emojiEl) emojiEl.textContent = '🎉';
+      if(emojiEl) emojiEl.textContent = '';
       if(titleEl) titleEl.innerHTML = t('wp_elig_ok_title', `${escapeHtml(name)}님은<br>지원 대상이에요!`).replace('{name}', escapeHtml(name));
       if(subEl) subEl.textContent = t('wp_elig_ok_sub', '아래에서 필요한 서류나 가까운 시설도 바로 확인할 수 있어요');
     }
@@ -2987,10 +2987,10 @@ function budgetSummaryHtml(sum, facCount){
       <div class="s2c-budget-sub">${sum.freeFac.toLocaleString()}개 시설의 강좌, 수강료가 이용권으로 전액 처리돼요</div>
     </div>
     <div class="budget-chips">
-      <button class="bchip" onclick="applyBudgetChip('free')"><span class="bchip-label">0원</span><span class="bchip-num">${sum.free.toLocaleString()}</span></button>
-      <button class="bchip" onclick="applyBudgetChip('under3')"><span class="bchip-label">3만까지</span><span class="bchip-num">${sum.u3.toLocaleString()}</span></button>
-      <button class="bchip" onclick="applyBudgetChip('under5')"><span class="bchip-label">5만까지</span><span class="bchip-num">${sum.u5.toLocaleString()}</span></button>
-      <button class="bchip" onclick="applyBudgetChip('__all__')"><span class="bchip-label">전체</span><span class="bchip-num">${sum.total.toLocaleString()}</span></button>
+      <button class="bchip" onclick="applyBudgetChip('free')"><span class="bchip-label">무료</span><span class="bchip-num">${sum.free.toLocaleString()}</span></button>
+      <button class="bchip" onclick="applyBudgetChip('under3')"><span class="bchip-label">3만원 이하</span><span class="bchip-num">${sum.u3.toLocaleString()}</span></button>
+      <button class="bchip" onclick="applyBudgetChip('under5')"><span class="bchip-label">5만원 이하</span><span class="bchip-num">${sum.u5.toLocaleString()}</span></button>
+      <button class="bchip" onclick="applyBudgetChip('__all__')"><span class="bchip-label">전체 강좌</span><span class="bchip-num">${sum.total.toLocaleString()}</span></button>
     </div>
     <div class="s2c-caption">예산을 누르면 그 가격대 강좌만 골라서 보여드려요</div>`;
 }
