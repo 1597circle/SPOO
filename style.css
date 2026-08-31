@@ -534,6 +534,20 @@
     padding:3px 9px; border-radius:8px; margin:6px 4px 0 0; cursor:pointer;
   }
   .course-tag:hover{opacity:.8;}
+
+  /* 시설 카드 상단에 오는 강좌 정보 행 (종목·요일·시간 + 가격 배지) */
+  .course-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--paper); border-radius:10px; padding:8px 10px; margin-top:6px; cursor:pointer;
+  }
+  .course-row:first-of-type{ margin-top:8px; }
+  .course-row:hover{opacity:.85;}
+  .course-row-info{font-size:var(--fs-caption); color:var(--ink); font-weight:600;}
+  .course-row-badge{
+    flex-shrink:0; font-size:var(--fs-caption); font-weight:800; padding:3px 10px; border-radius:20px;
+    background:#fff; color:var(--ink-sub); border:1px solid var(--line);
+  }
+  .course-row-badge.free{background:var(--mint-soft); color:#067A66; border-color:transparent;}
   .course-tag .cm-hint{opacity:.6; font-size:var(--fs-label);}
   .course-empty-hint{font-size:var(--fs-label); color:var(--ink-faint); margin-top:4px;}
 
