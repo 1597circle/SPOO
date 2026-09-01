@@ -12,6 +12,7 @@
   "q_priorhistory": "Have you received the<br>sports voucher before?",
   "prior_new": "No, this is my first time",
   "prior_existing": "Yes, I've received it before",
+  "q_prior_inline": "Have you received the sports voucher before? (optional)",
   "tag_docs": "Required Documents",
   "q_docs": "Let's prepare<br>your documents",
   "btn_next_arrow": "Next →",
@@ -326,5 +327,12 @@
   "wp_elig_ok_title": "{name} is<br>eligible!",
   "wp_elig_ok_sub": "You can check the documents you need or nearby facilities below",
   "wp_eligible_apply_btn": "Shall we go apply?",
-  "wp_goal_after_eligible": "Or, want to<br>prepare these first?"
+  "wp_goal_after_eligible": "Or, want to<br>prepare these first?",
+  "facility_index_loading": "Loading facility list...",
+  "budget_still_loading": "Course price data is still loading. You can browse the facility list right now.",
+  "budget_loading_slow": "The course data is large, so it is taking a little longer. Please wait a moment...",
+  "load_status_ok": "Loaded data for {r} districts and {f} facilities",
+  "load_status_fail": "Couldn't load the district and facility data",
+  "load_status_fail_hint": "Please refresh in a moment. If it keeps happening, let us know.",
+  "reorg_hint_incheon": "🏙️ These figures follow the pre-July-2026 district '{old}', which also covers today's {new}"
 }
