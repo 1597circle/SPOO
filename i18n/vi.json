@@ -12,6 +12,7 @@
   "q_priorhistory": "Bạn đã từng nhận<br>phiếu học thể thao chưa?",
   "prior_new": "Chưa, đây là lần đầu",
   "prior_existing": "Rồi, tôi đã từng nhận",
+  "q_prior_inline": "Bạn đã từng nhận phiếu học thể thao chưa? (không bắt buộc)",
   "tag_docs": "Hồ sơ cần thiết",
   "q_docs": "Cùng chuẩn bị<br>hồ sơ nhé",
   "btn_next_arrow": "Tiếp theo →",
@@ -326,5 +327,12 @@
   "wp_elig_ok_title": "{name} đủ<br>điều kiện!",
   "wp_elig_ok_sub": "Bạn có thể xem ngay giấy tờ cần thiết hoặc cơ sở gần nhà bên dưới",
   "wp_eligible_apply_btn": "Chúng ta đi đăng ký nhé?",
-  "wp_goal_after_eligible": "Hoặc, bạn muốn<br>chuẩn bị việc này trước?"
+  "wp_goal_after_eligible": "Hoặc, bạn muốn<br>chuẩn bị việc này trước?",
+  "facility_index_loading": "Đang tải danh sách cơ sở...",
+  "budget_still_loading": "Dữ liệu giá khóa học vẫn đang tải. Bạn có thể xem danh sách cơ sở ngay bây giờ.",
+  "budget_loading_slow": "Dữ liệu khóa học khá lớn nên mất thêm chút thời gian. Vui lòng đợi một lát...",
+  "load_status_ok": "Đã tải dữ liệu của {r} khu vực và {f} cơ sở",
+  "load_status_fail": "Không tải được dữ liệu khu vực và cơ sở",
+  "load_status_fail_hint": "Vui lòng tải lại sau giây lát. Nếu vẫn lỗi, hãy liên hệ với chúng tôi.",
+  "reorg_hint_incheon": "🏙️ Số liệu này theo đơn vị hành chính '{old}' trước tháng 7/2026, bao gồm cả khu vực {new} hiện nay"
 }
