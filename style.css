@@ -49,7 +49,7 @@
   *{box-sizing:border-box;}
   /* 키보드로 조작하는 사용자를 위한 포커스 표시 — 마우스 클릭 때는 안 보이고
      Tab으로 이동할 때만 나타나서 시각적으로 방해되지 않습니다. (QA 지적, 2026-08-29 추가) */
-  a:focus-visible, button:focus-visible, input:focus-visible,
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
   [tabindex]:focus-visible, .step-tab:focus-visible, .household-card:focus-visible{
     outline:2.5px solid var(--blue, #3182F6); outline-offset:2px; border-radius:6px;
   }
@@ -110,6 +110,10 @@
   .rv2-card-headline{font-size:var(--fs-h3); font-weight:800; line-height:1.5; color:var(--ink); margin-bottom:16px;}
   .rv2-card-headline b, .rv2-highlight{color:var(--blue-deep);}
   .rv2-card-blue .rv2-card-headline{font-size:var(--fs-h3); font-weight:800; line-height:1.5; color:#fff; margin-bottom:0;}
+  /* 파란 카드 위의 강조 숫자(예: "229곳 중 216위") — 바로 위 `.rv2-card-headline b` 규칙이
+     흰 배경 카드용 파란색을 칠하는 바람에, 파란 배경에서는 글자가 배경에 묻혀 보이지 않았습니다.
+     카드 안에서는 흰색으로 되돌리고 밑줄로 강조합니다. (2026-09-01 수정) */
+  .rv2-card-blue .rv2-card-headline b{color:#fff; text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px;}
   .rv2-card-mint .rv2-card-title{font-size:var(--fs-h2); font-weight:800; color:var(--ink); margin-bottom:8px;}
   .rv2-card-mint .rv2-card-desc{font-size:var(--fs-label); color:var(--ink-sub); line-height:1.7;}
   .rv2-stat-row{display:flex; gap:10px;}
@@ -197,7 +201,8 @@
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23132135' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 18px center;
   }
-  .recommend-select:focus{outline:none; border-color:var(--coral);}
+  .recommend-select:focus:not(:focus-visible){outline:none;}
+  .recommend-select:focus{border-color:var(--coral);}
   .recommend-btn{
     width:100%; margin-top:0; padding:19px; border:none; border-radius:16px;
     background:var(--navy-gradient); color:#fff; font-family:inherit; font-size:var(--fs-h2); font-weight:800; cursor:pointer;
@@ -382,7 +387,11 @@
     width:100%; padding:13px 16px; border:1.5px solid var(--line); border-radius:16px;
     font-family:inherit; font-size:var(--fs-body); background:#fff;
   }
-  .search-box input:focus{outline:none; border-color:var(--blue);}
+  /* :not(:focus-visible) — 마우스로 눌렀을 때만 외곽선을 지웁니다. 예전엔 그냥 :focus라서
+     Tab으로 이동한 키보드 사용자에게도 표시가 사라졌습니다(파일 뒤쪽 규칙이라 위의
+     focus-visible 규칙을 덮어씀). 검색창은 첫 화면의 주요 입력이라 더 중요합니다. */
+  .search-box input:focus:not(:focus-visible){outline:none;}
+  .search-box input:focus{border-color:var(--blue);}
   .search-suggest{
     position:absolute; top:calc(100% + 6px); left:0; right:0; background:#fff; border-radius:14px;
     box-shadow:0 8px 24px rgba(0,0,0,.12); overflow:hidden; z-index:50; max-height:240px; overflow-y:auto;

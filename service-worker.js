@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v21'; // v20→v21: 이름인덱스 지연로드, 강좌 대기 안내 정정, 죽은 coachmark 마크업 제거, 헤더 줄바꿈, 로딩상태·인천 개편 안내 다국어
+const CACHE_NAME = 'spoo-v22'; // v21→v22: 담당자 카드 강조숫자 가독성, 320px 헤더 가로스크롤, CSV 안내 줄바꿈, 키보드 포커스 표시 복구
 const CORE_FILES = [
   './index.html',
   './style.css',
