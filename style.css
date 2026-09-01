@@ -67,8 +67,10 @@
   }
   header h1{font-size:var(--fs-h2); margin:0; font-weight:800; letter-spacing:-.02em; color:#fff; display:flex; align-items:center; gap:8px;}
   header h1 span{color:rgba(255,255,255,.5); font-weight:500; font-size:var(--fs-label);}
-  header .tag{font-size:var(--fs-caption); color:rgba(255,255,255,.45); font-weight:600; padding:0; background:none;}
-  .header-link{font-size:var(--fs-label); color:rgba(255,255,255,.6); font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:4px; transition:.15s;}
+  /* nowrap: 좁은 화면(390px)에서 "한국어"가 "한국/어"로, "2026-07 기준"이 "기준"만 다음 줄로
+     떨어져 헤더가 지저분해지던 문제를 막습니다. 줄바꿈은 항목 단위로만 일어납니다. */
+  header .tag{font-size:var(--fs-caption); color:rgba(255,255,255,.45); font-weight:600; padding:0; background:none; white-space:nowrap;}
+  .header-link{font-size:var(--fs-label); color:rgba(255,255,255,.6); font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:4px; transition:.15s; white-space:nowrap;}
   .header-link:hover{color:#fff;}
 
   /* ---- 언어 선택 드롭다운 ---- */

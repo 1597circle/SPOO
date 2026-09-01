@@ -5,7 +5,23 @@ let neighborMap = {};    // 인접시군구_매핑.json — 옆동네 시설 표
 const LOW_FACILITY_THRESHOLD = 13;  // 이 개수 이하면 "옆동네도 함께 보기"를 자동으로 제안
 let facilitiesByRegion = {}; // 지역별 시설 캐시 — getRegionFacilities()로 그때그때 채워짐 (더 이상 초기에 전부 로드하지 않음)
 let facilityCounts = {}; // code -> 시설 개수만 (작은 파일, 초기 로드) — 개수만 필요한 화면에서 사용
-let facilityNameIndex = []; // 전국 시설 이름 검색용 경량 인덱스 (name/sido/sgg/addr만, 초기 로드)
+let facilityNameIndex = []; // 전국 시설 이름 검색용 경량 인덱스 (name/sido/sgg/addr만, 검색 시 지연 로드)
+let __facilityNameIndexPromise = null;
+/* 시설 이름 인덱스(3.8MB)를 필요한 순간에 한 번만 불러옵니다.
+   여러 번 호출해도 같은 요청을 공유하고, 실패하면 다음 호출에서 다시 시도합니다. */
+function ensureFacilityNameIndex(){
+  if(facilityNameIndex.length) return Promise.resolve(facilityNameIndex);
+  if(__facilityNameIndexPromise) return __facilityNameIndexPromise;
+  __facilityNameIndexPromise = fetch('facility_names_index.json')
+    .then(r=>r.json())
+    .then(list=>{ facilityNameIndex = Array.isArray(list) ? list : []; return facilityNameIndex; })
+    .catch(e=>{
+      console.log('facility_names_index.json 없음 — 시설 이름 검색 없이 진행');
+      __facilityNameIndexPromise = null; // 다음에 다시 시도할 수 있게 초기화
+      return [];
+    });
+  return __facilityNameIndexPromise;
+}
 let regionPopulation = {}; // 5-2 「지역 현황 보기」② 비슷한 규모 지역 비교 — 시군구별 전체 인구(KOSIS)
 let facilitiesFetchCache = {}; // code -> Promise, 같은 지역 중복 fetch 방지
 let coursesByFacility = {};   // 강좌 데이터 (없으면 빈 상태로 시작, 나중에 courses.csv 추가하면 자동 반영)
@@ -870,11 +886,9 @@ async function init(){
     }catch(e){
       console.log('facility_counts.json 없음 — 시설 개수 표시가 제한될 수 있어요');
     }
-    try{
-      facilityNameIndex = await fetch('facility_names_index.json').then(r=>r.json());
-    }catch(e){
-      console.log('facility_names_index.json 없음 — 시설 이름 검색 없이 진행');
-    }
+    // ③의 이름 인덱스(3.8MB)는 여기서 기다리지 않습니다. 시설 운영자 화면의 "시설명으로 검색"
+    // 에서만 쓰는데, 예전엔 init()에서 await해서 느린 회선일수록 그 뒤 단계(종목 목록·필터)까지
+    // 전부 밀렸습니다. 이제 실제로 검색을 시작할 때 ensureFacilityNameIndex()가 한 번만 받아옵니다.
     try{
       const sportTypes = await fetch('sport_types.json').then(r=>r.json());
       sportTypes.forEach(t=>allSportTypesGlobal.add(t));
@@ -920,12 +934,16 @@ async function init(){
     loadCoursesInBackground();
 
     const totalFacilities = Object.values(facilityCounts).reduce((a,b)=>a+b, 0);
+    // 다국어: 예전엔 한국어 문장을 그대로 찍어서, 영어·베트남어·중국어로 봐도 이 줄만 한국어였습니다.
     document.getElementById('loadStatus').textContent =
-      `${voucherRows.length}개 지역, ${totalFacilities.toLocaleString()}개 시설 정보를 불러왔어요`;
+      t('load_status_ok', '{r}개 지역, {f}개 시설 정보를 불러왔어요')
+        .replace('{r}', voucherRows.length)
+        .replace('{f}', totalFacilities.toLocaleString());
   }catch(err){
     document.getElementById('loadStatus').innerHTML =
-      '<span style="color:var(--red);">지역·시설 데이터를 불러오지 못했어요: ' + err.message +
-      '<br>잠시 후 새로고침해주세요. 계속 같은 문제가 생기면 문의해주세요.</span>';
+      '<span style="color:var(--red);">' +
+      t('load_status_fail', '지역·시설 데이터를 불러오지 못했어요') + ': ' + escapeHtml(err.message) +
+      '<br>' + t('load_status_fail_hint', '잠시 후 새로고침해주세요. 계속 같은 문제가 생기면 문의해주세요.') + '</span>';
     console.error('[SPOO] 필수 데이터 로딩 실패', err);
     return; // 데이터가 없으면 지도를 그려도 의미가 없으므로 여기서 종료
   }
@@ -1169,6 +1187,29 @@ function downloadCompareExcel(){
 // 강좌 시작시간을 오전/오후/저녁 구간으로 분류합니다.
 // 0~5시 강좌는 실제 새벽 운영이 아니라 시설 측 입력 오류일 가능성이 높아(수집 데이터 검증 결과 약 9%),
 // 필터에서는 "오전"에 포함하되 화면엔 원래 시간을 그대로 보여줘 사용자가 직접 판단할 수 있게 합니다.
+/* 요일 문자열 압축 — "월,화,수,목,금" 처럼 이어지는 요일은 "월~금"으로 줄입니다.
+   강좌 카드에 시간까지 함께 넣으면서 좁은 화면(390px)에서 한 줄이 네 줄로 접히는
+   문제가 있었는데, 정보를 빼지 않고 길이만 줄이는 방식으로 해결합니다. */
+const DAY_ORDER = ['월','화','수','목','금','토','일'];
+function compactDays(dayStr){
+  if(!dayStr) return '';
+  const raw = String(dayStr).split(/[,·\/\s]+/).map(s=>s.trim()).filter(Boolean);
+  const idx = raw.map(d=>DAY_ORDER.indexOf(d.replace(/요일$/,'')));
+  if(!idx.length || idx.some(i=>i<0)) return String(dayStr); // 모르는 형식이면 원본 그대로
+  const uniq = [...new Set(idx)].sort((a,b)=>a-b);
+  const out = [];
+  let i = 0;
+  while(i < uniq.length){
+    let j = i;
+    while(j+1 < uniq.length && uniq[j+1] === uniq[j]+1) j++;
+    const runLen = j - i + 1;
+    if(runLen >= 3) out.push(`${DAY_ORDER[uniq[i]]}~${DAY_ORDER[uniq[j]]}`);
+    else for(let k=i; k<=j; k++) out.push(DAY_ORDER[uniq[k]]);
+    i = j + 1;
+  }
+  return out.join(',');
+}
+
 function getTimeBand(startTm){
   if(!startTm) return null;
   const hour = parseInt(String(startTm).split(':')[0], 10);
@@ -1405,7 +1446,7 @@ function renderFacilityList(facilities, filterType, timeFilter, costFilter, styl
     });
     const courseTags = courses.slice(0,3).map((c,i)=>{
       const timeStr = (c.start_tm && c.end_tm) ? `${c.start_tm}–${c.end_tm}` : '';
-      const parts = [c.item_nm || c.course_nm, c.day, timeStr].filter(Boolean);
+      const parts = [c.item_nm || c.course_nm, compactDays(c.day), timeStr].filter(Boolean);
       const costLabel = getCostLabelShort(c.settl_amt);
       const isFree = costLabel === '내 돈 0원';
       const emoji = getSportEmoji(c.item_nm || c.course_nm);
@@ -1572,7 +1613,7 @@ function showCourseDetail(jsonStr){
 
   const rows = [
     ['종목', c.item_nm || '-'],
-    ['요일', c.day || '-'],
+    ['요일', compactDays(c.day) || '-'],
     ['운영 시간', timeRange],
   ].map(([label,val])=>`<div class="cm-row"><span>${label}</span><span>${escapeHtml(String(val))}</span></div>`).join('');
 
@@ -1930,6 +1971,9 @@ function openFacilityView(){
   bindFacilityViewSearch();
   document.getElementById('facilityViewOverlay').classList.add('show');
   document.getElementById('fvRegionInput').focus();
+  // 시설 이름 검색은 이 화면에서만 쓰므로, 화면을 열 때 인덱스를 미리 받아둡니다.
+  // (첫 화면 로딩은 막지 않고, 여기 들어온 사람만 3.8MB를 받게 됩니다.)
+  ensureFacilityNameIndex();
 }
 function closeFacilityView(){
   document.getElementById('facilityViewOverlay').classList.remove('show');
@@ -2093,11 +2137,17 @@ function renderFacilityDiffBox(code, facilities){
 
 // ⑤: 내 시설 정보 조회 — 이름 중복이 많아(예: "해동검도" 전국 45곳) 시도·시군구·주소를 함께 표시
 (function bindFacilityNameSearch(){
-  document.addEventListener('input', (e)=>{
+  document.addEventListener('input', async (e)=>{
     if(e.target && e.target.id === 'fvFacilitySearch'){
       const q = e.target.value.trim();
       const resultsEl = document.getElementById('fvFacilityResults');
       if(q.length < 2){ resultsEl.innerHTML=''; return; }
+      if(!facilityNameIndex.length){
+        resultsEl.innerHTML = `<p class="placeholder-msg" style="margin:0;">${t('facility_index_loading','시설 목록을 불러오는 중이에요...')}</p>`;
+        await ensureFacilityNameIndex();
+        // 기다리는 동안 사용자가 더 입력했다면, 그 입력에 대한 처리에 맡기고 여기서는 멈춥니다
+        if(e.target.value.trim() !== q) return;
+      }
       const matches = facilityNameIndex.filter(f => (f.name||'').includes(q)).slice(0, 20);
       if(!matches.length){
         resultsEl.innerHTML = `<p class="placeholder-msg" style="margin:0;">${t('no_facility_match','일치하는 시설이 없어요.')}</p>`;
@@ -2491,6 +2541,11 @@ function wpSelectRegion(code){
     pickedEl.style.display = 'block';
     pickedEl.innerHTML = `✅ <b>${escapeHtml(row.sido || '')} ${escapeHtml(row.region || '')}</b> 선택됨`;
   }
+  // 동네를 고르고 나면 자동완성 목록을 닫습니다. 예전엔 목록이 그대로 남아
+  // 바로 아래 "다음" 버튼을 가려서, 선택했는데도 다음으로 못 넘어가는 것처럼 보였습니다.
+  const suggestEl = document.getElementById('wpRegionSuggest');
+  if(suggestEl){ suggestEl.style.display = 'none'; suggestEl.innerHTML = ''; }
+  if(inputEl) inputEl.value = `${row.sido || ''} ${row.region || ''}`.trim();
 }
 
 // 온보딩 안에서 바로 보여주는 간단 자격 결과 (자세한 서류 체크리스트는 1단계에서 계속).
@@ -2658,6 +2713,13 @@ function wpSubmitAll(){
 
   const household = hhChecked.value;
   localStorage.setItem('fairplay_household', household);
+
+  // 이전 이용 여부(선택) — 답한 경우에만 저장합니다. 저장돼 있어야 서류 화면에서
+  // 공식 선정기준 기반의 "예상 선정 순위"를 보여줄 수 있습니다.
+  const priorChecked = document.querySelector('input[name="wpAllPrior"]:checked');
+  if(priorChecked) localStorage.setItem('fairplay_prior_history', priorChecked.value);
+  renderPriorityNotice(household, localStorage.getItem('fairplay_prior_history') || 'unsure');
+
   const ageEligible = age >= 5 && age <= 18;
 
   // wpGoalTitle의 문구는 wpRenderEligibility()가 상황(부적격/적격/모름)에 맞춰 직접 정합니다 —
@@ -3005,13 +3067,18 @@ function renderRegionBudget(facilities){
   if(sum){ paint(sum); return; }
   // 강좌 데이터(14MB)는 백그라운드에서 늦게 도착하므로, 올 때까지 잠깐 기다렸다가 채웁니다
   box.innerHTML = '<div class="s2c-caption" style="padding:18px 0;">강좌·가격 정보를 불러오는 중...</div>';
+  // 강좌 원본은 14MB라 느린 회선에서는 1분 넘게 걸릴 수 있습니다. 예전엔 30초에 포기하고
+  // "새로고침해주세요"라고 안내했는데, 새로고침하면 받던 걸 버리고 처음부터 다시 받게 되어
+  // 오히려 더 오래 걸렸습니다. 이제 넉넉히(2분) 기다리고, 안내도 사실대로 적습니다.
   let tries = 0;
   __budgetTimer = setInterval(()=>{
     const s2 = computeBudgetSummary(facilities);
-    if(s2 || ++tries > 20){
+    if(s2 || ++tries > 80){
       clearInterval(__budgetTimer); __budgetTimer = null;
       if(s2) paint(s2);
-      else box.innerHTML = '<div class="s2c-caption">강좌 정보를 불러오지 못했어요. 새로고침해주세요.</div>';
+      else box.innerHTML = `<div class="s2c-caption">${t('budget_still_loading','강좌·가격 정보를 아직 불러오는 중이에요. 시설 목록은 지금 바로 보실 수 있어요.')}</div>`;
+    } else if(tries === 20){
+      box.innerHTML = `<div class="s2c-caption" style="padding:18px 0;">${t('budget_loading_slow','강좌 정보가 커서 조금 오래 걸리고 있어요. 잠시만 기다려주세요...')}</div>`;
     }
   }, 1500);
 }
@@ -3138,12 +3205,23 @@ async function onRegionClick(code, row){
     ? `<div class="rural-hint">${t('rural_hint_low_usage', `🌾 {region}은 이용률이 상대적으로 낮은 지역이에요 — 그래서 더 꼼꼼히 확인해 드릴게요`).replace('{region}', escapeHtml(row.region))}</div>`
     : '';
 
+  // 인천 행정구역 개편(2026-07-01) 안내 — 공공데이터가 아직 개편 전 코드로 제공되고 있어
+  // 신설 구(제물포구·영종구·서해구·검단구) 기준으로는 나눠서 보여드릴 수 없습니다.
+  // 숨기지 않고 어느 기준의 수치인지 밝히는 편이 정직하고, 사용자도 덜 혼란스럽습니다.
+  const newDistricts = REGION_ALIASES[row.code];
+  const reorgHintHtml = newDistricts
+    ? `<div class="rural-hint">${t('reorg_hint_incheon', `🏙️ 이 수치는 2026년 7월 행정구역 개편 전 '{old}' 기준이에요 — 지금의 {new} 지역을 함께 포함합니다`)
+        .replace('{old}', escapeHtml(row.region))
+        .replace('{new}', escapeHtml(newDistricts.join('·')))}</div>`
+    : '';
+
   document.getElementById('regionStatsCard').innerHTML = `
     <div class="s2c-header-row">
       <span class="s2c-header-region">${row.sido} ${row.region}</span>
       <span class="s2c-header-label">0원으로 들을 수 있는 강좌</span>
     </div>
     ${ruralBannerHtml}
+    ${reorgHintHtml}
     <div id="regionBudgetBox"></div>
     <div class="s2c-cheer">✅ ${t('s2c_cheer','신청해도 손해볼 건 없어요')}</div>
     <div class="s2c-cheer-sub">${t('s2c_cheer_sub','선정은 지자체 예산·순위에 따라 달라질 수 있어요')}</div>
@@ -4418,16 +4496,10 @@ function handlePwaShortcut(){
   return true;
 }
 
-window.addEventListener('load', ()=>{
-  // 검정 프리로드 스플래시: SPO+O가 합쳐지는 애니메이션(~1.2초)과 태그라인이 다 나온 뒤 사라짐
-  setTimeout(()=>{
-    const pre = document.getElementById('preloadSplash');
-    if(pre){
-      pre.classList.add('hide');
-      setTimeout(()=> pre.remove(), 500);
-    }
-  }, 3400);
+/* 프리로드 스플래시 해제는 index.html의 인라인 스크립트가 담당합니다.
+   (외부 스크립트·폰트 로딩에 발목 잡히지 않도록 스플래시 바로 아래에서 타이머를 겁니다.) */
 
+window.addEventListener('load', ()=>{
   if(!handlePwaShortcut() && !handleSharedRegionLink()) initOnboarding();
   registerServiceWorker();
   setupInstallPrompt();

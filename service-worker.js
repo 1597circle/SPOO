@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v19'; // v18→v19: 강좌 카드 레이아웃 개편(팀) + 선정순위 공식기준 반영, 미수급 문구 정정, 이스케이프 보강
+const CACHE_NAME = 'spoo-v21'; // v20→v21: 이름인덱스 지연로드, 강좌 대기 안내 정정, 죽은 coachmark 마크업 제거, 헤더 줄바꿈, 로딩상태·인천 개편 안내 다국어
 const CORE_FILES = [
   './index.html',
   './style.css',
@@ -9,7 +9,6 @@ const CORE_FILES = [
   './config.json',
   './voucher_data.csv',
   './facility_counts.json',
-  './facility_names_index.json',
   './sport_types.json',
   './region_population.json',
   './sigungu_simplified.json',
@@ -23,8 +22,10 @@ const CORE_FILES = [
   './i18n/zh.json',
   './shortcut-diagnose.png',
   './shortcut-facility.png'
-  // courses.csv, facilities/{code}.json 은 용량이 크고 지역별로 그때그때 필요한 것만 불러오는
-  // 파일들이라 여기서 미리 캐시하지 않습니다 (fetch 이벤트에서 요청 시점에 자동으로 캐시됨).
+  // courses.csv, facility_names_index.json, {지역코드}.json 은 용량이 크거나(각각 14MB·3.8MB)
+  // 특정 화면에서만 쓰는 파일이라 미리 캐시하지 않습니다 (fetch 이벤트에서 요청 시점에 자동 캐시).
+  // facility_names_index.json은 시설 운영자 화면 전용이라 v21부터 프리캐시에서 뺐습니다 —
+  // 예전엔 모든 방문자가 설치 시 3.8MB를 한 번 더 내려받았습니다.
 ];
 
 // 설치 시 핵심 파일들을 미리 캐시해둠
