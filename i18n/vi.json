@@ -334,5 +334,14 @@
   "load_status_ok": "Đã tải dữ liệu của {r} khu vực và {f} cơ sở",
   "load_status_fail": "Không tải được dữ liệu khu vực và cơ sở",
   "load_status_fail_hint": "Vui lòng tải lại sau giây lát. Nếu vẫn lỗi, hãy liên hệ với chúng tôi.",
-  "reorg_hint_incheon": "🏙️ Số liệu này theo đơn vị hành chính '{old}' trước tháng 7/2026, bao gồm cả khu vực {new} hiện nay"
+  "reorg_hint_incheon": "🏙️ Số liệu này theo đơn vị hành chính '{old}' trước tháng 7/2026, bao gồm cả khu vực {new} hiện nay",
+  "birth_year_ph": "Năm",
+  "birth_month_ph": "Tháng",
+  "birth_day_ph": "Ngày",
+  "birth_year_unit": "",
+  "birth_month_unit": "",
+  "birth_day_unit": "",
+  "aria_birth_year": "Năm sinh",
+  "aria_birth_month": "Tháng sinh",
+  "aria_birth_day": "Ngày sinh"
 }
