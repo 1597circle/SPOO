@@ -334,5 +334,14 @@
   "load_status_ok": "Loaded data for {r} districts and {f} facilities",
   "load_status_fail": "Couldn't load the district and facility data",
   "load_status_fail_hint": "Please refresh in a moment. If it keeps happening, let us know.",
-  "reorg_hint_incheon": "🏙️ These figures follow the pre-July-2026 district '{old}', which also covers today's {new}"
+  "reorg_hint_incheon": "🏙️ These figures follow the pre-July-2026 district '{old}', which also covers today's {new}",
+  "birth_year_ph": "Year",
+  "birth_month_ph": "Month",
+  "birth_day_ph": "Day",
+  "birth_year_unit": "",
+  "birth_month_unit": "",
+  "birth_day_unit": "",
+  "aria_birth_year": "Year of birth",
+  "aria_birth_month": "Month of birth",
+  "aria_birth_day": "Day of birth"
 }
