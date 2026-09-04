@@ -334,6 +334,14 @@
   "load_status_ok": "已加载 {r} 个地区、{f} 家设施的数据",
   "load_status_fail": "未能加载地区和设施数据",
   "load_status_fail_hint": "请稍后刷新页面。若问题持续，请联系我们。",
-  "reorg_hint_incheon": "🏙️ 该数据基于2026年7月行政区划调整前的“{old}”，同时涵盖现在的{new}"
+  "reorg_hint_incheon": "🏙️ 该数据基于2026年7月行政区划调整前的“{old}”，同时涵盖现在的{new}",
+  "birth_year_ph": "年",
+  "birth_month_ph": "月",
+  "birth_day_ph": "日",
+  "birth_year_unit": "年",
+  "birth_month_unit": "月",
+  "birth_day_unit": "日",
+  "aria_birth_year": "出生年份",
+  "aria_birth_month": "出生月份",
+  "aria_birth_day": "出生日期"
 }
-
