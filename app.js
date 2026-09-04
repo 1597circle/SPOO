@@ -174,11 +174,14 @@ async function setLanguage(lang){
   if(ageSlider && ageValueEl && ageSlider.value){
     ageValueEl.textContent = t('age_years', `${ageSlider.value}세`).replace('{n}', ageSlider.value);
   }
-  // 날짜 입력칸(년-월-일)의 표시 형식은 브라우저가 lang 속성을 보고 정하므로,
-  // 문서와 입력칸 양쪽에 현재 언어를 지정해줍니다. (영어면 mm/dd/yyyy 로 바뀜)
-  document.querySelectorAll('input[type="date"]').forEach(inp => {
-    inp.setAttribute('lang', lang);
-  });
+  // [2026-09-04] 예전엔 여기서 input[type="date"]에 lang 속성을 걸어 날짜 표시 형식을
+  // 한국어로 맞추려 했습니다. 그러나 그 방법은 통하지 않습니다 — type="date"의 표시 형식은
+  // 브라우저 자체의 언어 설정이 정하고, 페이지나 입력칸의 lang 속성으로는 바꿀 수 없습니다.
+  // (그래서 한국어 화면인데도 계속 mm/dd/yyyy 로 보였습니다.)
+  // 지금은 생년월일을 년·월·일 select 세 칸으로 받기 때문에 이 문제 자체가 사라졌습니다.
+  // 새로 날짜 입력칸을 추가할 일이 생겨도 type="date"로는 형식을 고정할 수 없다는 점을
+  // 기억해주세요. 아래는 언어가 바뀌면 세 칸의 "년/월/일" 표기를 다시 그려주는 처리입니다.
+  wpBuildBirthSelects();
   // 자가진단 결과·서류 목록도 JS가 그린 것이라 언어를 바꾸면 다시 그려줘야 합니다.
   // (언어 파일 로딩보다 결과 렌더링이 먼저 끝나면 한국어로 남는 문제를 방지)
   try{ if(typeof runDiagnose === 'function') runDiagnose(); }catch(e){ /* 진단 정보가 아직 없으면 무시 */ }
@@ -2424,6 +2427,9 @@ function wpSkip(){
 // 담당자가 이 두 날짜를 손으로 계산해서 고쳐야 하고, 안 고치면 실제 나이 판정 기준(만 5~18세)과
 // 슬금슬금 어긋납니다. config.json처럼 별도 설정 없이도 항상 맞도록 동적으로 계산합니다.
 // (팀원 피드백, 2026-08-30)
+let wpBirthMin = null;   // 고를 수 있는 가장 이른 생일 (만 18세)
+let wpBirthMax = null;   // 고를 수 있는 가장 늦은 생일 (만 5세)
+
 function wpSetBirthInputRange(){
   const birthEl = document.getElementById('wpBirth');
   if(!birthEl) return;
@@ -2435,8 +2441,110 @@ function wpSetBirthInputRange(){
   const minDate = new Date(today.getFullYear()-19, today.getMonth(), today.getDate()+1);
   birthEl.min = fmt(minDate);
   birthEl.max = fmt(maxDate);
+  wpBirthMin = minDate;
+  wpBirthMax = maxDate;
+  wpBuildBirthSelects();   // 계산된 범위로 년·월·일 목록을 채웁니다
 }
+
+/* ────────────────────────────────────────────────────────────────────────
+   생년월일 — 년·월·일 select 세 칸
+   [2026-09-04] <input type="date">는 표시 형식(mm/dd/yyyy 등)을 브라우저 언어 설정이
+   정해버려서 한국어 화면에서도 미국식으로 보였습니다. 페이지 쪽에서 바꿀 방법이 없어,
+   날짜 위젯을 쓰지 않고 직접 고르게 바꿨습니다.
+
+   ▸ 값은 예전과 똑같이 #wpBirth(hidden)에 "YYYY-MM-DD"로 들어갑니다.
+     그래서 wpCalcAge()·localStorage('fairplay_birth') 등 값을 쓰는 쪽은 그대로입니다.
+   ▸ 고를 수 있는 범위를 만 5~18세로 잘라둡니다. 경계가 되는 연도·월에서는 월·일 목록까지
+     함께 좁히기 때문에, 세 칸을 다 고르면 반드시 유효한 날짜가 됩니다.
+   ──────────────────────────────────────────────────────────────────────── */
+function wpBirthEls(){
+  return {
+    hidden: document.getElementById('wpBirth'),
+    y: document.getElementById('wpBirthYear'),
+    m: document.getElementById('wpBirthMonth'),
+    d: document.getElementById('wpBirthDay')
+  };
+}
+
+// 그 해 그 달의 마지막 날 (윤년도 자동으로 맞습니다)
+function wpDaysInMonth(year, month){ return new Date(year, month, 0).getDate(); }
+
+// 번역값이 "빈 문자열"인 경우를 살리기 위한 전용 조회 함수.
+// t()는 `i18nDict[key] || fallback` 이라서 번역이 빈 문자열이면 한국어로 되돌아갑니다.
+// 그런데 연·월·일 뒤에 붙는 단위는 영어·베트남어에서 일부러 비워둡니다
+// ("2015년"이 아니라 "2015"). 그래서 여기서는 키가 있으면 빈 값이라도 그대로 씁니다.
+function wpTUnit(key, fallback){
+  return (i18nDict && Object.prototype.hasOwnProperty.call(i18nDict, key)) ? i18nDict[key] : fallback;
+}
+
+// select 한 칸을 from~to 숫자로 다시 채웁니다.
+// 이미 고른 값이 새 목록 안에도 있으면 그대로 유지해서, 언어를 바꾸거나 달을 바꿔도
+// 사용자가 고른 게 초기화되지 않게 합니다.
+function wpFillBirthSelect(sel, from, to, placeholder, unit){
+  if(!sel) return;
+  const keep = sel.value;
+  const opts = [`<option value="">${placeholder}</option>`];
+  for(let v = from; v <= to; v++) opts.push(`<option value="${v}">${v}${unit}</option>`);
+  sel.innerHTML = opts.join('');
+  sel.value = (keep !== '' && Number(keep) >= from && Number(keep) <= to) ? keep : '';
+}
+
+function wpBuildBirthSelects(){
+  const { y } = wpBirthEls();
+  if(!y || !wpBirthMin || !wpBirthMax) return;   // 아직 준비 전이면 조용히 넘어갑니다
+  y.setAttribute('aria-label', t('aria_birth_year', '태어난 해'));
+  wpFillBirthSelect(y, wpBirthMin.getFullYear(), wpBirthMax.getFullYear(),
+                    t('birth_year_ph', '년'), wpTUnit('birth_year_unit', '년'));
+  wpSyncBirthMonthDay();
+}
+
+// 연도·월 선택에 맞춰 월·일 목록을 좁히고, 세 칸이 다 채워졌으면 #wpBirth를 만들어 둡니다.
+function wpSyncBirthMonthDay(){
+  const { hidden, y, m, d } = wpBirthEls();
+  if(!hidden || !y || !m || !d || !wpBirthMin || !wpBirthMax) return;
+
+  const minY = wpBirthMin.getFullYear(), maxY = wpBirthMax.getFullYear();
+  const year = Number(y.value) || 0;
+
+  // 월 목록 — 가장 이른 해와 가장 늦은 해에서는 고를 수 있는 달이 좁아집니다.
+  let mFrom = 1, mTo = 12;
+  if(year === minY) mFrom = wpBirthMin.getMonth() + 1;
+  if(year === maxY) mTo   = wpBirthMax.getMonth() + 1;
+  m.setAttribute('aria-label', t('aria_birth_month', '태어난 달'));
+  wpFillBirthSelect(m, mFrom, mTo, t('birth_month_ph', '월'), wpTUnit('birth_month_unit', '월'));
+
+  const month = Number(m.value) || 0;
+
+  // 일 목록 — 그 달의 마지막 날까지. 경계가 되는 연·월에서는 하루 단위로 더 좁힙니다.
+  let dFrom = 1, dTo = 31;
+  if(year && month){
+    dTo = wpDaysInMonth(year, month);
+    if(year === minY && month === mFrom) dFrom = wpBirthMin.getDate();
+    if(year === maxY && month === mTo)   dTo   = Math.min(dTo, wpBirthMax.getDate());
+  }
+  d.setAttribute('aria-label', t('aria_birth_day', '태어난 날'));
+  wpFillBirthSelect(d, dFrom, dTo, t('birth_day_ph', '일'), wpTUnit('birth_day_unit', '일'));
+
+  const day = Number(d.value) || 0;
+  // 세 칸이 모두 채워졌을 때만 값을 만듭니다. 하나라도 비면 빈 문자열 —
+  // 기존 검증 코드가 "생년월일 미입력"으로 정확히 걸러냅니다.
+  hidden.value = (year && month && day)
+    ? `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+    : '';
+}
+
+function wpInitBirthSelects(){
+  const { y, m, d } = wpBirthEls();
+  if(!y || !m || !d) return;
+  [y, m, d].forEach(sel => sel.addEventListener('change', () => {
+    wpSyncBirthMonthDay();
+    // 값을 채우면 빨간 테두리(미입력 표시)를 바로 걷어줍니다.
+    [y, m, d].forEach(el => { if(el.value) el.style.borderColor = ''; });
+  }));
+}
+
 wpSetBirthInputRange();
+wpInitBirthSelects();
 
 function wpCalcAge(dateStr){
   const birthDate = new Date(dateStr);
@@ -2653,13 +2761,19 @@ function wpSubmitAllStep1(){
   }
 
   // 2) 생년월일 (필수)
+  // [2026-09-04] 생년월일이 년·월·일 select 세 칸으로 바뀌었습니다. 값 자체는 예전처럼
+  // #wpBirth에 YYYY-MM-DD로 들어오지만, #wpBirth는 이제 hidden이라 테두리를 칠하거나
+  // 그쪽으로 스크롤할 수 없습니다. 그래서 눈에 보이는 세 칸을 대신 표시 대상으로 씁니다.
   const birthEl = document.getElementById('wpBirth');
   const birth = birthEl.value;
+  const birthParts = ['wpBirthYear','wpBirthMonth','wpBirthDay']
+    .map(id => document.getElementById(id)).filter(Boolean);
   if(!birth){
-    birthEl.style.borderColor = 'var(--coral)';
-    firstInvalid = firstInvalid || birthEl;
+    // 안 고른 칸만 빨갛게 — 어디를 채워야 하는지 바로 보이도록.
+    birthParts.forEach(el => { el.style.borderColor = el.value ? '' : 'var(--coral)'; });
+    firstInvalid = firstInvalid || birthParts.find(el => !el.value) || birthParts[0] || birthEl;
   } else {
-    birthEl.style.borderColor = '';
+    birthParts.forEach(el => { el.style.borderColor = ''; });
   }
 
   // 3) 지역 (선택 항목) — 검색창에 글자만 입력하고 목록에서 실제로 고르지 않았다면
@@ -3591,8 +3705,10 @@ function focusNextField(currentId, nextId){
     document.getElementById(nextId)?.focus();
   });
 }
-focusNextField('wpName', 'wpBirth');
-focusNextField('wpBirth', 'wpRegionInput');
+// [2026-09-04] 생년월일이 세 칸으로 나뉘면서, 이름 다음은 "년" 칸으로,
+// "일" 칸 다음은 동네 검색창으로 이어지도록 연결 지점을 바꿨습니다.
+focusNextField('wpName', 'wpBirthYear');
+focusNextField('wpBirthDay', 'wpRegionInput');
 
 document.addEventListener('click', (e)=>{
   if(!e.target.closest('.search-box')) searchSuggest.style.display = 'none';

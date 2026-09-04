@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v22'; // v21→v22: 담당자 카드 강조숫자 가독성, 320px 헤더 가로스크롤, CSV 안내 줄바꿈, 키보드 포커스 표시 복구
+const CACHE_NAME = 'spoo-v23'; // v22→v23: 생년월일 년·월·일 3칸 전환(mm/dd/yyyy 문제 해결), 모바일 헤더 로고 깨짐 수정, 헤더 예비 기준일 2025.7→2026-07
 const CORE_FILES = [
   './index.html',
   './style.css',

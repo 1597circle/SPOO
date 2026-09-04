@@ -1214,3 +1214,48 @@
 @media (prefers-reduced-motion: reduce){ #pickLocBtn.pulse{ animation:none; box-shadow:0 0 0 4px rgba(49,130,246,.4); } }
 /* 지정 모드일 때 지도 커서가 과녁 느낌으로 */
 #map.picking{ cursor:crosshair; }
+
+/* ==================== [2026-09-04] 모바일 헤더 · 생년월일 세 칸 ==================== */
+
+/* ---- 모바일 헤더가 로고를 덮던 문제 ----
+   header h1은 flex 컨테이너인데 뒤따르는 부제 span이 줄어들지 않아서, 좁은 화면에서는
+   로고 쪽이 대신 접혀 "🏃"와 "SPOO"가 위아래로 쪼개졌습니다(390px 이하에서 재현).
+   부제를 감추기 전에, 로고 자체가 절대 쪼개지지 않도록 한 덩어리로 묶어둡니다.
+   .brand는 index.html에서 "🏃 SPOO"를 감싼 span입니다. 위쪽 `header h1 span` 규칙이
+   흐린 회색·작은 글씨를 주기 때문에, 여기서 h1의 원래 색·굵기·크기를 되돌려줍니다. */
+header h1 .brand{
+  color:inherit; font-weight:inherit; font-size:inherit;
+  white-space:nowrap; flex:0 0 auto;
+}
+
+/* 헤더 오른쪽(더 알아보기·언어·기준일)의 항목 간격. 원래 index.html 인라인 style에
+   있었는데, 인라인은 미디어 쿼리로 못 덮어서 여기로 옮겼습니다. */
+.header-actions{ gap:8px 14px; }
+
+/* 600px 이하에서는 부제를 감춥니다. 헤더가 position:sticky라, 부제가 두 줄로 접히면
+   작은 폰에서 화면 위쪽을 계속 125px씩 차지했습니다(430px에서는 82px).
+   가로 간격도 함께 좁혀서, 오른쪽 세 항목이 두 줄로 갈라지지 않고 한 줄에 들어갑니다. */
+@media (max-width:600px){
+  header{ padding:14px 16px; }
+  header h1 span[data-i18n="header_sub"]{ display:none; }
+  .header-actions{ gap:6px 10px; }
+}
+
+/* ---- 생년월일: 년·월·일 세 칸 ----
+   .wp-input은 원래 한 칸이 가로를 다 쓰는 전제라 좌우 여백이 큽니다. 세 칸을 나란히
+   놓으면 320px 화면에서 글자가 잘리므로, 이 줄 안에서만 여백과 글자 크기를 줄입니다. */
+.wp-birth-row{ display:flex; gap:8px; align-items:stretch; }
+.wp-birth-row .wp-input{
+  flex:1 1 0; min-width:0; width:auto;
+  padding:15px 22px 15px 8px;     /* 오른쪽은 아래 화살표 자리 */
+  text-align:center !important;   /* .wp-all-input의 text-align:left !important를 덮습니다 */
+  text-align-last:center;         /* 닫혀 있을 때 보이는 글자도 가운데로 */
+  /* 고르는 칸이라는 걸 알 수 있게 화살표를 붙입니다.
+     이미지는 이 파일 위쪽 .recommend-select가 쓰는 것과 같은 것을 그대로 씁니다. */
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23132135' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 8px center;
+}
+@media (max-width:360px){
+  .wp-birth-row{ gap:6px; }
+  .wp-birth-row .wp-input{ padding:14px 18px 14px 4px; font-size:var(--fs-label); background-position:right 6px center; }
+}
