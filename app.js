@@ -914,7 +914,6 @@ async function init(){
 
     populateAgeSelect();
     renderTop10();
-    renderFavorites();
 
     // 자가진단에서 골랐던 동네가 있으면, 재방문 시에도 2·3단계 화면을 그 지역 기준으로 미리 채워둠.
     // 카카오톡 등으로 공유받은 링크(?region=코드)가 있으면 그 동네를 최우선으로 사용합니다 —
@@ -1090,100 +1089,6 @@ function renderTop10(){
       </div>
     </div>
   `).join('');
-}
-
-/* ==================== 즐겨찾기 (localStorage) ==================== */
-function getFavorites(){
-  try{ return JSON.parse(localStorage.getItem('fairplay_favorites') || '[]'); }
-  catch(e){ return []; }
-}
-function saveFavorites(list){
-  localStorage.setItem('fairplay_favorites', JSON.stringify(list));
-}
-function isFavorite(code){
-  return getFavorites().includes(code);
-}
-function toggleFavorite(code){
-  let favs = getFavorites();
-  if(favs.includes(code)){ favs = favs.filter(c=>c!==code); }
-  else{ favs.push(code); }
-  saveFavorites(favs);
-  compareOpen = false; // 목록이 바뀌면 비교화면은 접어서 다시 열게 함
-  renderFavorites();
-  if(currentPanelCode === code) onRegionClick(code, voucherData[code]);
-}
-function renderFavorites(){
-  const favs = getFavorites();
-  const favCard = document.getElementById('favCard');
-  const favList = document.getElementById('favList');
-  const compareBtn = document.getElementById('compareBtn');
-  if(favs.length === 0){ favCard.style.display = 'none'; return; }
-  favCard.style.display = 'block';
-  favList.innerHTML = favs.map(code=>{
-    const row = voucherData[code];
-    if(!row) return '';
-    return `<span class="fav-chip" onclick="goToRegion('${code}')">📍 ${row.sido} ${row.region}</span>`;
-  }).join('');
-  compareBtn.style.display = favs.length >= 2 ? 'block' : 'none';
-  if(favs.length < 2) document.getElementById('compareBox').innerHTML = '';
-}
-
-// 즐겨찾는 동네 여러 곳을 나란히 비교 (수급률·순위·시설 수)
-let compareOpen = false;
-function toggleCompareFavorites(){
-  compareOpen = !compareOpen;
-  const box = document.getElementById('compareBox');
-  const btn = document.getElementById('compareBtn');
-  if(!compareOpen){ box.innerHTML = ''; btn.textContent = t('btn_compare','📊 즐겨찾는 동네 비교하기'); return; }
-  btn.textContent = t('btn_compare_close','📊 비교 닫기');
-
-  const favs = getFavorites();
-  const rows = favs.map(code=>{
-    const row = voucherData[code];
-    if(!row) return null;
-    const facCount = facilityCounts[code] ?? 0;
-    return {
-      code, name: `${row.sido} ${row.region}`,
-      sPct: parseFloat(row.s_pct)||0, nPct: parseFloat(row.n_pct)||0,
-      sRank: sRankByCode[code], nRank: nRankByCode[code], facCount
-    };
-  }).filter(Boolean);
-
-  const bestS = Math.max(...rows.map(r=>r.sPct));
-  const bestN = Math.max(...rows.map(r=>r.nPct));
-  const bestFac = Math.max(...rows.map(r=>r.facCount));
-  currentCompareRows = rows; // 엑셀 다운로드에서 재사용
-
-  box.innerHTML = `<div class="compare-table">
-    ${rows.map(r=>`
-      <div class="compare-row" onclick="goToRegion('${r.code}')">
-        <div class="compare-name">📍 ${r.name}</div>
-        <div class="compare-stats">
-          <span class="${r.sPct===bestS?'best':''}">기초수급 ${r.sPct}%</span>
-          <span class="${r.nPct===bestN?'best':''}">차상위·한부모 ${r.nPct}%</span>
-          <span class="${r.facCount===bestFac?'best':''}">시설 ${r.facCount}개</span>
-        </div>
-      </div>
-    `).join('')}
-    <div class="compare-hint">💡 초록색으로 표시된 게 즐겨찾기 중 가장 높은 값이에요</div>
-    <button class="action-btn" style="width:100%; margin-top:12px;" onclick="downloadCompareExcel()">📊 비교 결과 엑셀로 다운로드</button>
-  </div>`;
-}
-
-// 즐겨찾기 비교 — 여러 지역을 한 번에 엑셀로 다운로드
-function downloadCompareExcel(){
-  if(!currentCompareRows.length){ alert('먼저 즐겨찾는 동네를 추가해주세요.'); return; }
-  if(typeof XLSX === 'undefined'){ alert('엑셀 저장 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요.'); return; }
-  const data = currentCompareRows.map(r => ({
-    '지역': r.name,
-    '기초생활수급_수급률(%)': r.sPct,
-    '차상위한부모_수급률(%)': r.nPct,
-    '가맹시설수': r.facCount,
-  }));
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, '지역비교');
-  XLSX.writeFile(workbook, `SPOO_지역비교_${data.length}곳.xlsx`);
 }
 
 /* ==================== 종목 필터 ==================== */
@@ -1968,7 +1873,6 @@ function downloadRegionDataCSV(){
    모두 이미 있는 데이터(voucherData, facilitiesByRegion)로 계산하는 조회형 기능이라 회원가입·서버가 필요 없음. */
 let fvSelectedCode = null;
 let fvLastStats = {};
-let currentCompareRows = [];
 
 function openFacilityView(){
   bindFacilityViewSearch();
@@ -3316,7 +3220,6 @@ async function onRegionClick(code, row){
         ? `<p class="placeholder-msg">이 동네엔 등록된 시설이 없어요. 위에서 옆 동네 시설을 확인해보세요.</p>`
         : `<p class="placeholder-msg">이 동네엔 등록된 시설 정보가 아직 없어요. 지자체에 문의해보시는 걸 추천드려요.</p>`);
 
-  const favActive = isFavorite(code);
   const sRankPct = Math.max(2, Math.min(98, (sRank / totalRegions) * 100));
   const nRankPct = Math.max(2, Math.min(98, (nRank / totalRegions) * 100));
 
