@@ -3213,6 +3213,18 @@ async function onRegionClick(code, row){
   if(facilityMarker){ facilityMarker.setMap(null); facilityMarker = null; }
   document.getElementById('step2Panel')?.classList.add('has-region'); // 지역 골랐으니 전체화면 검색 → 작은 검색바로
   document.getElementById('step2SearchWrap')?.classList.add('picked');
+
+  // 지도 경계(sigungu_simplified.json)엔 있지만 수급률 데이터(voucher_data.csv)엔 아직 없는 지역
+  // (예: 2026년 인천 신설구) — 죽지 않고 안내 문구를 보여줍니다.
+  if(!row){
+    currentPanelCode = code;
+    const statsCard = document.getElementById('regionStatsCard');
+    if(statsCard) statsCard.innerHTML = `<p class="placeholder-msg" style="margin-top:20px;">📍 ${t('region_nodata_title','아직 정보가 없어요')}<br><span style="font-size:13px;">${t('region_nodata_sub','이 지역은 최근에 새로 생긴 행정구역이라, 수급률·시설 정보가 아직 준비되지 않았어요. 곧 업데이트할게요!')}</span></p>`;
+    const facCard = document.getElementById('regionFacilityCard');
+    if(facCard) facCard.innerHTML = '';
+    return;
+  }
+
   const sPct = parseFloat(row.s_pct) || 0;
   const nPct = parseFloat(row.n_pct) || 0;
   const type = classifyRegion(row);
