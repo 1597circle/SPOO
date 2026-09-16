@@ -343,5 +343,21 @@
   "birth_day_unit": "",
   "aria_birth_year": "Year of birth",
   "aria_birth_month": "Month of birth",
-  "aria_birth_day": "Day of birth"
+  "aria_birth_day": "Day of birth",
+  "urg_badge": "Application info",
+  "urg_guess": "(expected)",
+  "urg_before_lead": "Applications open just once a year — {period}",
+  "urg_before_sub": "Miss it and the next chance is November {year}. Set a reminder now.",
+  "urg_now_big": "Applications are open now",
+  "urg_now_last": "Today is the last day",
+  "urg_now_lead": "{n} days left until the deadline",
+  "urg_now_last_lead": "You need to apply today",
+  "urg_now_sub": "{period} · Only one chance a year",
+  "urg_done_big": "This year's applications have closed",
+  "urg_done_lead": "The next round is around the same time in {year}",
+  "urg_done_sub": "Set a reminder so you don't miss it next year",
+  "urg_btn_cal": "📅 Add the application dates to my calendar",
+  "urg_btn_apply": "Apply now →",
+  "urg_btn_docs": "See the documents I need",
+  "urg_btn_remind": "📅 Remind me next year"
 }
