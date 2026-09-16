@@ -343,5 +343,21 @@
   "birth_day_unit": "",
   "aria_birth_year": "Năm sinh",
   "aria_birth_month": "Tháng sinh",
-  "aria_birth_day": "Ngày sinh"
+  "aria_birth_day": "Ngày sinh",
+  "urg_badge": "Thông tin đăng ký",
+  "urg_guess": "(dự kiến)",
+  "urg_before_lead": "Mỗi năm chỉ đăng ký được một lần — {period}",
+  "urg_before_sub": "Bỏ lỡ lần này thì phải đợi đến tháng 11 năm {year}. Hãy đặt nhắc nhở ngay.",
+  "urg_now_big": "Đang trong thời gian đăng ký",
+  "urg_now_last": "Hôm nay là ngày cuối",
+  "urg_now_lead": "Còn {n} ngày nữa là hết hạn",
+  "urg_now_last_lead": "Bạn phải đăng ký trong hôm nay",
+  "urg_now_sub": "{period} · Cơ hội duy nhất trong năm",
+  "urg_done_big": "Đợt đăng ký năm nay đã kết thúc",
+  "urg_done_lead": "Đợt tiếp theo vào khoảng thời gian này năm {year}",
+  "urg_done_sub": "Đặt nhắc nhở để năm sau không bỏ lỡ",
+  "urg_btn_cal": "📅 Thêm ngày đăng ký vào lịch",
+  "urg_btn_apply": "Đăng ký ngay →",
+  "urg_btn_docs": "Xem giấy tờ cần chuẩn bị",
+  "urg_btn_remind": "📅 Nhắc tôi vào năm sau"
 }
