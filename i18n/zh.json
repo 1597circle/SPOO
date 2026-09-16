@@ -343,5 +343,21 @@
   "birth_day_unit": "日",
   "aria_birth_year": "出生年份",
   "aria_birth_month": "出生月份",
-  "aria_birth_day": "出生日期"
+  "aria_birth_day": "出生日期",
+  "urg_badge": "申请提示",
+  "urg_guess": "（预计）",
+  "urg_before_lead": "每年只能申请一次 —— {period}",
+  "urg_before_sub": "错过这次，下次要等到{year}年11月。现在就设个提醒吧。",
+  "urg_now_big": "现在正是申请期间",
+  "urg_now_last": "今天是最后一天",
+  "urg_now_lead": "距离截止还有{n}天",
+  "urg_now_last_lead": "今天之内必须完成申请",
+  "urg_now_sub": "{period} · 一年仅此一次的机会",
+  "urg_done_big": "今年的申请已结束",
+  "urg_done_lead": "下一次在{year}年的同一时期",
+  "urg_done_sub": "设置提醒，明年就不会错过",
+  "urg_btn_cal": "📅 把申请日期加入日历",
+  "urg_btn_apply": "立即申请 →",
+  "urg_btn_docs": "查看所需材料",
+  "urg_btn_remind": "📅 明年提醒我"
 }
