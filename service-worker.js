@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v23'; // v22→v23: 생년월일 년·월·일 3칸 전환(mm/dd/yyyy 문제 해결), 모바일 헤더 로고 깨짐 수정, 헤더 예비 기준일 2025.7→2026-07
+const CACHE_NAME = 'spoo-v24'; // v23→v24: 2단계에 신청 시기 안내 카드 추가(기간 전 D-day·기간 중 신청 CTA·마감 후 안내)
 const CORE_FILES = [
   './index.html',
   './style.css',

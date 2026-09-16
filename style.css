@@ -1234,3 +1234,48 @@ header h1 .brand{
   .wp-birth-row{ gap:6px; }
   .wp-birth-row .wp-input{ padding:14px 18px 14px 4px; font-size:var(--fs-label); background-position:right 6px center; }
 }
+
+  /* ==================== 2단계 신청 시기 안내 카드 (2026-09-15 추가) ====================
+     "무료 강좌 199개"라는 정보만 보여주고 끝나던 화면에, 그래서 지금 무엇을 해야 하는지를
+     잇는 카드입니다. 긴급함은 사실(연 1회뿐)에서만 만들고, 시기에 따라 강도를 달리합니다.
+       .urg-before  기간 전 — 차분한 남색. 아직 두 달 남았는데 빨간 경고를 쓰면 거짓말이 됩니다.
+       .urg-now     기간 중 — 짙은 그라디언트 + 흰 글씨. 이때만 가장 강하게.
+       .urg-done    마감 후 — 회색조. 조급하게 만들 이유가 없습니다.                        */
+  .s2c-urgency{
+    margin:18px 0 6px; padding:20px 18px; border-radius:18px;
+    border:1.5px solid var(--line); background:#fff; text-align:center;
+  }
+  .urg-top{display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:10px;}
+  .urg-badge{
+    font-size:var(--fs-caption); font-weight:700; letter-spacing:.02em;
+    padding:4px 11px; border-radius:99px; background:var(--blue-soft); color:var(--blue-deep);
+  }
+  .urg-big{
+    font-size:40px; font-weight:800; letter-spacing:-.03em; line-height:1.1;
+    color:var(--blue-deep); font-variant-numeric:tabular-nums;
+  }
+  .urg-lead{font-size:var(--fs-body); font-weight:700; color:var(--ink); line-height:1.5; margin-bottom:6px;}
+  .urg-sub{font-size:var(--fs-caption); color:var(--ink-faint); line-height:1.6;}
+  .urg-actions{display:flex; flex-direction:column; gap:8px; margin-top:16px;}
+  .urg-btn{
+    width:100%; padding:14px; border-radius:14px; font-family:inherit;
+    font-size:var(--fs-body); font-weight:700; cursor:pointer; transition:.15s; border:1.5px solid transparent;
+  }
+  .urg-btn-solid{background:var(--navy-gradient); color:#fff; box-shadow:0 6px 18px rgba(27,100,218,.25);}
+  .urg-btn-line{background:var(--blue-soft); color:var(--blue-deep); border-color:var(--blue-deep);}
+  .urg-btn:hover{transform:translateY(-1px);}
+
+  /* 신청 기간 중에만 켜지는 최고 강도 — 이때는 실제로 지금이 아니면 안 됩니다 */
+  .urg-now{background:var(--navy-gradient); border-color:transparent; box-shadow:0 10px 28px rgba(18,59,122,.28);}
+  .urg-now .urg-badge{background:rgba(255,255,255,.22); color:#fff;}
+  .urg-now .urg-big{color:#fff; font-size:30px;}
+  .urg-now .urg-lead{color:#fff;}
+  .urg-now .urg-sub{color:rgba(255,255,255,.82);}
+  .urg-now .urg-btn-solid{background:#fff; color:var(--blue-deep); box-shadow:0 6px 18px rgba(0,0,0,.18);}
+  .urg-now .urg-btn-line{background:transparent; color:#fff; border-color:rgba(255,255,255,.6);}
+
+  /* 마감 후 — 정보 전달만 */
+  .urg-done .urg-badge{background:var(--paper); color:var(--ink-sub);}
+  .urg-done .urg-big{font-size:22px; color:var(--ink-sub);}
+
+  @media (prefers-reduced-motion: reduce){ .urg-btn:hover{transform:none;} }

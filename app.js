@@ -3060,6 +3060,86 @@ function computeBudgetSummary(facilities){
   return { free, u3, u5, total, freeFac };
 }
 
+/* ==================== 신청 시기 안내 카드 (2단계 우리동네) ====================
+   "무료 강좌가 199개 있다"는 사실만으로는 사용자가 아무것도 하지 않습니다.
+   이 카드는 그 정보를 "그래서 지금 뭘 해야 하는가"로 잇는 역할을 합니다.
+
+   ⚠ 긴급함은 반드시 사실에서만 만듭니다. 이 제도에 대해 실제로 참인 것:
+     · 신청은 1년에 한 번뿐 — 놓치면 다음 기회는 내년 같은 시기
+     · 선정은 지자체 예산 범위에서 순위대로 — 신청하지 않으면 확률은 0
+     · 매년 재신청 필수 (자동 연장 없음)
+   거짓으로 만들지 않는 것: 선착순, 잔여 자리 수, 확정되지 않은 일정의 단정.
+   신청기간이 아직 공고 전(applyPeriodConfirmed=false)이면 "(예상)"을 반드시 붙입니다.
+
+   시기에 따라 강도가 달라집니다 — 실제 상황과 어긋난 긴박감을 주지 않기 위해서입니다.
+     before : 신청까지 D-n · 할 수 있는 행동은 "잊지 않게 캘린더에 넣기"
+     during : 지금이 신청 기간 · 할 수 있는 행동은 "바로 신청하기"(공식 사이트)
+     after  : 올해는 마감 · 다음 기회 안내 + 내년 알림 등록                       */
+function buildApplyUrgencyHtml(){
+  if(!spooConfig || !spooConfig.applyPeriod) return '';
+  const cfg = spooConfig;
+  const MS_DAY = 24*60*60*1000;
+  const today = new Date(localDateStr() + 'T00:00:00');
+  const start = new Date(cfg.applyPeriod.start + 'T00:00:00');
+  const end   = new Date(cfg.applyPeriod.end   + 'T00:00:00');
+  const confirmed = cfg.applyPeriodConfirmed !== false;
+
+  const isKo = (currentLang === 'ko' || !currentLang);
+  const fmt = (iso) => { const [,m,d] = iso.split('-');
+    return isKo ? `${parseInt(m)}월 ${parseInt(d)}일` : `${parseInt(m)}/${parseInt(d)}`; };
+  // 같은 달이면 뒤쪽 월 표기를 생략합니다 — "11월 10일~11월 28일"은 군더더기라
+  // 좁은 화면에서 줄바꿈만 늘립니다. ("11월 10일~28일")
+  const [, sM, sD] = cfg.applyPeriod.start.split('-');
+  const [, eM, eD] = cfg.applyPeriod.end.split('-');
+  const period = (sM === eM)
+    ? (isKo ? `${parseInt(sM)}월 ${parseInt(sD)}일~${parseInt(eD)}일` : `${parseInt(sM)}/${parseInt(sD)}–${parseInt(eD)}`)
+    : `${fmt(cfg.applyPeriod.start)}~${fmt(cfg.applyPeriod.end)}`;
+  const guess = confirmed ? '' : ' ' + t('urg_guess','(예상)');
+  const nextYear = start.getFullYear() + 1;
+
+  let state, big, lead, sub, actions;
+
+  if(today > end){
+    // 올해 접수는 끝남 — 조급하게 만들 이유가 없으므로 담담하게, 다음 기회만 알려줍니다
+    state = 'done';
+    big  = t('urg_done_big', '올해 신청은 마감됐어요');
+    lead = t('urg_done_lead', '다음 신청은 {year}년 같은 시기예요').replace('{year}', nextYear);
+    sub  = t('urg_done_sub', '미리 알림을 걸어두면 내년엔 놓치지 않아요');
+    actions = `<button class="urg-btn urg-btn-line" onclick="openCalendarSheet()">${t('urg_btn_remind','📅 내년 신청일 알림 받기')}</button>`;
+  } else if(today >= start){
+    // 진짜로 지금이 기회 — 여기서만 가장 강한 표현과 공식 사이트 바로가기를 씁니다
+    const dLeft = Math.round((end - today) / MS_DAY);
+    state = 'now';
+    big  = dLeft <= 0 ? t('urg_now_last','오늘이 마지막 날이에요')
+                      : t('urg_now_big','지금 신청 기간이에요');
+    lead = dLeft <= 0 ? t('urg_now_last_lead','오늘 안에 신청해야 해요')
+                      : t('urg_now_lead','마감까지 {n}일 남았어요').replace('{n}', dLeft);
+    sub  = t('urg_now_sub', '{period} · 1년에 한 번뿐인 기회예요').replace('{period}', period) + guess;
+    actions = `<button class="urg-btn urg-btn-solid" onclick="window.open('https://svoucher.kspo.or.kr','_blank','noopener')">${t('urg_btn_apply','지금 바로 신청하기 →')}</button>
+      <button class="urg-btn urg-btn-line" onclick="goToStep(1)">${t('urg_btn_docs','필요한 서류 확인하기')}</button>`;
+  } else {
+    // 아직 기간 전 — 없는 급함을 만들지 않고, 진짜 사실(연 1회)로 행동을 만듭니다
+    const dUntil = Math.round((start - today) / MS_DAY);
+    state = 'before';
+    big  = `D-${dUntil}`;
+    lead = t('urg_before_lead', '신청은 1년에 딱 한 번, {period}이에요').replace('{period}', period) + guess;
+    sub  = t('urg_before_sub', '이번을 놓치면 다음 기회는 {year}년 11월이에요 — 지금 알림을 걸어두세요').replace('{year}', nextYear);
+    actions = `<button class="urg-btn urg-btn-solid" onclick="openCalendarSheet()">${t('urg_btn_cal','📅 신청일 잊지 않게 캘린더에 넣기')}</button>
+      <button class="urg-btn urg-btn-line" onclick="goToStep(1)">${t('urg_btn_docs','필요한 서류 확인하기')}</button>`;
+  }
+
+  return `
+    <div class="s2c-urgency urg-${state}">
+      <div class="urg-top">
+        <span class="urg-badge">${t('urg_badge','신청 안내')}</span>
+        <span class="urg-big">${escapeHtml(big)}</span>
+      </div>
+      <div class="urg-lead">${lead}</div>
+      <div class="urg-sub">${sub}</div>
+      <div class="urg-actions">${actions}</div>
+    </div>`;
+}
+
 function budgetSummaryHtml(sum, facCount){
   return `
     <div class="s2c-budget-hero">
@@ -3254,6 +3334,7 @@ async function onRegionClick(code, row){
     <div id="regionBudgetBox"></div>
     <div class="s2c-cheer">✅ ${t('s2c_cheer','신청해도 손해볼 건 없어요')}</div>
     <div class="s2c-cheer-sub">${t('s2c_cheer_sub','선정은 지자체 예산·순위에 따라 달라질 수 있어요')}</div>
+    ${buildApplyUrgencyHtml()}
     <div class="s2c-minor-link" onclick="openRegionView()">📊 지역별 수급 통계·순위가 필요하신 담당자는 이곳에서 →</div>
   `;
   renderRegionBudget(facilities);
