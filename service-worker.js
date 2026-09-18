@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v24'; // v23→v24: 2단계에 신청 시기 안내 카드 추가(기간 전 D-day·기간 중 신청 CTA·마감 후 안내)
+const CACHE_NAME = 'spoo-v26'; // v25→v26: 2단계를 스크롤 없이 한 화면에 — 세로 여백 vh 반응화, 신청 각주 1줄화, 좁은 화면 헤더 1줄 고정
 const CORE_FILES = [
   './index.html',
   './style.css',

@@ -3044,6 +3044,7 @@ function goToStepFromPicks(){
 function computeBudgetSummary(facilities){
   if(!Object.keys(coursesByFacility).length) return null; // 강좌 데이터가 아직 로딩 전
   let free=0, u3=0, u5=0, total=0, freeFac=0;
+  const freeAmts = []; // 0원으로 들을 수 있는 강좌들의 원래 수강료 — 중앙값 표시에 씁니다
   facilities.forEach(f=>{
     const courses = coursesByFacility[f.sgg ? `${f.name}|${f.sgg}` : f.name] || [];
     let hasFree = false;
@@ -3051,110 +3052,106 @@ function computeBudgetSummary(facilities){
       const b = getCostBreakdown(c.settl_amt);
       if(!b || b.special) return; // 오입력·기간 미상 금액은 계산에서 제외
       total++;
-      if(b.myCost === 0){ free++; hasFree = true; }
+      if(b.myCost === 0){ free++; hasFree = true; freeAmts.push(Number(c.settl_amt)); }
       if(b.myCost <= 30000) u3++;
       if(b.myCost <= 50000) u5++;
     });
     if(hasFree) freeFac++;
   });
-  return { free, u3, u5, total, freeFac };
+  // 평균 대신 중앙값 — 유난히 비싼 강좌 몇 개가 값을 끌어올려 실제보다 부풀려 보이는 걸 막습니다.
+  let freeMedian = 0;
+  if(freeAmts.length){
+    freeAmts.sort((a,b)=>a-b);
+    const mid = Math.floor(freeAmts.length/2);
+    freeMedian = freeAmts.length % 2 ? freeAmts[mid] : Math.round((freeAmts[mid-1]+freeAmts[mid])/2);
+  }
+  return { free, u3, u5, total, freeFac, freeMedian };
 }
 
-/* ==================== 신청 시기 안내 카드 (2단계 우리동네) ====================
-   "무료 강좌가 199개 있다"는 사실만으로는 사용자가 아무것도 하지 않습니다.
-   이 카드는 그 정보를 "그래서 지금 뭘 해야 하는가"로 잇는 역할을 합니다.
-
-   ⚠ 긴급함은 반드시 사실에서만 만듭니다. 이 제도에 대해 실제로 참인 것:
-     · 신청은 1년에 한 번뿐 — 놓치면 다음 기회는 내년 같은 시기
-     · 선정은 지자체 예산 범위에서 순위대로 — 신청하지 않으면 확률은 0
-     · 매년 재신청 필수 (자동 연장 없음)
-   거짓으로 만들지 않는 것: 선착순, 잔여 자리 수, 확정되지 않은 일정의 단정.
-   신청기간이 아직 공고 전(applyPeriodConfirmed=false)이면 "(예상)"을 반드시 붙입니다.
-
-   시기에 따라 강도가 달라집니다 — 실제 상황과 어긋난 긴박감을 주지 않기 위해서입니다.
-     before : 신청까지 D-n · 할 수 있는 행동은 "잊지 않게 캘린더에 넣기"
-     during : 지금이 신청 기간 · 할 수 있는 행동은 "바로 신청하기"(공식 사이트)
-     after  : 올해는 마감 · 다음 기회 안내 + 내년 알림 등록                       */
-function buildApplyUrgencyHtml(){
+/* 신청 시기를 한 줄로 — 별도 카드를 만들면 정작 주인공인 "0원·199개"의 힘을 뺏습니다.
+   그래서 히어로 카드 맨 아래 각주처럼 붙입니다. 없는 급함은 만들지 않고,
+   실제로 참인 것(연 1회뿐)만 씁니다. 공고 전이면 "(예상)"을 붙입니다. */
+function applyUrgencyLine(){
   if(!spooConfig || !spooConfig.applyPeriod) return '';
-  const cfg = spooConfig;
-  const MS_DAY = 24*60*60*1000;
+  const cfg = spooConfig, MS_DAY = 86400000;
   const today = new Date(localDateStr() + 'T00:00:00');
   const start = new Date(cfg.applyPeriod.start + 'T00:00:00');
   const end   = new Date(cfg.applyPeriod.end   + 'T00:00:00');
-  const confirmed = cfg.applyPeriodConfirmed !== false;
-
-  const isKo = (currentLang === 'ko' || !currentLang);
-  const fmt = (iso) => { const [,m,d] = iso.split('-');
-    return isKo ? `${parseInt(m)}월 ${parseInt(d)}일` : `${parseInt(m)}/${parseInt(d)}`; };
-  // 같은 달이면 뒤쪽 월 표기를 생략합니다 — "11월 10일~11월 28일"은 군더더기라
-  // 좁은 화면에서 줄바꿈만 늘립니다. ("11월 10일~28일")
+  const guess = cfg.applyPeriodConfirmed !== false ? '' : ' ' + t('urg_guess','(예상)');
   const [, sM, sD] = cfg.applyPeriod.start.split('-');
   const [, eM, eD] = cfg.applyPeriod.end.split('-');
-  const period = (sM === eM)
-    ? (isKo ? `${parseInt(sM)}월 ${parseInt(sD)}일~${parseInt(eD)}일` : `${parseInt(sM)}/${parseInt(sD)}–${parseInt(eD)}`)
-    : `${fmt(cfg.applyPeriod.start)}~${fmt(cfg.applyPeriod.end)}`;
-  const guess = confirmed ? '' : ' ' + t('urg_guess','(예상)');
-  const nextYear = start.getFullYear() + 1;
+  const isKo = (currentLang === 'ko' || !currentLang);
+  // 각주는 한 줄 안에 들어와야 히어로(0원·개수)의 자리를 빼앗지 않습니다 —
+  // 그래서 "11월 10일~28일" 대신 "11.10~11.28"처럼 짧게 씁니다. (2026-09-17)
+  const period = isKo ? `${+sM}.${+sD}~${+eM}.${+eD}` : `${+sM}/${+sD}–${+eM}/${+eD}`;
 
-  let state, big, lead, sub, actions;
+  const periodTxt = period + guess; // "(예상)"은 기간 바로 뒤에 붙여야 무엇이 미확정인지 분명합니다
 
-  if(today > end){
-    // 올해 접수는 끝남 — 조급하게 만들 이유가 없으므로 담담하게, 다음 기회만 알려줍니다
-    state = 'done';
-    big  = t('urg_done_big', '올해 신청은 마감됐어요');
-    lead = t('urg_done_lead', '다음 신청은 {year}년 같은 시기예요').replace('{year}', nextYear);
-    sub  = t('urg_done_sub', '미리 알림을 걸어두면 내년엔 놓치지 않아요');
-    actions = `<button class="urg-btn urg-btn-line" onclick="openCalendarSheet()">${t('urg_btn_remind','📅 내년 신청일 알림 받기')}</button>`;
-  } else if(today >= start){
-    // 진짜로 지금이 기회 — 여기서만 가장 강한 표현과 공식 사이트 바로가기를 씁니다
+  if(today > end)   return '🗓 ' + t('urg_line_done','올해 신청은 마감됐어요 · 다음은 내년 이맘때예요');
+  if(today >= start){
     const dLeft = Math.round((end - today) / MS_DAY);
-    state = 'now';
-    big  = dLeft <= 0 ? t('urg_now_last','오늘이 마지막 날이에요')
-                      : t('urg_now_big','지금 신청 기간이에요');
-    lead = dLeft <= 0 ? t('urg_now_last_lead','오늘 안에 신청해야 해요')
-                      : t('urg_now_lead','마감까지 {n}일 남았어요').replace('{n}', dLeft);
-    sub  = t('urg_now_sub', '{period} · 1년에 한 번뿐인 기회예요').replace('{period}', period) + guess;
-    actions = `<button class="urg-btn urg-btn-solid" onclick="window.open('https://svoucher.kspo.or.kr','_blank','noopener')">${t('urg_btn_apply','지금 바로 신청하기 →')}</button>
-      <button class="urg-btn urg-btn-line" onclick="goToStep(1)">${t('urg_btn_docs','필요한 서류 확인하기')}</button>`;
-  } else {
-    // 아직 기간 전 — 없는 급함을 만들지 않고, 진짜 사실(연 1회)로 행동을 만듭니다
-    const dUntil = Math.round((start - today) / MS_DAY);
-    state = 'before';
-    big  = `D-${dUntil}`;
-    lead = t('urg_before_lead', '신청은 1년에 딱 한 번, {period}이에요').replace('{period}', period) + guess;
-    sub  = t('urg_before_sub', '이번을 놓치면 다음 기회는 {year}년 11월이에요 — 지금 알림을 걸어두세요').replace('{year}', nextYear);
-    actions = `<button class="urg-btn urg-btn-solid" onclick="openCalendarSheet()">${t('urg_btn_cal','📅 신청일 잊지 않게 캘린더에 넣기')}</button>
-      <button class="urg-btn urg-btn-line" onclick="goToStep(1)">${t('urg_btn_docs','필요한 서류 확인하기')}</button>`;
+    return dLeft <= 0
+      ? `🔥 <b>${t('urg_line_last','오늘이 신청 마지막 날이에요')}</b>`
+      : `🔥 <b>${t('urg_line_now','지금 신청 기간 · 마감까지 {n}일').replace('{n}', dLeft)}</b> · ~${+eM}.${+eD}${guess}`;
   }
-
-  return `
-    <div class="s2c-urgency urg-${state}">
-      <div class="urg-top">
-        <span class="urg-badge">${t('urg_badge','신청 안내')}</span>
-        <span class="urg-big">${escapeHtml(big)}</span>
-      </div>
-      <div class="urg-lead">${lead}</div>
-      <div class="urg-sub">${sub}</div>
-      <div class="urg-actions">${actions}</div>
-    </div>`;
+  const dUntil = Math.round((start - today) / MS_DAY);
+  // "1년에 딱 한 번뿐이에요"는 아래 '더 많은 정보 보기' 안내문에 그대로 있습니다 —
+  // 각주에서 빼면 두 줄이 한 줄이 되고, 그만큼 히어로가 스크롤 없이 한 화면에 들어옵니다.
+  return `⏰ <b>${t('urg_line_dday','신청까지 D-{n}').replace('{n}', dUntil)}</b> · ${periodTxt}`;
 }
 
+/* 2단계의 주인공 카드.
+   [2026-09-16 재설계] 예전엔 "199개"만 크게 띄우고 "0원"이라는 사실은 오른쪽 위에
+   작은 글씨로 흘려보냈습니다. 부모가 가장 알고 싶은 건 개수가 아니라 "얼마 드는데?"라
+   그 답(0원)을 화면에서 가장 큰 요소로 올리고, 실제 수강료 중앙값을 취소선으로 함께 보여
+   "원래 이만큼인데 내 돈은 0원"이 한눈에 읽히게 했습니다. 중앙값은 이 지역 0원 강좌들의
+   실제 결제금액에서 계산합니다 — 지어낸 숫자가 아닙니다. */
 function budgetSummaryHtml(sum, facCount){
+  const urg = applyUrgencyLine();
+  const urgHtml = urg ? `<div class="fh-urg">${urg}</div>` : '';
+
+  if(!sum.free){
+    // 0원 강좌가 없는 지역 — 없는 걸 있는 척하지 않고, 대신 가장 싼 선택지로 안내합니다
+    return `
+      <div class="s2c-free-hero fh-none">
+        <div class="fh-region">${escapeHtml(s2RegionLabel)}</div>
+        <div class="fh-count">${t('fh_none_title','이 동네엔 0원 강좌가 아직 없어요')}</div>
+        <div class="fh-fac">${t('fh_none_sub','이용권을 쓰면 수강료가 크게 줄어드는 강좌는 있어요')}</div>
+        <button class="fh-cta" onclick="applyBudgetChip('under3')">${t('fh_none_cta','부담 적은 강좌부터 보기 →')}</button>
+        ${urgHtml}
+      </div>
+      ${budgetChipsHtml(sum)}`;
+  }
+
+  const strike = sum.freeMedian
+    ? `<div class="fh-strike"><s>${t('fh_strike','보통 월 {amt}원').replace('{amt}', sum.freeMedian.toLocaleString())}</s></div>`
+    : '';
+
   return `
-    <div class="s2c-budget-hero">
-      <div class="s2c-budget-num">${sum.free.toLocaleString()}<span>개</span></div>
-      <div class="s2c-budget-sub">${sum.freeFac.toLocaleString()}개 시설의 강좌, 수강료가 이용권으로 전액 처리돼요</div>
+    <div class="s2c-free-hero">
+      <div class="fh-region">${escapeHtml(s2RegionLabel)}</div>
+      ${strike}
+      <div class="fh-zero">${t('fh_zero_pre','내 돈')} <b>0${t('fh_won','원')}</b></div>
+      <div class="fh-count">${t('fh_count','이런 강좌가 <b>{n}개</b>').replace('{n}', sum.free.toLocaleString())}</div>
+      <div class="fh-fac">${t('fh_fac','우리 동네 {f}개 시설에서 열려요').replace('{f}', sum.freeFac.toLocaleString())}</div>
+      <button class="fh-cta" onclick="applyBudgetChip('free')">${t('fh_cta','0원 강좌 {n}개 보러가기 →').replace('{n}', sum.free.toLocaleString())}</button>
+      ${urgHtml}
     </div>
+    ${budgetChipsHtml(sum)}`;
+}
+
+/* 가격대 칩 — 히어로가 "0원"을 말하고 나면, 그 밖의 선택지를 여기서 보여줍니다. */
+function budgetChipsHtml(sum){
+  return `
     <div class="budget-chips">
       <button class="bchip" onclick="applyBudgetChip('free')"><span class="bchip-label">무료</span><span class="bchip-num">${sum.free.toLocaleString()}</span></button>
       <button class="bchip" onclick="applyBudgetChip('under3')"><span class="bchip-label">3만원 이하</span><span class="bchip-num">${sum.u3.toLocaleString()}</span></button>
       <button class="bchip" onclick="applyBudgetChip('under5')"><span class="bchip-label">5만원 이하</span><span class="bchip-num">${sum.u5.toLocaleString()}</span></button>
       <button class="bchip" onclick="applyBudgetChip('__all__')"><span class="bchip-label">전체 강좌</span><span class="bchip-num">${sum.total.toLocaleString()}</span></button>
-    </div>
-    <div class="s2c-caption">예산을 누르면 그 가격대 강좌만 골라서 보여드려요</div>`;
+    </div>`;
 }
 
+let s2RegionLabel = '';   // 히어로 카드 안에 표시할 '시도 시군구'
 let __budgetTimer = null;
 function renderRegionBudget(facilities){
   const box = document.getElementById('regionBudgetBox');
@@ -3324,23 +3321,16 @@ async function onRegionClick(code, row){
         .replace('{new}', escapeHtml(newDistricts.join('·')))}</div>`
     : '';
 
+  // 지역명은 히어로 카드 안(.fh-region)으로 들어갑니다 — 한 화면에 담기 위해 바깥 헤더행을 없앴습니다.
+  // 응원 문구·담당자 링크도 "더 많은 정보 보기" 안으로 옮겨 index.html에 고정으로 두었습니다.
+  s2RegionLabel = `${row.sido} ${row.region}`;
   document.getElementById('regionStatsCard').innerHTML = `
-    <div class="s2c-header-row">
-      <span class="s2c-header-region">${row.sido} ${row.region}</span>
-      <span class="s2c-header-label">0원으로 들을 수 있는 강좌</span>
-    </div>
     ${ruralBannerHtml}
     ${reorgHintHtml}
     <div id="regionBudgetBox"></div>
-    <div class="s2c-cheer">✅ ${t('s2c_cheer','신청해도 손해볼 건 없어요')}</div>
-    <div class="s2c-cheer-sub">${t('s2c_cheer_sub','선정은 지자체 예산·순위에 따라 달라질 수 있어요')}</div>
-    ${buildApplyUrgencyHtml()}
-    <div class="s2c-minor-link" onclick="openRegionView()">📊 지역별 수급 통계·순위가 필요하신 담당자는 이곳에서 →</div>
   `;
   renderRegionBudget(facilities);
   renderTopPicksScreen(facilities);
-  const toStep3Btn = document.getElementById('toStep3Btn');
-  if(toStep3Btn) toStep3Btn.style.display = 'block';
 
   // ---- 3단계: 시설 찾기 카드 ----
   document.getElementById('regionFacilityCard').innerHTML = `
