@@ -348,14 +348,14 @@
   "urg_line_now": "Đang mở đăng ký · còn {n} ngày",
   "urg_line_last": "Hôm nay là ngày cuối để đăng ký",
   "urg_line_done": "Đợt năm nay đã kết thúc · đợt sau vào khoảng này năm sau",
-  "fh_strike": "thường là {amt} won mỗi tháng",
+  "fh_strike": "thường {amt} won/tháng",
   "fh_zero_pre": "Bạn trả",
   "fh_won": " won",
-  "fh_count": "và có <b>{n}</b> lớp như vậy",
+  "fh_count": "<b>{n}</b> lớp như vậy",
   "fh_fac": "tại {f} cơ sở gần bạn",
   "fh_cta": "Xem {n} lớp miễn phí →",
   "fh_none_title": "Khu vực này chưa có lớp miễn phí hoàn toàn",
   "fh_none_sub": "Nhưng phiếu vẫn giảm được rất nhiều cho các lớp khác",
   "fh_none_cta": "Xem các lớp ít tốn kém nhất →",
-  "urg_line_dday": "Còn D-{n} đến kỳ đăng ký"
+  "urg_line_dday": "Còn {n} ngày đến kỳ đăng ký"
 }
