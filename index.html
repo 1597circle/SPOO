@@ -648,6 +648,14 @@
       <span class="wp-choice-emoji">📋</span>
       <span class="wp-choice-text"><b data-i18n="wp_return_docs_title">신청서류 알아보기</b><span data-i18n="wp_return_docs_sub">필요한 서류를 체크리스트로 확인해요</span></span>
     </button>
+    <button class="wp-choice" onclick="wpOpenProgress()">
+  <span class="wp-choice-emoji">📊</span>
+  <span class="wp-choice-text"><b data-i18n="wp_progress_title">이용 진행 상황 보기</b><span data-i18n="wp_progress_sub">지금까지 어디까지 했는지 확인해요</span></span>
+</button>
+<button class="wp-choice" onclick="wpOpenNotifSettings()">
+  <span class="wp-choice-emoji">🔔</span>
+  <span class="wp-choice-text"><b data-i18n="wp_notif_title">알림 설정하기</b><span data-i18n="wp_notif_sub">신청·결제 마감을 놓치지 않게 알려드려요</span></span>
+</button>
     <div style="border-top:1px dashed var(--line); margin:10px 0 8px;"></div>
     <button class="wp-choice" style="opacity:.75; padding:12px 16px;" onclick="wpGoToOperatorPage()">
       <span class="wp-choice-emoji" style="font-size:18px;">🏢</span>
@@ -810,3 +818,31 @@
      현재 안내 말풍선은 app.js의 showCoachmark()가 필요할 때 직접 만들어 씁니다. -->
 </body>
 </html>
+<!-- 「알림 설정」— 신청기간·결제마감·매달 이용 알림을 켜고 끄는 화면 -->
+<div class="region-view-overlay" id="notifSettingsOverlay">
+  <div class="region-view-panel">
+    <div class="region-view-header">
+      <div>
+        <div class="region-view-title" data-i18n="notif_settings_title">🔔 알림 설정</div>
+        <div class="region-view-sub" data-i18n="notif_settings_sub">신청 기간과 결제 마감을 SPOO가 대신 챙겨드려요</div>
+      </div>
+      <button class="course-modal-close" onclick="closeNotifSettings()">✕</button>
+    </div>
+    <div id="notifSettingsContent" style="margin-top:16px; display:flex; flex-direction:column; gap:14px;"></div>
+  </div>
+</div>
+
+<!-- 「이용 진행 체크리스트」— 자가진단→서류준비→신청→카드발급/결제 4단계 진행 상황 -->
+<div class="region-view-overlay" id="progressViewOverlay">
+  <div class="region-view-panel">
+    <div class="region-view-header">
+      <div>
+        <div class="region-view-title" data-i18n="progress_view_title">📊 이용 진행 상황</div>
+        <div class="region-view-sub" data-i18n="progress_view_sub">지금까지 어디까지 하셨는지 한눈에 확인해요</div>
+      </div>
+      <button class="course-modal-close" onclick="closeProgressChecklist()">✕</button>
+    </div>
+    <div id="progressViewContent" style="margin-top:16px;"></div>
+  </div>
+</div>
+
