@@ -348,7 +348,7 @@
   "urg_line_now": "正在申请期间 · 还剩{n}天",
   "urg_line_last": "今天是申请的最后一天",
   "urg_line_done": "今年的申请已结束 · 下次在明年同期",
-  "fh_strike": "原本每月约{amt}韩元",
+  "fh_strike": "原本每月{amt}韩元",
   "fh_zero_pre": "自付",
   "fh_won": "韩元",
   "fh_count": "这样的课程有<b>{n}</b>个",
