@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v26'; // v25→v26: 2단계를 스크롤 없이 한 화면에 — 세로 여백 vh 반응화, 신청 각주 1줄화, 좁은 화면 헤더 1줄 고정
+const CACHE_NAME = 'spoo-v27'; // v25→v26: 2단계를 스크롤 없이 한 화면에 — 세로 여백 vh 반응화, 신청 각주 1줄화, 좁은 화면 헤더 1줄 고정
 const CORE_FILES = [
   './index.html',
   './style.css',
@@ -94,3 +94,26 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+﻿/* ============================================================================
+   SPOO 기능 추가 — service-worker.js 맨 끝에 붙여넣으세요.
+   ============================================================================
+   알림을 탭했을 때 이미 열려있는 SPOO 탭이 있으면 그 탭으로 포커스를 옮기고,
+   없으면 새로 엽니다. (선택 사항 — 없어도 알림 자체는 뜹니다. 탭 시 동작만 더 자연스러워짐)
+============================================================================ */
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow('./index.html');
+    })
+  );
+});
+
+/* 참고 — 백그라운드에서 완전히 앱이 꺼져 있을 때도 울리는 "진짜" 예약 알림(Periodic
+   Background Sync)은 Chrome/Edge(설치된 PWA, 데스크톱·안드로이드)에서만 부분 지원되고
+   iOS Safari는 지원하지 않습니다. 브라우저 지원이 일관적이지 않고 별도 등록/권한 흐름이
+   필요해 이번 1차 구현에서는 포함하지 않았습니다. 필요해지면 별도로 검토해주세요:
+   https://developer.mozilla.org/en-US/docs/Web/API/Web_Periodic_Background_Synchronization_API */
