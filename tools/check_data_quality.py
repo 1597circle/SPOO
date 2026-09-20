@@ -30,7 +30,7 @@ os.chdir(ROOT)
 # ── 기준선 (2026-08-28 실측값 기준) ───────────────────────────────
 BASELINE = {
     "region_count": 229,
-    "min_coord_coverage_pct": 51.0,   # 실측 51.9% — 이보다 떨어지면 실패
+    "min_coord_coverage_pct": 95.0,   # 실측 98.2% — 이보다 떨어지면 실패 (2026-09-19 51.0→95.0 상향: 지오코딩 보강 완료 반영)
     "min_course_join_pct": 97.0,      # 실측 98.0%
     "max_duplicate_courses": 1500,    # 실측 1,442행
     "max_duplicate_facilities": 20,   # 실측 16건

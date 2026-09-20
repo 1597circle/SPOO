@@ -27,7 +27,7 @@
   ⚠️ 여기에 네이버클라우드 콘솔에서 발급받은 Client ID를 넣으세요.
   파라미터 이름은 최신 버전 기준 ncpKeyId 입니다 (예전 문서엔 ncpClientId).
 ============================================================= -->
-<script src="naver-auth-handler.js?v=20260917"></script>
+<script src="naver-auth-handler.js?v=20260919"></script>
 <!-- 아래 외부 스크립트 5개는 defer를 붙여 첫 화면 그리기를 막지 않게 합니다.
      defer는 문서 순서대로 실행되므로 (인증 핸들러 → 네이버지도 → 나머지) 동작 순서는 그대로입니다. -->
 <script src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=414ow9gvoj&submodules=geocoder" defer></script>
@@ -40,7 +40,7 @@
 
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
 
-<link rel="stylesheet" href="style.css?v=20260917">
+<link rel="stylesheet" href="style.css?v=20260919">
 </head>
 <body>
 
@@ -71,7 +71,7 @@
     <!-- 이 문구는 평소 config.json 값으로 덮어써집니다. 아래 글자는 config.json을 못 읽었을 때만
          보이는 예비 문구인데, 예전엔 "2025.7"로 1년 지난 값이 박혀 있었습니다.
          config.json의 dataUpdatedAt을 고칠 땐 이 줄도 같은 값으로 맞춰주세요. -->
-    <span class="tag" id="headerConfigTag">전국 229개 지역 · 2026-07 기준</span>
+    <span class="tag" id="headerConfigTag">전국 229개 지역 · 2026-06 기준</span>
   </div>
 </header>
 
@@ -648,14 +648,6 @@
       <span class="wp-choice-emoji">📋</span>
       <span class="wp-choice-text"><b data-i18n="wp_return_docs_title">신청서류 알아보기</b><span data-i18n="wp_return_docs_sub">필요한 서류를 체크리스트로 확인해요</span></span>
     </button>
-    <button class="wp-choice" onclick="wpOpenProgress()">
-  <span class="wp-choice-emoji">📊</span>
-  <span class="wp-choice-text"><b data-i18n="wp_progress_title">이용 진행 상황 보기</b><span data-i18n="wp_progress_sub">지금까지 어디까지 했는지 확인해요</span></span>
-</button>
-<button class="wp-choice" onclick="wpOpenNotifSettings()">
-  <span class="wp-choice-emoji">🔔</span>
-  <span class="wp-choice-text"><b data-i18n="wp_notif_title">알림 설정하기</b><span data-i18n="wp_notif_sub">신청·결제 마감을 놓치지 않게 알려드려요</span></span>
-</button>
     <div style="border-top:1px dashed var(--line); margin:10px 0 8px;"></div>
     <button class="wp-choice" style="opacity:.75; padding:12px 16px;" onclick="wpGoToOperatorPage()">
       <span class="wp-choice-emoji" style="font-size:18px;">🏢</span>
@@ -667,7 +659,7 @@
 </div>
 
 
-<script src="app.js?v=20260917"></script>
+<script src="app.js?v=20260919"></script>
 <div class="course-modal-overlay" id="courseModalOverlay" onclick="if(event.target===this) closeCourseDetail()">
   <div class="course-modal">
     <button class="course-modal-close" onclick="closeCourseDetail()">✕</button>
@@ -818,31 +810,3 @@
      현재 안내 말풍선은 app.js의 showCoachmark()가 필요할 때 직접 만들어 씁니다. -->
 </body>
 </html>
-<!-- 「알림 설정」— 신청기간·결제마감·매달 이용 알림을 켜고 끄는 화면 -->
-<div class="region-view-overlay" id="notifSettingsOverlay">
-  <div class="region-view-panel">
-    <div class="region-view-header">
-      <div>
-        <div class="region-view-title" data-i18n="notif_settings_title">🔔 알림 설정</div>
-        <div class="region-view-sub" data-i18n="notif_settings_sub">신청 기간과 결제 마감을 SPOO가 대신 챙겨드려요</div>
-      </div>
-      <button class="course-modal-close" onclick="closeNotifSettings()">✕</button>
-    </div>
-    <div id="notifSettingsContent" style="margin-top:16px; display:flex; flex-direction:column; gap:14px;"></div>
-  </div>
-</div>
-
-<!-- 「이용 진행 체크리스트」— 자가진단→서류준비→신청→카드발급/결제 4단계 진행 상황 -->
-<div class="region-view-overlay" id="progressViewOverlay">
-  <div class="region-view-panel">
-    <div class="region-view-header">
-      <div>
-        <div class="region-view-title" data-i18n="progress_view_title">📊 이용 진행 상황</div>
-        <div class="region-view-sub" data-i18n="progress_view_sub">지금까지 어디까지 하셨는지 한눈에 확인해요</div>
-      </div>
-      <button class="course-modal-close" onclick="closeProgressChecklist()">✕</button>
-    </div>
-    <div id="progressViewContent" style="margin-top:16px;"></div>
-  </div>
-</div>
-
