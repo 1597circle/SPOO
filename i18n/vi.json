@@ -357,5 +357,6 @@
   "fh_none_title": "Khu vực này chưa có lớp miễn phí hoàn toàn",
   "fh_none_sub": "Nhưng phiếu vẫn giảm được rất nhiều cho các lớp khác",
   "fh_none_cta": "Xem các lớp ít tốn kém nhất →",
-  "urg_line_dday": "Còn {n} ngày đến kỳ đăng ký"
+  "urg_line_dday": "Còn {n} ngày đến kỳ đăng ký",
+  "footer_data_src": "Nguồn dữ liệu: Dữ liệu sử dụng phiếu thể thao theo khu vực của KSPO (bản 202607, tải ngày 2026-09-01) · Thông tin lớp học và cơ sở đăng ký (thu thập 2026-08)"
 }
