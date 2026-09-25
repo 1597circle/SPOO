@@ -872,6 +872,23 @@
   .chip:hover{background:var(--gray-bg);}
   .chip.active{background:var(--navy-gradient); border-color:var(--navy); color:#fff;}
 
+  /* 칩 한 줄 가로 넘기기 — 줄바꿈으로 화면을 잡아먹지 않게 한 줄에 두고,
+     끌거나(PC) 밀어서(모바일) 넘겨 봅니다. 오른쪽 끝은 흐려져 더 있다는 신호가 됩니다. */
+  .chip-scroller{
+    display:flex; gap:6px; margin-bottom:10px; flex-wrap:nowrap;
+    overflow-x:auto; overflow-y:hidden; scrollbar-width:none; -ms-overflow-style:none;
+    -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity; padding:2px 2px 4px; margin-left:-2px; margin-right:-2px;
+    cursor:grab; touch-action:pan-x;
+    -webkit-mask-image:linear-gradient(to right, #000 0, #000 calc(100% - 26px), transparent 100%);
+    mask-image:linear-gradient(to right, #000 0, #000 calc(100% - 26px), transparent 100%);
+  }
+  .chip-scroller::-webkit-scrollbar{display:none;}
+  .chip-scroller.dragging{cursor:grabbing;}
+  .chip-scroller.dragging .chip{pointer-events:none;}
+  .chip-scroller .chip{flex:0 0 auto; scroll-snap-align:start; white-space:nowrap; user-select:none;}
+  @media (prefers-reduced-motion:no-preference){ .chip-scroller{scroll-behavior:smooth;} }
+
   .filter-row{display:flex; gap:8px; margin-bottom:12px;}
   .filter-open-btn{
     display:inline-flex; align-items:center; gap:6px; padding:11px 17px; border:1.5px solid var(--line);
@@ -1310,116 +1327,3 @@ header h1 .brand{
   .fh-none .fh-count{font-size:var(--fs-h3);}
 
   @media (prefers-reduced-motion: reduce){ .fh-cta:hover{transform:none;} }
-/* ============================================================================
-   SPOO 기능 추가 — style.css 맨 끝에 이 블록 전체를 붙여넣으세요.
-   기존 --blue/--red/--mint/--ink/--line 등 변수를 그대로 재사용합니다.
-============================================================================ */
-
-/* ---- ① 알림 설정 화면 ---- */
-.notif-card{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:14px 16px;
-}
-.notif-card-row{
-  display:flex;
-  align-items:flex-start;
-  gap:12px;
-}
-.notif-card-icon{
-  width:36px; height:36px; border-radius:10px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:17px; flex-shrink:0;
-}
-.notif-icon-blue{background:var(--blue-soft);}
-.notif-icon-red{background:var(--red-soft);}
-.notif-icon-mint{background:var(--mint-soft);}
-
-.notif-card-text{flex:1; min-width:0;}
-.notif-card-title{font-size:var(--fs-label); font-weight:800; color:var(--ink);}
-.notif-card-sub{font-size:var(--fs-caption); color:var(--ink-faint); margin-top:3px; line-height:1.5;}
-
-.notif-switch{
-  position:relative; flex-shrink:0;
-  width:44px; height:26px;
-}
-.notif-switch input{
-  position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer;
-}
-.notif-switch span{
-  position:absolute; inset:0;
-  background:#D8DCE2; border-radius:14px;
-  transition:background .15s ease;
-  pointer-events:none; /* 클릭이 항상 아래 input으로 그대로 전달되게 함 — 겉보기엔 같지만 더 안전함 */
-}
-.notif-switch span::before{
-  content:''; position:absolute; top:2px; left:2px;
-  width:22px; height:22px; border-radius:50%; background:#fff;
-  box-shadow:0 1px 3px rgba(0,0,0,.25);
-  transition:transform .15s ease;
-}
-.notif-switch input:checked + span{background:var(--blue);}
-.notif-switch input:checked + span::before{transform:translateX(18px);}
-.notif-switch input:focus-visible + span{outline:2px solid var(--blue); outline-offset:2px;}
-
-.notif-chip-row{display:flex; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--paper);}
-.notif-chip{
-  font-size:var(--fs-caption); font-weight:700;
-  padding:7px 13px; border-radius:10px;
-  border:1.5px solid var(--line); background:var(--card); color:var(--ink-faint);
-  cursor:pointer;
-}
-.notif-chip.active{border-color:var(--blue); background:var(--blue-soft); color:var(--blue);}
-
-.notif-note{
-  display:flex; gap:8px;
-  font-size:var(--fs-caption); color:#7A5A1E; line-height:1.6;
-  background:#FFF8EC; border:1px solid #F5E3BE; border-radius:12px;
-  padding:12px 14px;
-}
-
-/* ---- ② 이용 진행 체크리스트 화면 ---- */
-.progress-summary{
-  background:var(--navy-gradient);
-  border-radius:16px;
-  padding:18px 18px;
-  display:flex; flex-direction:column; gap:12px;
-}
-.progress-summary-top{display:flex; align-items:baseline; justify-content:space-between; gap:10px;}
-.progress-summary-title{font-size:var(--fs-h3); font-weight:800; color:#fff;}
-.progress-summary-count{font-size:var(--fs-label); font-weight:700; color:rgba(255,255,255,.85); white-space:nowrap;}
-.progress-bar-track{width:100%; height:8px; border-radius:5px; background:rgba(255,255,255,.28); overflow:hidden;}
-.progress-bar-fill{height:100%; border-radius:5px; background:#fff; transition:width .2s ease;}
-
-.progress-steps{display:flex; flex-direction:column; gap:10px; margin-top:14px;}
-.progress-step{
-  display:flex; gap:12px; align-items:flex-start;
-  background:var(--card); border:1px solid var(--line); border-radius:14px;
-  padding:14px 14px;
-}
-.progress-step.current{border-color:var(--blue);}
-
-.progress-dot{
-  width:26px; height:26px; border-radius:50%; flex-shrink:0; margin-top:1px;
-  border:2px solid var(--line); background:var(--card);
-  color:#fff; font-size:13px; font-weight:800;
-  display:flex; align-items:center; justify-content:center;
-  cursor:pointer; padding:0;
-}
-.progress-step.current .progress-dot{border-color:var(--blue);}
-.progress-step.done .progress-dot{background:var(--blue); border-color:var(--blue);}
-.progress-dot:disabled{cursor:default;}
-
-.progress-step-text{flex:1; min-width:0;}
-.progress-step-title{
-  font-size:var(--fs-label); font-weight:700; color:var(--ink);
-  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-}
-.progress-step.done .progress-step-title{color:var(--ink-faint); text-decoration:line-through;}
-.progress-step-sub{font-size:var(--fs-caption); color:var(--ink-faint); margin-top:3px; line-height:1.5;}
-.progress-badge{
-  font-size:10.5px; font-weight:800; color:var(--blue);
-  background:var(--blue-soft); border-radius:6px; padding:2px 7px;
-  text-decoration:none; display:inline-block;
-}

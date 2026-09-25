@@ -1563,6 +1563,10 @@ function onFilterChange(){
   document.querySelectorAll('#typeChips .chip').forEach(el=>{
     el.classList.toggle('active', el.dataset.type === typeVal);
   });
+  document.querySelectorAll('#costChips .chip').forEach(el=>{
+    el.classList.toggle('active', el.dataset.cost === costVal);
+  });
+  initChipScrollers();
   // 종목 필터를 바꾸면 지도 핀도 그 종목에 맞게 다시 찍어줌
   if(currentStep === 3){
     const filtered = (typeVal !== '__all__')
@@ -2088,13 +2092,56 @@ function updateFilterBadge(){
   else{ badge.style.display = 'none'; }
 }
 
-// 인기 종목 칩 클릭 → 종목 드롭다운과 연동 (다시 누르면 선택 해제)
+// 종목 칩 클릭 → 종목 드롭다운과 연동 (다시 누르면 선택 해제)
 function selectTypeChip(type){
   const sel = document.getElementById('typeFilter');
   if(!sel) return;
-  sel.value = (sel.value === type) ? '__all__' : type;
+  const next = (type === '__all__' || sel.value === type) ? '__all__' : type;
+  sel.value = next;
   facilityListLimit = 5;
   onFilterChange();
+  if(next === '__all__'){ const row = document.getElementById('typeChips'); if(row) row.scrollLeft = 0; }
+}
+
+// 예산(내 돈) 칩 클릭 → 필터 시트의 '내 돈' 드롭다운과 연동
+function selectCostChip(band){
+  const sel = document.getElementById('costFilter');
+  if(!sel) return;
+  const next = (band === '__all__' || sel.value === band) ? '__all__' : band;
+  sel.value = next;
+  facilityListLimit = 5;
+  onFilterChange();
+  if(next === '__all__'){ const row = document.getElementById('costChips'); if(row) row.scrollLeft = 0; }
+}
+
+/* 칩 줄을 마우스로 끌어서 넘기기 — 모바일은 브라우저 기본 스와이프로 이미 넘어가고,
+   PC에서는 가로 스크롤바를 찾아 잡아야 했습니다. 끌고 난 직후의 클릭은 막아
+   "넘기려다 종목이 선택되는" 오작동을 없앴습니다. (2026-09-25) */
+function enableDragScroll(el){
+  if(!el || el.dataset.dragReady === '1') return;
+  el.dataset.dragReady = '1';
+  let down = false, moved = false, startX = 0, startScroll = 0;
+  el.addEventListener('pointerdown', e=>{
+    if(e.pointerType === 'touch') return;      // 터치는 브라우저 기본 스크롤에 맡김
+    down = true; moved = false; startX = e.clientX; startScroll = el.scrollLeft;
+  });
+  el.addEventListener('pointermove', e=>{
+    if(!down) return;
+    const dx = e.clientX - startX;
+    if(Math.abs(dx) > 4){
+      if(!moved){ moved = true; el.classList.add('dragging'); }   // 실제로 끌었을 때만 드래그 상태
+      if(el.setPointerCapture && e.pointerId != null){ try{ el.setPointerCapture(e.pointerId); }catch(_){} }
+    }
+    if(moved){ el.scrollLeft = startScroll - dx; e.preventDefault(); }
+  });
+  const end = ()=>{ down = false; el.classList.remove('dragging'); setTimeout(()=>{ moved = false; }, 0); };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('pointerleave', end);
+  el.addEventListener('click', e=>{ if(moved){ e.preventDefault(); e.stopPropagation(); } }, true);
+}
+function initChipScrollers(){
+  document.querySelectorAll('[data-drag-scroll]').forEach(enableDragScroll);
 }
 
 /* ==================== 공유하기 ====================
@@ -3265,12 +3312,33 @@ async function onRegionClick(code, row){
   const typeOptions = ['<option value="__all__">전체 종목</option>']
     .concat([...allTypes].sort().map(t=>`<option value="${t}">${t}</option>`)).join('');
 
-  // 전국 상위 5개 인기 종목 중, 이 지역에 실제로 있는 것만 칩으로 보여줍니다 (한 번에 눌러 필터링)
-  const POPULAR_TYPES = ['태권도','헬스','필라테스','복싱','기타종목'];
-  const chipTypes = POPULAR_TYPES.filter(t=>allTypes.has(t));
+  // 예산(내 돈) 칩 — 필터 시트를 열지 않고 화면에서 바로 고를 수 있게 합니다.
+  // 구간은 2단계 예산 칩·필터 시트와 동일하게 맞춰 화면끼리 기준이 어긋나지 않게 했습니다. (2026-09-25)
+  const COST_CHIPS = [
+    ['__all__', '💰', t('opt_cost_all', '내 돈 전체')],
+    ['free',    '🎉', t('opt_cost_0',   '내 돈 0원')],
+    ['under3',  '🙂', t('opt_cost_3',   '내 돈 3만원까지')],
+    ['under5',  '👍', t('opt_cost_5',   '내 돈 5만원까지')],
+  ];
+  const costChipsHtml = facilities.length
+    ? `<div class="chip-scroller" id="costChips" data-drag-scroll="1">
+        ${COST_CHIPS.map(([v,e,label])=>`<button class="chip" data-cost="${v}" onclick="selectCostChip('${v}')">${e} ${escapeHtml(label)}</button>`).join('')}
+       </div>`
+    : '';
+
+  // 종목 칩 — 이 지역에 실제로 있는 종목 전부를 시설 수가 많은 순으로 한 줄에 놓고,
+  // 옆으로 끌어서(드래그·스와이프) 넘겨 보도록 했습니다. 5개만 보여주던 이전 방식은
+  // 이 지역에 많은 종목이 칩에 없으면 필터 시트를 열어야 해서 한 단계가 더 들었습니다.
+  const typeCount = new Map();
+  facilities.forEach(f => (f.type||'').split(',').map(x=>x.trim()).filter(Boolean)
+    .forEach(x=>typeCount.set(x, (typeCount.get(x)||0) + 1)));
+  const chipTypes = [...typeCount.entries()]
+    .sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0], 'ko'))
+    .map(([x])=>x);
   const chipsHtml = chipTypes.length
-    ? `<div class="type-chips" id="typeChips">
-        ${chipTypes.map(t=>`<button class="chip" data-type="${t}" onclick="selectTypeChip('${escapeAttr(t)}')">${getSportEmoji(t)} ${t}</button>`).join('')}
+    ? `<div class="chip-scroller" id="typeChips" data-drag-scroll="1">
+        <button class="chip" data-type="__all__" onclick="selectTypeChip('__all__')">🏅 ${escapeHtml(t('opt_all_sports','전체 종목'))}</button>
+        ${chipTypes.map(t2=>`<button class="chip" data-type="${escapeAttr(t2)}" onclick="selectTypeChip('${escapeAttr(t2)}')">${getSportEmoji(t2)} ${escapeHtml(t2)}</button>`).join('')}
        </div>`
     : '';
 
@@ -3287,7 +3355,7 @@ async function onRegionClick(code, row){
     <option value="under5">내 돈 5만원까지</option>`;
 
   const filterHtml = facilities.length
-    ? `${chipsHtml}
+    ? `${costChipsHtml}${chipsHtml}
        <button class="filter-open-btn" id="filterOpenBtn" onclick="openFilterSheet()">🔍 필터 <span id="filterActiveBadge" style="display:none;"></span></button>`
     : '';
 
@@ -3361,6 +3429,10 @@ async function onRegionClick(code, row){
   const sheetTypeFilter = document.getElementById('typeFilter');
   if(sheetTypeFilter) sheetTypeFilter.innerHTML = typeOptions;
   resetFilterSheet();
+  // 새로 그려진 칩 줄에 드래그 넘기기를 붙이고, '전체'를 선택 상태로 둡니다
+  initChipScrollers();
+  document.querySelectorAll('#costChips .chip').forEach(el=>el.classList.toggle('active', el.dataset.cost === '__all__'));
+  document.querySelectorAll('#typeChips .chip').forEach(el=>el.classList.toggle('active', el.dataset.type === '__all__'));
 
   // 지도를 눌러 지역을 고르면(검색·즐겨찾기 포함), 자연스럽게 2단계(우리동네 현황)로 이동
   if(currentStep === 1) goToStep(2);

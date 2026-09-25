@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v29'; // v28→v29: 데이터 기준 표기를 검증 가능한 수집 시점(2026-08)으로 통일
+const CACHE_NAME = 'spoo-v30'; // v29→v30: 3단계 예산·종목 칩 한 줄 가로 넘기기
 const CORE_FILES = [
   './index.html',
   './style.css',
