@@ -357,5 +357,6 @@
   "fh_none_title": "No fully-covered classes here yet",
   "fh_none_sub": "But the voucher still cuts a lot off other classes",
   "fh_none_cta": "See the most affordable classes →",
-  "urg_line_dday": "Applications open in {n} days"
+  "urg_line_dday": "Applications open in {n} days",
+  "footer_data_src": "Data sources: KSPO regional sports voucher usage data (release 202607, downloaded 2026-09-01) · registered courses and facilities (collected 2026-08)"
 }
