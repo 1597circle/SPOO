@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v32'; // v31→v32: 교육급여 순위 안내 보완
+const CACHE_NAME = 'spoo-v33'; // v32→v33: 순위 기준표 문구를 정부24 기준으로 정정
 const CORE_FILES = [
   './index.html',
   './style.css',
