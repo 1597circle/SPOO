@@ -27,7 +27,7 @@
   ⚠️ 여기에 네이버클라우드 콘솔에서 발급받은 Client ID를 넣으세요.
   파라미터 이름은 최신 버전 기준 ncpKeyId 입니다 (예전 문서엔 ncpClientId).
 ============================================================= -->
-<script src="naver-auth-handler.js?v=20260929"></script>
+<script src="naver-auth-handler.js?v=20260930"></script>
 <!-- 아래 외부 스크립트 5개는 defer를 붙여 첫 화면 그리기를 막지 않게 합니다.
      defer는 문서 순서대로 실행되므로 (인증 핸들러 → 네이버지도 → 나머지) 동작 순서는 그대로입니다. -->
 <script src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=414ow9gvoj&submodules=geocoder" defer></script>
@@ -40,7 +40,7 @@
 
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
 
-<link rel="stylesheet" href="style.css?v=20260929">
+<link rel="stylesheet" href="style.css?v=20260930">
 </head>
 <body>
 
@@ -244,7 +244,7 @@
             </div>
           </div>
 
-          <div class="apply-help-item" onclick="goToStep(3)" style="width:100%; cursor:pointer;"><span>가까운 강좌 찾기 →</span> <span>우리 동네 시설·강좌를 지도로 확인</span></div>
+          <div class="apply-help-item" onclick="goToStep(3)" style="width:100%; cursor:pointer;"><span data-i18n="guide_find_near">가까운 강좌 찾기 →</span> <span data-i18n="guide_find_near_sub">우리 동네 시설·강좌를 지도로 확인</span></div>
 
           <div class="s1-tag" style="margin-top:28px;"><span class="dot"></span><span data-i18n="tag_contact">문의처</span></div>
           <a class="apply-help-item" href="tel:1551-0078" style="width:100%;"><span data-i18n="contact_center_label">상담센터</span> 1551-0078 <span data-i18n="contact_center_sub">신청·자격 문의</span></a>
@@ -467,46 +467,46 @@
 
   <!-- 소개 슬라이드 1/3: 서비스 소개 (SPOO_공식기준_검증_반영.pdf 1번 슬라이드) -->
   <div class="wp" id="wpIntro1" style="display:none;">
-    <div class="wp-nav"><span></span><span class="wp-skip" onclick="wpGoTo('All')">건너뛰기</span></div>
+    <div class="wp-nav"><span></span><span class="wp-skip" data-i18n="intro_skip" onclick="wpGoTo('All')">건너뛰기</span></div>
     <div class="wp-intro-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <span class="wp-intro-eyebrow">스포츠강좌이용권</span>
-    <div class="wp-question">우리 아이 스포츠 활동,<br>이제 나라가 함께해요</div>
-    <div class="wp-sub" style="margin-bottom:28px;">기초생활수급·차상위·한부모 가정의 만 5~18세 아이라면<br>수강료 걱정을 덜어드릴 수 있어요</div>
-    <button class="wp-btn wp-btn-primary" style="padding:13px; font-weight:500; font-size:14.5px; margin-bottom:8px;" onclick="wpGoTo('Intro2')">어떻게 받는지 볼래요</button>
-    <button class="wp-btn" style="padding:13px; font-weight:500; font-size:14.5px; border:1.5px solid var(--blue-deep); background:var(--blue-soft); color:var(--blue-deep);" onclick="wpGoTo('All')">30초 만에 지원 대상 확인하기</button>
+    <span class="wp-intro-eyebrow" data-i18n="intro_eyebrow">스포츠강좌이용권</span>
+    <div class="wp-question" data-i18n="intro1_title">우리 아이 스포츠 활동,<br>이제 나라가 함께해요</div>
+    <div class="wp-sub" style="margin-bottom:28px;" data-i18n="intro1_sub">기초생활수급·차상위·한부모 가정의 만 5~18세 아이라면<br>수강료 걱정을 덜어드릴 수 있어요</div>
+    <button class="wp-btn wp-btn-primary" style="padding:13px; font-weight:500; font-size:14.5px; margin-bottom:8px;" data-i18n="intro1_btn_how" onclick="wpGoTo('Intro2')">어떻게 받는지 볼래요</button>
+    <button class="wp-btn" style="padding:13px; font-weight:500; font-size:14.5px; border:1.5px solid var(--blue-deep); background:var(--blue-soft); color:var(--blue-deep);" data-i18n="intro1_btn_check" onclick="wpGoTo('All')">30초 만에 지원 대상 확인하기</button>
   </div>
 
   <!-- 소개 슬라이드 2/3: 혜택 -->
   <div class="wp" id="wpIntro2" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()">← 이전</span><span class="wp-skip" onclick="wpGoTo('All')">건너뛰기</span></div>
+    <div class="wp-nav"><span class="wp-back" data-i18n="btn_prev" onclick="wpBack()">← 이전</span><span class="wp-skip" data-i18n="intro_skip" onclick="wpGoTo('All')">건너뛰기</span></div>
     <div class="wp-intro-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <div class="wp-question" style="font-size:clamp(26px, 5vw, 36px); margin-bottom:28px; font-weight:600;">이렇게 지원받아요</div>
+    <div class="wp-question" style="font-size:clamp(26px, 5vw, 36px); margin-bottom:28px; font-weight:600;" data-i18n="intro2_title">이렇게 지원받아요</div>
     <div class="wp-benefit-list">
       <div class="wp-benefit-item">
         <div class="wb-num">01</div>
-        <div class="wb-body"><div class="wb-title">월 최대 10.5만 원</div><div class="wb-desc">강좌 결제할 때 카드처럼 바로 차감돼요 · 1년이면 최대 126만 원</div></div>
+        <div class="wb-body"><div class="wb-title" data-i18n="intro2_b1_title">월 최대 10.5만 원</div><div class="wb-desc" data-i18n="intro2_b1_desc">강좌 결제할 때 카드처럼 바로 차감돼요 · 1년이면 최대 126만 원</div></div>
       </div>
       <div class="wp-benefit-item">
         <div class="wb-num">02</div>
-        <div class="wb-body"><div class="wb-title">종목은 마음대로</div><div class="wb-desc">수영, 축구, 태권도... 원하는 강좌를 골라요</div></div>
+        <div class="wb-body"><div class="wb-title" data-i18n="intro2_b2_title">종목은 마음대로</div><div class="wb-desc" data-i18n="intro2_b2_desc">수영, 축구, 태권도... 원하는 강좌를 골라요</div></div>
       </div>
       <div class="wp-benefit-item">
         <div class="wb-num">03</div>
-        <div class="wb-body"><div class="wb-title">가까운 곳부터 지도로</div><div class="wb-desc">집 근처 등록 시설만 모아서 보여드려요</div></div>
+        <div class="wb-body"><div class="wb-title" data-i18n="intro2_b3_title">가까운 곳부터 지도로</div><div class="wb-desc" data-i18n="intro2_b3_desc">집 근처 등록 시설만 모아서 보여드려요</div></div>
       </div>
     </div>
-    <button class="wp-btn wp-btn-primary" style="margin-top:30px;" onclick="wpGoTo('Intro3')">우리 집도 되는지 볼래요</button>
+    <button class="wp-btn wp-btn-primary" style="margin-top:30px;" data-i18n="intro2_btn" onclick="wpGoTo('Intro3')">우리 집도 되는지 볼래요</button>
   </div>
 
   <!-- 소개 슬라이드 3/3: 확인 유도 — '정부24 공식 기준으로 안내해요' 신뢰 문구 포함 -->
   <div class="wp" id="wpIntro3" style="display:none;">
-    <div class="wp-nav"><span class="wp-back" onclick="wpBack()">← 이전</span><span></span></div>
+    <div class="wp-nav"><span class="wp-back" data-i18n="btn_prev" onclick="wpBack()">← 이전</span><span></span></div>
     <div class="wp-intro-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <div class="legend-hint" style="display:inline-block; margin:0 auto 16px; background:none; padding:0;">⏱ 30초면 충분해요 · 정부24 공식 기준으로 안내해요</div>
-    <div class="wp-question" style="font-size:clamp(22px, 4.2vw, 32px);">혹시, 우리 가정도 해당할까요?</div>
-    <div class="wp-sub" style="margin-bottom:26px; font-size:15px;">이름과 나이, 가정형태만 알려주시면<br>대상 여부부터 신청 방법까지<br>한 번에 안내해드려요</div>
-    <button class="wp-btn wp-btn-primary" onclick="wpGoTo('All')">확인하러 가볼까요?</button>
-    <div class="s1-tiny-links"><span style="cursor:default; text-decoration:none;">한 번만 확인하면, 다음에 다시 와도 기억해드릴게요</span></div>
+    <div class="legend-hint" style="display:inline-block; margin:0 auto 16px; background:none; padding:0;" data-i18n="intro3_hint">⏱ 30초면 충분해요 · 정부24 공식 기준으로 안내해요</div>
+    <div class="wp-question" style="font-size:clamp(22px, 4.2vw, 32px);" data-i18n="intro3_title">혹시, 우리 가정도 해당할까요?</div>
+    <div class="wp-sub" style="margin-bottom:26px; font-size:15px;" data-i18n="intro3_sub">이름과 나이, 가정형태만 알려주시면<br>대상 여부부터 신청 방법까지<br>한 번에 안내해드려요</div>
+    <button class="wp-btn wp-btn-primary" data-i18n="intro3_btn" onclick="wpGoTo('All')">확인하러 가볼까요?</button>
+    <div class="s1-tiny-links"><span style="cursor:default; text-decoration:none;" data-i18n="intro3_remember">한 번만 확인하면, 다음에 다시 와도 기억해드릴게요</span></div>
   </div>
 
   <!-- 통합 페이지 1/2: 이름·생년월일·지역 -->
@@ -660,7 +660,7 @@
 </div>
 
 
-<script src="app.js?v=20260929"></script>
+<script src="app.js?v=20260930"></script>
 <div class="course-modal-overlay" id="courseModalOverlay" onclick="if(event.target===this) closeCourseDetail()">
   <div class="course-modal">
     <button class="course-modal-close" onclick="closeCourseDetail()">✕</button>

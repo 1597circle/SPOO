@@ -4609,34 +4609,34 @@ function renderPriorityNotice(household, priorHistory){
   if(!el) return;
   if(priorHistory === 'unsure' || !household){ el.innerHTML = ''; return; }
 
+  // 2026-09-28: 다국어 적용 — 문구는 i18n 키(prio_*)로 불러오고, 없으면 한국어 원문을 씁니다.
   let tierText = '';
   if(household === 'crime'){
-    tierText = '범죄피해가정은 누적 이용기간과 관계없이 <b>우선선정</b> 대상이에요. 자세한 내용은 지자체에 문의해주세요.';
+    tierText = t('prio_crime', '범죄피해가정은 누적 이용기간과 관계없이 <b>우선선정</b> 대상이에요. 자세한 내용은 지자체에 문의해주세요.');
   } else {
     // 공식 선정기준: 순위 경계는 "이용 여부"가 아니라 "누적 이용 30개월"이므로,
     // 재신청자에겐 30개월 미만/이상 두 경우를 모두 안내한다 (30개월 미만 재신청자는 1·2순위).
     const isNew = priorHistory === 'new';
     if(household === 'basic'){
       tierText = isNew
-        ? '일반적으로 <b>1순위</b>에 해당하는 조건이에요.'
-        : '누적 이용 <b>30개월 미만</b>이면 <b>1순위</b>, <b>30개월 이상</b>이면 <b>3순위</b>에 해당하는 조건이에요.';
-      tierText += '<br><span style="font-size:0.9em;">※ 교육급여만 받는 가구는 순위가 다를 수 있어요. 지자체 담당자에게 꼭 확인해주세요.</span>';
+        ? t('prio_basic_new', '일반적으로 <b>1순위</b>에 해당하는 조건이에요.')
+        : t('prio_basic_re', '누적 이용 <b>30개월 미만</b>이면 <b>1순위</b>, <b>30개월 이상</b>이면 <b>3순위</b>에 해당하는 조건이에요.');
+      // 정부24 기준 1·3순위는 생계·의료·주거급여 — 교육급여 단독 가구는 단정하지 않음
+      tierText += '<br><span style="font-size:0.9em;">' + t('guide_priority_edu_note', '※ 교육급여만 받는 가구는 순위가 다를 수 있어요. 지자체 담당자에게 꼭 확인해주세요.') + '</span>';
     } else if(household === 'near' || household === 'single'){
       tierText = isNew
-        ? '일반적으로 <b>2순위</b>에 해당하는 조건이에요.'
-        : '누적 이용 <b>30개월 미만</b>이면 <b>2순위</b>, <b>30개월 이상</b>이면 <b>4순위</b>에 해당하는 조건이에요.';
+        ? t('prio_near_new', '일반적으로 <b>2순위</b>에 해당하는 조건이에요.')
+        : t('prio_near_re', '누적 이용 <b>30개월 미만</b>이면 <b>2순위</b>, <b>30개월 이상</b>이면 <b>4순위</b>에 해당하는 조건이에요.');
     }
   }
   if(!tierText){ el.innerHTML = ''; return; }
 
   el.innerHTML = `
     <div class="priority-notice">
-      <div class="doc-title" style="margin-bottom:6px;">🏅 예상 선정 순위</div>
+      <div class="doc-title" style="margin-bottom:6px;">${t('prio_title', '🏅 예상 선정 순위')}</div>
       <div>${tierText}</div>
       <div class="priority-disclaimer">
-        ※ 스포츠강좌이용권 공식 선정기준(선정순위 · 누적이용기간 · 수급자격)을 바탕으로 한 <b>일반적인 안내</b>예요.
-        실제 선정은 시·군·구청이 지자체 예산 범위 안에서 순위에 따라 진행하므로, 신청자 모두가 선정되는 건 아니에요.
-        정확한 내용은 우리 지역 공고를 꼭 확인해주세요.
+        ${t('prio_disclaimer', '※ 스포츠강좌이용권 공식 선정기준(선정순위 · 누적이용기간 · 수급자격)을 바탕으로 한 <b>일반적인 안내</b>예요. 실제 선정은 시·군·구청이 지자체 예산 범위 안에서 순위에 따라 진행하므로, 신청자 모두가 선정되는 건 아니에요. 정확한 내용은 우리 지역 공고를 꼭 확인해주세요.')}
       </div>
     </div>`;
 }
