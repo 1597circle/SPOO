@@ -4620,6 +4620,7 @@ function renderPriorityNotice(household, priorHistory){
       tierText = isNew
         ? '일반적으로 <b>1순위</b>에 해당하는 조건이에요.'
         : '누적 이용 <b>30개월 미만</b>이면 <b>1순위</b>, <b>30개월 이상</b>이면 <b>3순위</b>에 해당하는 조건이에요.';
+      tierText += '<br><span style="font-size:0.9em;">※ 교육급여만 받는 가구는 순위가 다를 수 있어요. 지자체 담당자에게 꼭 확인해주세요.</span>';
     } else if(household === 'near' || household === 'single'){
       tierText = isNew
         ? '일반적으로 <b>2순위</b>에 해당하는 조건이에요.'
