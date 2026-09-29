@@ -387,5 +387,9 @@
   "prio_basic_re": "<b>Rank 1</b> if total use is <b>under 30 months</b>, <b>rank 3</b> if <b>30 months or more</b>.",
   "prio_near_new": "This generally corresponds to <b>rank 2</b>.",
   "prio_near_re": "<b>Rank 2</b> if total use is <b>under 30 months</b>, <b>rank 4</b> if <b>30 months or more</b>.",
-  "prio_disclaimer": "※ This is <b>general guidance</b> based on the official sports voucher selection criteria (rank, cumulative use, eligibility). Actual selection is made by your city/county/district office by rank within its budget, so not every applicant is selected. Please check your local announcement for details."
+  "prio_disclaimer": "※ This is <b>general guidance</b> based on the official sports voucher selection criteria (rank, cumulative use, eligibility). Actual selection is made by your city/county/district office by rank within its budget, so not every applicant is selected. Please check your local announcement for details.",
+  "autoapply_banner": "🔁 Already receiving the voucher? Agree to 'Auto-application' by {date} and next year's application is done for you (D-{n})",
+  "autoapply_last_day": "🔁 Already receiving the voucher? Today ({date}) is the last day to agree to next year's 'Auto-application'",
+  "autoapply_link": "How to agree ↗",
+  "notice_apply_unconfirmed_tag": " (estimated)"
 }
