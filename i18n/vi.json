@@ -387,5 +387,9 @@
   "prio_basic_re": "<b>Thứ tự 1</b> nếu tổng thời gian sử dụng <b>dưới 30 tháng</b>, <b>thứ tự 3</b> nếu <b>từ 30 tháng trở lên</b>.",
   "prio_near_new": "Thường tương ứng với <b>thứ tự 2</b>.",
   "prio_near_re": "<b>Thứ tự 2</b> nếu tổng thời gian sử dụng <b>dưới 30 tháng</b>, <b>thứ tự 4</b> nếu <b>từ 30 tháng trở lên</b>.",
-  "prio_disclaimer": "※ Đây là <b>hướng dẫn chung</b> dựa trên tiêu chí lựa chọn chính thức (thứ tự ưu tiên, thời gian sử dụng tích lũy, điều kiện). Việc lựa chọn thực tế do chính quyền quận/huyện thực hiện theo thứ tự trong phạm vi ngân sách, nên không phải ai đăng ký cũng được chọn. Vui lòng kiểm tra thông báo của địa phương."
+  "prio_disclaimer": "※ Đây là <b>hướng dẫn chung</b> dựa trên tiêu chí lựa chọn chính thức (thứ tự ưu tiên, thời gian sử dụng tích lũy, điều kiện). Việc lựa chọn thực tế do chính quyền quận/huyện thực hiện theo thứ tự trong phạm vi ngân sách, nên không phải ai đăng ký cũng được chọn. Vui lòng kiểm tra thông báo của địa phương.",
+  "autoapply_banner": "🔁 Bạn đang nhận phiếu hỗ trợ? Đồng ý «Tự động đăng ký» trước {date}, năm sau sẽ được đăng ký tự động (D-{n})",
+  "autoapply_last_day": "🔁 Bạn đang nhận phiếu hỗ trợ? Hôm nay ({date}) là hạn cuối đồng ý «Tự động đăng ký» cho năm sau",
+  "autoapply_link": "Xem cách đồng ý ↗",
+  "notice_apply_unconfirmed_tag": " (dự kiến)"
 }
