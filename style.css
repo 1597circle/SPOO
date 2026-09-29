@@ -751,6 +751,11 @@
   }
   .deadline-banner .db-close{background:none; border:none; font-size:var(--fs-h2); color:var(--blue-deep); cursor:pointer; padding:2px 6px; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;}
 
+  /* ---- 자동신청 동의 안내 배너 (2026-09-29) ---- */
+  .autoapply-banner{background:linear-gradient(90deg, #FFF6E5, #FFEBC7); color:#7A4B00;}
+  .autoapply-banner .db-close{color:#7A4B00;}
+  .autoapply-banner .aa-link{color:#7A4B00; text-decoration:underline; white-space:nowrap; font-weight:800;}
+
   /* ---- 인앱 브라우저 안내 배너 ---- */
   .inapp-banner{
     background:var(--navy-gradient); color:#fff; padding:12px 20px; font-size:var(--fs-label); font-weight:700;

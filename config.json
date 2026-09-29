@@ -1,13 +1,18 @@
 {
   "_comment": "매년 이 파일 값만 갱신하면 됩니다. index.html·app.js 안의 숫자를 직접 찾아 고칠 필요 없습니다.",
   "applyPeriod": {
-    "start": "2026-11-10",
-    "end": "2026-11-28"
+    "start": "2026-11-02",
+    "end": "2026-11-20"
   },
   "applyPeriodConfirmed": false,
   "paymentDeadline": "2026-12-10",
   "voucherMonthlyLimit": 105000,
   "multiMonthPaymentLimit": 315000,
   "dataUpdatedAt": "2026-09",
-  "regionCount": 229
+  "regionCount": 229,
+  "_applyPeriodNote": "2026-09-29 확인: 공식 사이트는 \"매년 11월 중 전국 동시 신청\"만 안내. 시작일은 공단 자동신청 공지(2026-08-31)의 적용 시점 11월 2일 기준, 종료일은 작년 신청기간 길이(19일)로 보수적으로 잡은 예상값. 공식 공고가 나오면 두 날짜를 고치고 applyPeriodConfirmed를 true로.",
+  "autoApply": {
+    "consentDeadline": "2026-10-31",
+    "noticeUrl": "https://svoucher.kspo.or.kr/svoucher/bbs/B0000051/view.do?menuNo=20&topMenuNo=5&nttId=64254"
+  }
 }

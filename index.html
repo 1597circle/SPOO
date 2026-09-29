@@ -116,6 +116,14 @@
   <button class="db-close" id="closeApplyCountdownBanner" aria-label="배너 닫기">✕</button>
 </div>
 
+<!-- 자동신청 동의 안내 (2026-09-29 추가) — 공단이 2026-08-31 도입한 「자동신청 서비스」는
+     동의 기한(config.json autoApply.consentDeadline)까지 동의해야 다음 해 전국 동시신청에 자동 적용됩니다.
+     이미 이용권을 받는 가정이 기한을 놓치지 않도록 기한 전까지만 보여주고, 방법은 공식 공지로 연결합니다. -->
+<div class="deadline-banner autoapply-banner" id="autoApplyBanner" style="display:none;">
+  <span class="aa-body"><span id="autoApplyText"></span> <a id="autoApplyLink" class="aa-link" href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener noreferrer"></a></span>
+  <button class="db-close" id="closeAutoApplyBanner" aria-label="배너 닫기">✕</button>
+</div>
+
 <div class="inapp-banner" id="inappBanner" style="display:none;">
   <span id="inappBannerText" data-i18n="inapp_warn">⚠️ 지금 보고 계신 브라우저에서는 지도가 안 보일 수 있어요</span>
   <button class="ib-install" id="inappOpenBtn" data-i18n="inapp_open" style="display:none;">기본 브라우저로 열기</button>

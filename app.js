@@ -545,9 +545,10 @@ function renderConfigNotices(){
     const suffix = confirmed
       ? t('notice_apply_period_sub','1년에 한 번뿐인 전국 동시 신청 기간이에요.')
       : t('notice_apply_period_unconfirmed','아직 공식 공고 전이라 <b>예상 일정</b>이에요. 추가 모집이 열려 있을 수 있으니 <a href="https://svoucher.kspo.or.kr" target="_blank" rel="noopener">공식 사이트</a>에서 꼭 확인해주세요.');
-    applyEl.innerHTML = `<b>${line}${confirmed ? '' : ' (예상)'}</b> — ${suffix}`;
+    applyEl.innerHTML = `<b>${line}${confirmed ? '' : t('notice_apply_unconfirmed_tag', ' (예상)')}</b> — ${suffix}`; // 2026-09-29: '(예상)'이 다른 언어에서도 한국어로 나오던 것 수정
   }
   renderApplyCountdown(); // 언어를 바꿔도 문구가 그 언어로 다시 그려지게
+  renderAutoApplyBanner(); // 자동신청 동의 기한 안내 (기한이 지나면 자동으로 숨김)
   const payEl = document.getElementById('noticePaymentDeadline');
   if(payEl){
     const line = t('notice_payment_template', '결제는 {date}까지').replace('{date}', fmt(cfg.paymentDeadline));
@@ -615,6 +616,51 @@ document.getElementById('closeApplyCountdownBanner')?.addEventListener('click', 
   if(spooConfig && spooConfig.applyPeriod){
     const todayStr = localDateStr();
     localStorage.setItem(`spoo_hide_countdown_${spooConfig.applyPeriod.start}_${todayStr}`, '1');
+  }
+});
+
+/* ==================== 자동신청 동의 안내 배너 (2026-09-29 추가) ====================
+   공단 공지(2026-08-31): 기한까지 공식 사이트 마이페이지에서 「자동신청 동의」를 해두면 다음 해
+   전국 동시신청 기간에 신청이 자동으로 진행됩니다(선정 절차·우선순위는 동일).
+   - 오늘 ≤ config.json autoApply.consentDeadline 인 동안만 표시, 기한 다음날부터 자동으로 사라짐
+   - 닫기는 카운트다운 배너와 같은 규칙: 그날 하루만 숨김(기한이 다가올수록 다시 보이게)
+   - 링크는 공식 사이트(svoucher.kspo.or.kr) 주소일 때만 사용 — config 오기입으로 외부로 새지 않게 */
+const AUTO_APPLY_OFFICIAL_ORIGIN = 'https://svoucher.kspo.or.kr/';
+function renderAutoApplyBanner(){
+  const banner = document.getElementById('autoApplyBanner');
+  const textEl = document.getElementById('autoApplyText');
+  const linkEl = document.getElementById('autoApplyLink');
+  if(!banner || !textEl || !linkEl) return;
+  const aa = spooConfig && spooConfig.autoApply;
+  if(!aa || !/^\d{4}-\d{2}-\d{2}$/.test(aa.consentDeadline || '')){ banner.style.display = 'none'; return; }
+
+  const todayStr = localDateStr();
+  if(localStorage.getItem(`spoo_hide_autoapply_${aa.consentDeadline}_${todayStr}`)){ banner.style.display = 'none'; return; }
+
+  const MS_DAY = 24*60*60*1000;
+  const dLeft = Math.round((new Date(aa.consentDeadline + 'T00:00:00') - new Date(todayStr + 'T00:00:00')) / MS_DAY);
+  if(dLeft < 0){ banner.style.display = 'none'; return; }
+
+  const [, m, d] = aa.consentDeadline.split('-');
+  const isKo = (currentLang === 'ko' || !currentLang);
+  const dateLabel = isKo ? `${parseInt(m)}월 ${parseInt(d)}일` : `${parseInt(m)}/${parseInt(d)}`;
+  const msg = dLeft === 0
+    ? t('autoapply_last_day', '🔁 이용권 받고 계신가요? 오늘({date})이 내년 「자동신청」 동의 마감일이에요')
+    : t('autoapply_banner', '🔁 이용권 받고 계신가요? {date}까지 「자동신청」에 동의하면 내년 신청이 자동으로 돼요 (D-{n})');
+  textEl.textContent = msg.replace('{date}', dateLabel).replace('{n}', dLeft);
+  linkEl.textContent = t('autoapply_link', '동의 방법 보기 ↗');
+  linkEl.href = (typeof aa.noticeUrl === 'string' && aa.noticeUrl.startsWith(AUTO_APPLY_OFFICIAL_ORIGIN))
+    ? aa.noticeUrl : AUTO_APPLY_OFFICIAL_ORIGIN;
+  banner.style.display = 'flex';
+  // 월별 사용 안내 배너까지 3개가 쌓이지 않도록, 이 배너가 떠 있는 동안은 월별 안내를 접어둡니다
+  const deadlineBanner = document.getElementById('deadlineBanner');
+  if(deadlineBanner) deadlineBanner.style.display = 'none';
+}
+document.getElementById('closeAutoApplyBanner')?.addEventListener('click', ()=>{
+  document.getElementById('autoApplyBanner').style.display = 'none';
+  const aa = spooConfig && spooConfig.autoApply;
+  if(aa && aa.consentDeadline){
+    localStorage.setItem(`spoo_hide_autoapply_${aa.consentDeadline}_${localDateStr()}`, '1');
   }
 });
 
