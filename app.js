@@ -1762,8 +1762,8 @@ function renderRegionView(code){
   // 예전 코드는 부등호가 반대라 정반대로 표시되고 있었습니다. (QA 2026-08-29 지적, 수정)
   const isUrgent = sRank > totalRegions/2;
   const rankPhrase = isUrgent
-    ? '도움이 가장 시급한 지역 중 하나예요.'
-    : '전국 평균보다 비교적 잘 받고 있는 지역이에요.';
+    ? '기초생활수급 가정 수급률이 전국 시군구 중위값보다 낮은 편이에요.'
+    : '기초생활수급 가정 수급률이 전국 시군구 중위값보다 높은 편이에요.';
 
   document.getElementById('rvContent').innerHTML = `
     <div id="rvSaveArea">
@@ -1784,7 +1784,7 @@ function renderRegionView(code){
 
       <div class="rv2-card rv2-card-blue">
         <div class="rv2-card-label">📊 전국에서 비교해보면</div>
-        <div class="rv2-card-headline">${row.region}은 229곳 중 <b>${sRank}위</b>로, ${rankPhrase}</div>
+        <div class="rv2-card-headline">${row.region}${((c)=>{const k=c.charCodeAt(0)-0xAC00;return (k>=0&&k<=11171&&k%28)?'은':'는';})(String(row.region).slice(-1))} ${totalRegions}곳 중 <b>${sRank}위</b>로, ${rankPhrase}</div>
       </div>
 
       <div class="rv2-card rv2-card-mint">
