@@ -1,5 +1,5 @@
 // SPOO 서비스워커 — 앱처럼 설치 가능하게 하고, 기본적인 오프라인 캐싱을 제공합니다.
-const CACHE_NAME = 'spoo-v35'; // v34→v35: 자동신청 동의 안내 배너·신청기간 예상값 갱신 (2026-09-29)
+const CACHE_NAME = 'spoo-v36'; // v35→v36: 개인정보처리방침 수집 항목(이름·생년월일·동네) 고지 보완 (2026-10-02)
 const CORE_FILES = [
   './index.html',
   './style.css',
